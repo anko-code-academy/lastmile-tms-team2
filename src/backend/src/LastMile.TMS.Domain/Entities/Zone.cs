@@ -15,6 +15,8 @@ public class Zone: BaseAuditableEntity
 
     public Depot Depot { get; set; } = null!;
 
+    public ICollection<Parcel> Parcels { get; set; } = new List<Parcel>();
+
     public void UpdateBoundary(Polygon boundary)
     {
         Boundary = boundary;

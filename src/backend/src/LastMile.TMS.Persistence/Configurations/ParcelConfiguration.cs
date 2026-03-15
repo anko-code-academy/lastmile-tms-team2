@@ -86,10 +86,9 @@ public class ParcelConfiguration : IEntityTypeConfiguration<Parcel>
             .HasForeignKey(p => p.RecipientAddressId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // TODO: Uncomment when Zone entity is implemented by Vladimir Egipkin
-        //builder.HasOne(p => p.Zone)
-        //    .WithMany(z => z.Parcels)
-        //    .HasForeignKey(p => p.ZoneId)
-        //    .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.Zone)
+            .WithMany(z => z.Parcels)
+            .HasForeignKey(p => p.ZoneId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

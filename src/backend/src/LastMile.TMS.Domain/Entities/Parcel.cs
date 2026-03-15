@@ -32,9 +32,7 @@ public class Parcel : BaseAuditableEntity
     public ICollection<ParcelContentItem> ContentItems { get; set; } = new List<ParcelContentItem>();
     public ICollection<TrackingEvent> TrackingEvents { get; set; } = new List<TrackingEvent>();
     public ICollection<ParcelWatcher> Watchers { get; set; } = new List<ParcelWatcher>();
-
-    // TODO: Uncomment when Zone entity is implemented by Vladimir Egipkin
-    // public Zone Zone { get; set; }
+    public Zone Zone { get; set; } = null!;
 
     public static string GenerateTrackingNumber()
     {
