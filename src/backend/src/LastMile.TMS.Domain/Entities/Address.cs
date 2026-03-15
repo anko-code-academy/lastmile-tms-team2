@@ -1,5 +1,5 @@
-using System.Drawing;
 using LastMile.TMS.Domain.Common;
+using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Domain.Entities;
 
