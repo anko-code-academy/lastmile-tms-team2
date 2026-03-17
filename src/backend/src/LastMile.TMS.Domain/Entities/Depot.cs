@@ -13,5 +13,7 @@ public class Depot: BaseAuditableEntity
 
     public bool IsActive { get; set; } = true;
 
-    public ICollection<Zone> Zones { get; set; } = new List<Zone>(); 
+    public ICollection<Zone> Zones { get; set; } = new List<Zone>();
+
+    public ICollection<Driver> Drivers { get; set; } = new List<Driver>();
 }

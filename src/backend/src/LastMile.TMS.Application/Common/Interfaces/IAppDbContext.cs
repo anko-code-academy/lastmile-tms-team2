@@ -8,6 +8,7 @@ public interface IAppDbContext
     DbSet<ApplicationUser> Users { get; }
     DbSet<ApplicationRole> Roles { get; }
     DbSet<Permission> Permissions { get; }
+    DbSet<Driver> Drivers { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

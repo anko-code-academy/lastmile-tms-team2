@@ -14,6 +14,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<OperatingHours> DepotOperatingHours => Set<OperatingHours>();
     public DbSet<Zone> Zones => Set<Zone>();
     public DbSet<Permission> Permissions => Set<Permission>();
+    public DbSet<Driver> Drivers => Set<Driver>();
+    public DbSet<DriverAvailability> DriverAvailabilities => Set<DriverAvailability>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
