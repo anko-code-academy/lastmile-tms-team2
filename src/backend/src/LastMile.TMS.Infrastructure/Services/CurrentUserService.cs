@@ -1,14 +1,22 @@
-using System.Security.Claims;
 using LastMile.TMS.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Http;
+using OpenIddict.Abstractions;
 
 namespace LastMile.TMS.Infrastructure.Services;
 
 public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICurrentUserService
 {
     public string? UserId =>
-        httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        httpContextAccessor.HttpContext?.User.FindFirst(OpenIddictConstants.Claims.Subject)?.Value;
 
     public string? UserName =>
-        httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Name);
+        httpContextAccessor.HttpContext?.User.FindFirst(OpenIddictConstants.Claims.Name)?.Value;
+
+    public IReadOnlyList<string> Roles =>
+        httpContextAccessor.HttpContext?.User
+            .FindAll(OpenIddictConstants.Claims.Role)
+            .Select(c => c.Value)
+            .ToList()
+            .AsReadOnly()
+        ?? [];
 }

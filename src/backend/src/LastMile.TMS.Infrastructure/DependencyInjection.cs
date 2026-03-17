@@ -2,6 +2,7 @@ using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OpenIddict.Abstractions;
 
 namespace LastMile.TMS.Infrastructure;
 
@@ -12,7 +13,10 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-        // Configure OpenIddict server (password grant → /connect/token)
+        var accessTokenMinutes = configuration.GetValue("Authentication:AccessTokenLifetimeMinutes", 60);
+        var refreshTokenDays = configuration.GetValue("Authentication:RefreshTokenLifetimeDays", 14);
+
+        // Configure OpenIddict server (password + refresh token grant → /connect/token)
         services.AddOpenIddict()
             .AddServer(options =>
             {
@@ -26,12 +30,19 @@ public static class DependencyInjection
                 // Accept anonymous clients (no client_id required for password flow)
                 options.AcceptAnonymousClients();
 
-                // Use JWT access tokens
+                // Register scopes
+                options.RegisterScopes(OpenIddictConstants.Scopes.OfflineAccess);
+
+                // Token lifetimes
+                options.SetAccessTokenLifetime(TimeSpan.FromMinutes(accessTokenMinutes));
+                options.SetRefreshTokenLifetime(TimeSpan.FromDays(refreshTokenDays));
+
+                // Use ASP.NET Core integration
                 options.UseAspNetCore()
                        .EnableTokenEndpointPassthrough()
                        .DisableTransportSecurityRequirement();
 
-                // Use ephemeral signing/encryption keys (OK for dev; swap for real certs in prod)
+                // Ephemeral signing/encryption keys (dev-only; swap for real certs in prod)
                 options.AddEphemeralEncryptionKey()
                        .AddEphemeralSigningKey()
                        .DisableAccessTokenEncryption(); // plain JWT (not encrypted JWE)
