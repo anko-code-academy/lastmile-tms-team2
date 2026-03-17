@@ -14,7 +14,7 @@ public class Driver : BaseAuditableEntity
 
     // License
     public string LicenseNumber { get; set; } = string.Empty;
-    public DateTimeOffset LicenseExpiryDate { get; set; }
+    public DateTimeOffset? LicenseExpiryDate { get; set; }
 
     // Photo
     public string? PhotoUrl { get; set; }
@@ -39,9 +39,10 @@ public class Driver : BaseAuditableEntity
 
     /// <summary>
     /// Checks whether the driver's license has expired as of the given date.
+    /// Returns false if LicenseExpiryDate is null (unknown).
     /// </summary>
     public bool IsLicenseExpired(DateTimeOffset asOfDate)
     {
-        return LicenseExpiryDate < asOfDate;
+        return LicenseExpiryDate.HasValue && LicenseExpiryDate.Value < asOfDate;
     }
 }
