@@ -1,4 +1,5 @@
 using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Application.Zones.Services;
 using LastMile.TMS.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +13,7 @@ public static class DependencyInjection
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IZoneBoundaryParser, ZoneBoundaryParser>();
 
         var accessTokenMinutes = configuration.GetValue("Authentication:AccessTokenLifetimeMinutes", 60);
         var refreshTokenDays = configuration.GetValue("Authentication:RefreshTokenLifetimeDays", 14);

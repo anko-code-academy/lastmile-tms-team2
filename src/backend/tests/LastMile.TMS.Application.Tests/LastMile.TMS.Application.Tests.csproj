@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\LastMile.TMS.Application\LastMile.TMS.Application.csproj" />
+    <ProjectReference Include="..\..\src\LastMile.TMS.Infrastructure\LastMile.TMS.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
