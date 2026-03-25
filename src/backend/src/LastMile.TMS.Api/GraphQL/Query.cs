@@ -18,11 +18,11 @@ namespace LastMile.TMS.Api.GraphQL;
 public class Query
 {
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
-    public async Task<IReadOnlyList<DepotListItemDto>> GetDepots(
+    public async Task<IReadOnlyList<DepotDto>> GetDepots(
         [Service] ISender mediator = null!,
         CancellationToken cancellationToken = default)
     {
-        return await mediator.Send(new GetDepotsQuery(), cancellationToken);
+        return await mediator.Send(new GetAllDepotsQuery(), cancellationToken);
     }
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]

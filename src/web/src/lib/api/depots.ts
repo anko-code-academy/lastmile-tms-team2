@@ -1,5 +1,8 @@
 import { graphqlRequest } from "@/lib/graphql";
+import { normalizeDepot, serializeDepotOperatingHours } from "@/lib/depot-operating-hours";
 import type { CreateDepotRequest, Depot, UpdateDepotRequest } from "@/types/depots";
+
+type GraphQLDepot = Parameters<typeof normalizeDepot>[0];
 
 const DEPOT_ADDRESS_FIELDS = `
   street1
@@ -34,22 +37,22 @@ const DEPOT_FIELDS = `
 
 export const depotsApi = {
   list: async (): Promise<Depot[]> => {
-    const data = await graphqlRequest<{ depots: Depot[] }>(`
+    const data = await graphqlRequest<{ depots: GraphQLDepot[] }>(`
       query GetDepots { depots { ${DEPOT_FIELDS} } }
     `);
-    return data.depots;
+    return data.depots.map(normalizeDepot);
   },
 
   get: async (id: string): Promise<Depot> => {
-    const data = await graphqlRequest<{ depot: Depot | null }>(`
+    const data = await graphqlRequest<{ depot: GraphQLDepot | null }>(`
       query GetDepot($id: UUID!) { depot(id: $id) { ${DEPOT_FIELDS} } }
     `, { id });
     if (!data.depot) throw new Error("Depot not found");
-    return data.depot;
+    return normalizeDepot(data.depot);
   },
 
   create: async (req: CreateDepotRequest): Promise<Depot> => {
-    const data = await graphqlRequest<{ createDepot: Depot }>(`
+    const data = await graphqlRequest<{ createDepot: GraphQLDepot }>(`
       mutation CreateDepot($input: CreateDepotInput!) {
         createDepot(input: $input) { ${DEPOT_FIELDS} }
       }
@@ -69,11 +72,11 @@ export const depotsApi = {
           phone: req.address.phone ?? null,
           email: req.address.email ?? null,
         },
-        operatingHours: req.operatingHours ?? [],
+        operatingHours: serializeDepotOperatingHours(req.operatingHours) ?? [],
         isActive: req.isActive,
       },
     });
-    return data.createDepot;
+    return normalizeDepot(data.createDepot);
   },
 
   update: async (id: string, req: UpdateDepotRequest): Promise<Depot> => {
@@ -97,15 +100,15 @@ export const depotsApi = {
       };
     }
     if (req.operatingHours) {
-      input.operatingHours = req.operatingHours;
+      input.operatingHours = serializeDepotOperatingHours(req.operatingHours);
     }
-    const data = await graphqlRequest<{ updateDepot: Depot | null }>(`
+    const data = await graphqlRequest<{ updateDepot: GraphQLDepot | null }>(`
       mutation UpdateDepot($id: UUID!, $input: UpdateDepotInput!) {
         updateDepot(id: $id, input: $input) { ${DEPOT_FIELDS} }
       }
     `, { id, input });
     if (!data.updateDepot) throw new Error("Depot not found");
-    return data.updateDepot;
+    return normalizeDepot(data.updateDepot);
   },
 
   delete: async (id: string): Promise<void> => {
