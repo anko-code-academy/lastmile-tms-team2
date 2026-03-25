@@ -1,4 +1,7 @@
+using LastMile.TMS.Persistence;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 
@@ -17,11 +20,16 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureTestServices(services =>
         {
-            // Remove Hangfire background server to prevent TaskCanceledException during teardown
-            var hangfireServer = services.SingleOrDefault(d =>
-                d.ImplementationType?.Name == "BackgroundJobServerHostedService");
-            if (hangfireServer != null)
-                services.Remove(hangfireServer);
+            // Remove all hosted services to prevent TaskCanceledException during teardown.
+            // StackExchangeRedisCache registers a RedisCacheService and Hangfire registers
+            // BackgroundJobServerHostedService — both hang on shutdown when Redis/Hangfire
+            // backends are unreachable in the test environment.
+            // Only DbSeeder is needed (for seeded test data), so re-add it.
+            var hostedServices = services.Where(d => d.ServiceType.IsAssignableTo(typeof(Microsoft.Extensions.Hosting.IHostedService))).ToList();
+            foreach (var svc in hostedServices)
+                services.Remove(svc);
+
+            services.AddHostedService<DbSeeder>();
         });
     }
 }
