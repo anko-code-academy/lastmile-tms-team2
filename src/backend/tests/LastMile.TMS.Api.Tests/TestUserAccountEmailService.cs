@@ -7,7 +7,8 @@ public sealed record SentUserAccountEmail(
     Guid UserId,
     string Email,
     string Token,
-    string Kind);
+    string Kind,
+    string? FrontendBaseUrl);
 
 public sealed class TestUserAccountEmailService : IUserAccountEmailService
 {
@@ -20,18 +21,20 @@ public sealed class TestUserAccountEmailService : IUserAccountEmailService
     public Task SendPasswordSetupEmailAsync(
         ApplicationUser user,
         string token,
+        string? frontendBaseUrl,
         CancellationToken cancellationToken)
     {
-        _emails.Add(new SentUserAccountEmail(user.Id, user.Email!, token, "setup"));
+        _emails.Add(new SentUserAccountEmail(user.Id, user.Email!, token, "setup", frontendBaseUrl));
         return Task.CompletedTask;
     }
 
     public Task SendPasswordResetEmailAsync(
         ApplicationUser user,
         string token,
+        string? frontendBaseUrl,
         CancellationToken cancellationToken)
     {
-        _emails.Add(new SentUserAccountEmail(user.Id, user.Email!, token, "reset"));
+        _emails.Add(new SentUserAccountEmail(user.Id, user.Email!, token, "reset", frontendBaseUrl));
         return Task.CompletedTask;
     }
 }

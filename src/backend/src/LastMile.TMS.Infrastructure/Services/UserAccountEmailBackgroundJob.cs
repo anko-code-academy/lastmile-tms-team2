@@ -10,7 +10,7 @@ public sealed class UserAccountEmailBackgroundJob(
     IUserAccountEmailService emailService,
     ILogger<UserAccountEmailBackgroundJob> logger)
 {
-    public async Task SendPasswordSetupEmailAsync(Guid userId)
+    public async Task SendPasswordSetupEmailAsync(Guid userId, string? frontendBaseUrl = null)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
@@ -20,10 +20,10 @@ public sealed class UserAccountEmailBackgroundJob(
         }
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
-        await emailService.SendPasswordSetupEmailAsync(user, token, CancellationToken.None);
+        await emailService.SendPasswordSetupEmailAsync(user, token, frontendBaseUrl, CancellationToken.None);
     }
 
-    public async Task SendPasswordResetEmailAsync(Guid userId)
+    public async Task SendPasswordResetEmailAsync(Guid userId, string? frontendBaseUrl = null)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
@@ -33,6 +33,6 @@ public sealed class UserAccountEmailBackgroundJob(
         }
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
-        await emailService.SendPasswordResetEmailAsync(user, token, CancellationToken.None);
+        await emailService.SendPasswordResetEmailAsync(user, token, frontendBaseUrl, CancellationToken.None);
     }
 }

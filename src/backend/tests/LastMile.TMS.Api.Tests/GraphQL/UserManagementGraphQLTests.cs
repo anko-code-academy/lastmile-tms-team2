@@ -687,6 +687,76 @@ public class UserManagementGraphQLTests(CustomWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task RequestPasswordReset_WithAllowedOrigin_UsesOriginForResetLink()
+    {
+        var email = $"origin-reset-{Guid.NewGuid():N}@lastmile.test";
+        await SeedUserAsync(email, "Reset1234", PredefinedRole.Dispatcher);
+
+        var document = await PostGraphQLAsync(
+            """
+            mutation RequestPasswordReset($email: String!) {
+              requestPasswordReset(email: $email) {
+                success
+              }
+            }
+            """,
+            new { email },
+            headers: new Dictionary<string, string>
+            {
+                ["Origin"] = "http://localhost:3000"
+            });
+
+        document.RootElement
+            .GetProperty("data")
+            .GetProperty("requestPasswordReset")
+            .GetProperty("success")
+            .GetBoolean()
+            .Should()
+            .BeTrue();
+
+        factory.EmailService.Emails
+            .Last(x => x.Email == email && x.Kind == "reset")
+            .FrontendBaseUrl
+            .Should()
+            .Be("http://localhost:3000");
+    }
+
+    [Fact]
+    public async Task RequestPasswordReset_WithUntrustedOrigin_FallsBackToConfiguredBaseUrl()
+    {
+        var email = $"fallback-reset-{Guid.NewGuid():N}@lastmile.test";
+        await SeedUserAsync(email, "Reset1234", PredefinedRole.Dispatcher);
+
+        var document = await PostGraphQLAsync(
+            """
+            mutation RequestPasswordReset($email: String!) {
+              requestPasswordReset(email: $email) {
+                success
+              }
+            }
+            """,
+            new { email },
+            headers: new Dictionary<string, string>
+            {
+                ["Origin"] = "https://evil.example"
+            });
+
+        document.RootElement
+            .GetProperty("data")
+            .GetProperty("requestPasswordReset")
+            .GetProperty("success")
+            .GetBoolean()
+            .Should()
+            .BeTrue();
+
+        factory.EmailService.Emails
+            .Last(x => x.Email == email && x.Kind == "reset")
+            .FrontendBaseUrl
+            .Should()
+            .Be("http://localhost");
+    }
+
+    [Fact]
     public async Task RequestPasswordReset_ForMissingOrInactiveUsers_ReturnsGenericSuccessWithoutEmail()
     {
         var inactiveEmail = $"inactive-reset-{Guid.NewGuid():N}@lastmile.test";
@@ -856,7 +926,8 @@ public class UserManagementGraphQLTests(CustomWebApplicationFactory factory)
     private async Task<JsonDocument> PostGraphQLAsync(
         string query,
         object? variables = null,
-        string? accessToken = null)
+        string? accessToken = null,
+        IDictionary<string, string>? headers = null)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/graphql")
         {
@@ -870,6 +941,14 @@ public class UserManagementGraphQLTests(CustomWebApplicationFactory factory)
         if (!string.IsNullOrWhiteSpace(accessToken))
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        }
+
+        if (headers is not null)
+        {
+            foreach (var (key, value) in headers)
+            {
+                request.Headers.TryAddWithoutValidation(key, value);
+            }
         }
 
         var response = await _client.SendAsync(request);

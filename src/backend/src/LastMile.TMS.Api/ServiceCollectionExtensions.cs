@@ -70,8 +70,8 @@ public static class ServiceCollectionExtensions
         {
             options.AddPolicy("AllowFrontend", policy =>
             {
-                var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                    ?? new[] { "http://localhost:3000" };
+                var allowedOrigins = configuration.GetSection("Frontend:AllowedOrigins").Get<string[]>()
+                    ?? ["http://localhost", "http://localhost:3000"];
 
                 policy.WithOrigins(allowedOrigins)
                     .AllowAnyMethod()

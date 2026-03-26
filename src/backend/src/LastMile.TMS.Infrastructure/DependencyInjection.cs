@@ -17,6 +17,7 @@ public static class DependencyInjection
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<FrontendBaseUrlResolver>();
         services.AddScoped<IZoneBoundaryParser, ZoneBoundaryParser>();
 
         // Parcel registration — geocoding and zone matching

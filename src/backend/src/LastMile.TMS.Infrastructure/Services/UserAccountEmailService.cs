@@ -20,10 +20,12 @@ public sealed class UserAccountEmailService(
     public Task SendPasswordSetupEmailAsync(
         ApplicationUser user,
         string token,
+        string? frontendBaseUrl,
         CancellationToken cancellationToken) =>
         SendAsync(
             user,
             token,
+            frontendBaseUrl,
             "Set up your Last Mile TMS account",
             "Use the link below to set your password and activate your account.",
             cancellationToken);
@@ -31,10 +33,12 @@ public sealed class UserAccountEmailService(
     public Task SendPasswordResetEmailAsync(
         ApplicationUser user,
         string token,
+        string? frontendBaseUrl,
         CancellationToken cancellationToken) =>
         SendAsync(
             user,
             token,
+            frontendBaseUrl,
             "Reset your Last Mile TMS password",
             "Use the link below to choose a new password for your account.",
             cancellationToken);
@@ -42,6 +46,7 @@ public sealed class UserAccountEmailService(
     private async Task SendAsync(
         ApplicationUser user,
         string token,
+        string? frontendBaseUrl,
         string subject,
         string intro,
         CancellationToken cancellationToken)
@@ -52,7 +57,7 @@ public sealed class UserAccountEmailService(
             throw new InvalidOperationException("The selected user does not have an email address.");
         }
 
-        var resetLink = BuildResetLink(email, token);
+        var resetLink = BuildResetLink(email, token, frontendBaseUrl);
         var plainTextContent = $"{intro}{Environment.NewLine}{Environment.NewLine}{resetLink}";
         var htmlContent =
             $"<p>{intro}</p><p><a href=\"{resetLink}\">Open password reset page</a></p><p>{resetLink}</p>";
@@ -96,10 +101,12 @@ public sealed class UserAccountEmailService(
             $"Failed to send the account email. SendGrid returned {(int)response.StatusCode}: {responseBody}");
     }
 
-    private string BuildResetLink(string email, string token)
+    private string BuildResetLink(string email, string token, string? frontendBaseUrl)
     {
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-        var baseUrl = frontendOptions.Value.BaseUrl.TrimEnd('/');
+        var baseUrl = string.IsNullOrWhiteSpace(frontendBaseUrl)
+            ? frontendOptions.Value.BaseUrl.TrimEnd('/')
+            : frontendBaseUrl.TrimEnd('/');
 
         return $"{baseUrl}/reset-password?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(encodedToken)}";
     }
