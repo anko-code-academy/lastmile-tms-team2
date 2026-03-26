@@ -1,3 +1,4 @@
+using DotNetEnv;
 using Hangfire;
 using LastMile.TMS.Api;
 using LastMile.TMS.Application;
@@ -5,14 +6,18 @@ using LastMile.TMS.Infrastructure;
 using LastMile.TMS.Persistence;
 using Serilog;
 
-// Use CreateLogger — Serilog's CreateBootstrapLogger breaks WebApplicationFactory (serilog-aspnetcore#289).
+// Use CreateLogger - Serilog's CreateBootstrapLogger breaks WebApplicationFactory (serilog-aspnetcore#289).
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateLogger();
 
 try
 {
+    Env.NoClobber().TraversePath().Load();
+
     var builder = WebApplication.CreateBuilder(args);
+    var disableExternalInfrastructure = builder.Configuration.GetValue("Testing:DisableExternalInfrastructure", false);
+    var enableTestSupport = builder.Configuration.GetValue("Testing:EnableTestSupport", false);
 
     builder.Host.UseSerilog((context, config) =>
         config.ReadFrom.Configuration(context.Configuration));
@@ -34,14 +39,25 @@ try
         app.UseSwaggerUI();
     }
 
-    app.UseHttpsRedirection();
     app.UseSerilogRequestLogging();
+
+    if (!disableExternalInfrastructure && !enableTestSupport)
+    {
+        app.UseHttpsRedirection();
+    }
+
     app.UseCors("AllowFrontend");
     app.UseAuthentication();
     app.UseAuthorization();
-    app.UseHangfireDashboard("/hangfire");
+
+    if (!disableExternalInfrastructure)
+    {
+        app.UseHangfireDashboard("/hangfire");
+    }
+
     app.MapControllers();
     app.MapGraphQL("/api/graphql");
+    app.MapGraphQL("/graphql");
 
     app.Run();
 }

@@ -38,6 +38,20 @@ test.describe("Authentication Flow", () => {
     await expect(loginButton).toBeVisible({ timeout: 10000 });
   });
 
+  test("should navigate to forgot password and submit reset request", async ({ page }) => {
+    await page.goto("/login");
+
+    await page.getByRole("link", { name: /forgot password/i }).click();
+    await expect(page).toHaveURL(/.*forgot-password/);
+
+    await page.getByLabel(/email/i).fill("admin@lastmile.com");
+    await page.getByRole("button", { name: /send reset link/i }).click();
+
+    await expect(page.getByText(/if an account exists for/i)).toBeVisible({
+      timeout: 5000,
+    });
+  });
+
   test("should redirect to dashboard after successful login", async ({ page }) => {
     await page.goto("/login");
 

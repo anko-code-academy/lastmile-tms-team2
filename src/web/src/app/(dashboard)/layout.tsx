@@ -30,7 +30,7 @@ export default async function DashboardLayout({
       </header>
       <Tooltip.Provider delayDuration={250} skipDelayDuration={200}>
         <div className="flex min-h-0 flex-1">
-          <DashboardSidebar />
+          <DashboardSidebar roles={session.user.roles} />
           <main
             className={cn(
               "min-h-0 min-w-0 flex-1 overflow-y-auto",

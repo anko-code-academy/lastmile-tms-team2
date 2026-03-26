@@ -2,10 +2,12 @@ import type { TokenResponse, TokenErrorResponse } from "@/types/auth";
 
 // Use internal Docker network URL for server-side requests, public URL for client-side
 const isServer = typeof window === "undefined";
-const API_BASE_URL =
+
+// Auth endpoints (connect/token) use base URL without /api prefix
+const AUTH_BASE_URL =
   isServer
-    ? process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL!
-    : process.env.NEXT_PUBLIC_API_URL!;
+    ? process.env.API_URL ?? process.env.NEXT_PUBLIC_AUTH_URL ?? process.env.NEXT_PUBLIC_API_URL!
+    : process.env.NEXT_PUBLIC_AUTH_URL ?? process.env.NEXT_PUBLIC_API_URL!;
 
 /**
  * Authenticate with username/password via OpenIddict password grant.
@@ -22,7 +24,7 @@ export async function loginWithPassword(
     scope: "offline_access",
   });
 
-  const res = await fetch(`${API_BASE_URL}/connect/token`, {
+  const res = await fetch(`${AUTH_BASE_URL}/connect/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),
@@ -47,7 +49,7 @@ export async function refreshAccessToken(
     refresh_token: refreshToken,
   });
 
-  const res = await fetch(`${API_BASE_URL}/connect/token`, {
+  const res = await fetch(`${AUTH_BASE_URL}/connect/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),

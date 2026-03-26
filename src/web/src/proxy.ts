@@ -6,7 +6,7 @@ const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
 
   // Allow public paths
-  const publicPaths = ["/login", "/api/auth"];
+  const publicPaths = ["/login", "/forgot-password", "/reset-password", "/api/auth"];
   const isPublic = publicPaths.some((p) => pathname.startsWith(p));
 
   if (isPublic) return NextResponse.next();

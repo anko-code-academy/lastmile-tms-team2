@@ -8,8 +8,9 @@ namespace LastMile.TMS.Infrastructure.Services;
 
 public class ZoneBoundaryParser : IZoneBoundaryParser
 {
-    private static readonly GeometryFactory GeometryFactory = new(new PrecisionModel(), 4326);
-    private static readonly WKTReader WktReader = new(GeometryFactory) { DefaultSRID = 4326 };
+    private static readonly NtsGeometryServices GeometryServices = new(new PrecisionModel(), 4326);
+    private static readonly GeometryFactory GeometryFactory = GeometryServices.CreateGeometryFactory();
+    private static readonly WKTReader WktReader = new(GeometryServices);
 
     public Polygon? ParseGeoJson(string geoJson)
     {

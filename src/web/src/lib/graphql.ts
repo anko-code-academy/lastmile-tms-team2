@@ -35,19 +35,24 @@ export function graphqlEndpointUrl(): string {
 
 export async function graphqlRequest<TData>(
   query: string,
-  variables?: Record<string, unknown>
+  variables?: Record<string, unknown>,
+  accessToken?: string
 ): Promise<TData> {
-  const session = await getSession();
-  const headers = new Headers({ "Content-Type": "application/json" });
-  const token = session?.accessToken;
+  const session = accessToken ? null : await getSession();
+  const token = accessToken ?? session?.accessToken;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
   if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const res = await fetch(graphqlEndpointUrl(), {
     method: "POST",
     headers,
     body: JSON.stringify({ query, variables }),
+    cache: "no-store",
   });
 
   if (!res.ok) {
@@ -62,5 +67,6 @@ export async function graphqlRequest<TData>(
   if (!json.data) {
     throw new Error("No data in GraphQL response");
   }
+
   return json.data;
 }

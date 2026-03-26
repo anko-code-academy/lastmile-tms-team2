@@ -7,16 +7,17 @@ import { ChevronsLeft, ChevronsRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  dashboardNavItems,
+  getDashboardNavItems,
   isDashboardNavActive,
 } from "@/lib/dashboard-nav";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "lastmile.dashboard.sidebarExpanded";
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ roles }: { roles?: string[] }) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(true);
+  const visibleNavItems = getDashboardNavItems(roles);
 
   useEffect(() => {
     try {
@@ -82,7 +83,7 @@ export function DashboardSidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 p-2" aria-label="Sections">
-        {dashboardNavItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const active = isDashboardNavActive(pathname, item.href);
 

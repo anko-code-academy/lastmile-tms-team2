@@ -28,6 +28,8 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddLastMileApi(this IServiceCollection services, IConfiguration configuration)
     {
+        var disableExternalInfrastructure = configuration.GetValue("Testing:DisableExternalInfrastructure", false);
+
         services.AddProblemDetails();
         services.AddExceptionHandler<GlobalExceptionHandler>();
 
@@ -36,11 +38,14 @@ public static class ServiceCollectionExtensions
             .AddQueryType<Query>()
             .AddMutationType<Mutation>()
             .AddType<VehicleDtoType>()
+            .AddType<UserRoleType>()
             .AddTypeExtension<DepotQuery>()
             .AddTypeExtension<ZoneQuery>()
+            .AddTypeExtension<UserManagementQuery>()
             .AddTypeExtension<DepotMutation>()
             .AddTypeExtension<ZoneMutation>()
             .AddTypeExtension<ParcelMutation>()
+            .AddTypeExtension<UserManagementMutation>()
             .AddType<AddressType>()
             .AddType<OperatingHoursType>()
             .AddType<DepotType>()
@@ -56,7 +61,8 @@ public static class ServiceCollectionExtensions
             .AddFiltering()
             .AddSorting()
             .AddAuthorization()
-            .AddErrorFilter<DomainExceptionErrorFilter>();
+            .AddErrorFilter<DomainExceptionErrorFilter>()
+            .AddErrorFilter<GraphQLErrorFilter>();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
 
@@ -74,13 +80,20 @@ public static class ServiceCollectionExtensions
             });
         });
 
-        services.AddStackExchangeRedisCache(options =>
-            options.Configuration = configuration.GetConnectionString("Redis"));
+        if (disableExternalInfrastructure)
+        {
+            services.AddDistributedMemoryCache();
+        }
+        else
+        {
+            services.AddStackExchangeRedisCache(options =>
+                options.Configuration = configuration.GetConnectionString("Redis"));
 
-        services.AddHangfire(config =>
-            config.UsePostgreSqlStorage(options =>
-                options.UseNpgsqlConnection(configuration.GetConnectionString("HangfireConnection"))));
-        services.AddHangfireServer();
+            services.AddHangfire(config =>
+                config.UsePostgreSqlStorage(options =>
+                    options.UseNpgsqlConnection(configuration.GetConnectionString("HangfireConnection"))));
+            services.AddHangfireServer();
+        }
 
         return services;
     }

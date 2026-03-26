@@ -162,6 +162,9 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("DepotId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -175,6 +178,9 @@ namespace LastMile.TMS.Persistence.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSystemAdmin")
                         .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("LastModifiedAt")
@@ -226,6 +232,8 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DepotId");
+
                     b.HasIndex("Email")
                         .IsUnique();
 
@@ -235,6 +243,8 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
+
+                    b.HasIndex("ZoneId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -1271,6 +1281,23 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.HasIndex("RouteId");
 
                     b.ToTable("RouteParcels");
+                });
+
+            modelBuilder.Entity("LastMile.TMS.Domain.Entities.ApplicationUser", b =>
+                {
+                    b.HasOne("LastMile.TMS.Domain.Entities.Depot", "Depot")
+                        .WithMany()
+                        .HasForeignKey("DepotId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("LastMile.TMS.Domain.Entities.Zone", "Zone")
+                        .WithMany()
+                        .HasForeignKey("ZoneId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Depot");
+
+                    b.Navigation("Zone");
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.DeliveryConfirmation", b =>

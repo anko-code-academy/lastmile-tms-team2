@@ -1,4 +1,10 @@
-bin/
-obj/
-tests/
+bin
+obj
+**/bin
+**/bin/**
+**/obj
+**/obj/**
+tests
+.publish-test
+.publish*
 *.user

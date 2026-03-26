@@ -19,6 +19,9 @@ public sealed class DbSeeder(
     ILogger<DbSeeder> logger,
     IConfiguration configuration) : IHostedService
 {
+    private const string DefaultAdminEmail = "admin@lastmile.com";
+    private const string DefaultAdminPassword = "Admin@12345";
+
     /// <summary>Well-known depot ID used by integration tests and development.</summary>
     public static readonly Guid TestDepotId = new("00000000-0000-0000-0000-000000000001");
 
@@ -84,7 +87,7 @@ public sealed class DbSeeder(
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        await SeedRolesAsync(roleManager, cancellationToken);
+        await SeedRolesAsync(roleManager);
         await SeedAdminUserAsync(userManager, cancellationToken);
         await SeedTestDepotAsync(dbContext, cancellationToken);
 
@@ -100,9 +103,7 @@ public sealed class DbSeeder(
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    // ── Roles ──────────────────────────────────────────────────────────────────
-
-    private async Task SeedRolesAsync(RoleManager<ApplicationRole> roleManager, CancellationToken ct)
+    private async Task SeedRolesAsync(RoleManager<ApplicationRole> roleManager)
     {
         var roles = Enum.GetValues<PredefinedRole>();
 
@@ -110,7 +111,9 @@ public sealed class DbSeeder(
         {
             var name = role.ToString();
             if (await roleManager.RoleExistsAsync(name))
+            {
                 continue;
+            }
 
             var result = await roleManager.CreateAsync(new ApplicationRole
             {
@@ -119,50 +122,137 @@ public sealed class DbSeeder(
             });
 
             if (result.Succeeded)
+            {
                 logger.LogInformation("Seeded role: {Role}", name);
+            }
             else
-                logger.LogError("Failed to seed role {Role}: {Errors}", name, string.Join(", ", result.Errors.Select(e => e.Description)));
+            {
+                logger.LogError(
+                    "Failed to seed role {Role}: {Errors}",
+                    name,
+                    string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
         }
     }
 
-    // ── Admin User ─────────────────────────────────────────────────────────────
-
-    private async Task SeedAdminUserAsync(UserManager<ApplicationUser> userManager, CancellationToken ct)
+    private async Task SeedAdminUserAsync(UserManager<ApplicationUser> userManager, CancellationToken cancellationToken)
     {
-        var email = configuration["AdminCredentials:Email"] ?? "admin@lastmile.com";
-        var password = configuration["AdminCredentials:Password"] ?? "Admin@12345";
+        var email = configuration["AdminCredentials:Email"] ?? DefaultAdminEmail;
+        var password = configuration["AdminCredentials:Password"] ?? DefaultAdminPassword;
 
-        // Skip if an admin already exists
         var existingAdmins = await userManager.GetUsersInRoleAsync(PredefinedRole.Admin.ToString());
-        if (existingAdmins.Any())
+        if (!existingAdmins.Any())
         {
-            logger.LogDebug("Admin user already exists — skipping seed");
-            return;
+            var admin = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                FirstName = "System",
+                LastName = "Admin",
+                IsActive = true,
+                IsSystemAdmin = true,
+                CreatedAt = DateTimeOffset.UtcNow,
+                CreatedBy = "Seeder"
+            };
+
+            var createResult = await userManager.CreateAsync(admin, password);
+            if (!createResult.Succeeded)
+            {
+                logger.LogError(
+                    "Failed to create admin user: {Errors}",
+                    string.Join(", ", createResult.Errors.Select(e => e.Description)));
+                return;
+            }
+
+            var roleResult = await userManager.AddToRoleAsync(admin, PredefinedRole.Admin.ToString());
+            if (roleResult.Succeeded)
+            {
+                logger.LogInformation("Seeded admin user: {Email}", email);
+            }
+            else
+            {
+                logger.LogError(
+                    "Failed to assign Admin role to seeded user: {Errors}",
+                    string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+            }
         }
-
-        var admin = new ApplicationUser
-        {
-            UserName = email,
-            Email = email,
-            FirstName = "System",
-            LastName = "Admin",
-            IsActive = true,
-            CreatedAt = DateTimeOffset.UtcNow,
-            CreatedBy = "Seeder"
-        };
-
-        var createResult = await userManager.CreateAsync(admin, password);
-        if (!createResult.Succeeded)
-        {
-            logger.LogError("Failed to create admin user: {Errors}", string.Join(", ", createResult.Errors.Select(e => e.Description)));
-            return;
-        }
-
-        var roleResult = await userManager.AddToRoleAsync(admin, PredefinedRole.Admin.ToString());
-        if (roleResult.Succeeded)
-            logger.LogInformation("Seeded admin user: {Email}", email);
         else
-            logger.LogError("Failed to assign Admin role to seeded user: {Errors}", string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+        {
+            logger.LogDebug("Admin user already exists - skipping seed");
+        }
+
+        await EnsureSystemAdminMarkerAsync(userManager, email, cancellationToken);
+    }
+
+    private async Task EnsureSystemAdminMarkerAsync(
+        UserManager<ApplicationUser> userManager,
+        string configuredAdminEmail,
+        CancellationToken cancellationToken)
+    {
+        var protectedAdmins = await userManager.Users
+            .Where(user => user.IsSystemAdmin)
+            .ToListAsync(cancellationToken);
+
+        if (protectedAdmins.Count == 1)
+        {
+            return;
+        }
+
+        if (protectedAdmins.Count > 1)
+        {
+            logger.LogWarning(
+                "Multiple protected system admin accounts were found: {Emails}",
+                string.Join(", ", protectedAdmins.Select(user => user.Email)));
+            return;
+        }
+
+        var seededCandidates = await userManager.Users
+            .Where(user => user.CreatedBy == "Seeder")
+            .ToListAsync(cancellationToken);
+
+        if (seededCandidates.Count == 1 &&
+            await userManager.IsInRoleAsync(seededCandidates[0], PredefinedRole.Admin.ToString()))
+        {
+            await MarkSystemAdminAsync(userManager, seededCandidates[0]);
+            return;
+        }
+
+        if (seededCandidates.Count > 1)
+        {
+            logger.LogWarning(
+                "Unable to identify the legacy system admin because multiple Seeder-created users were found: {Emails}",
+                string.Join(", ", seededCandidates.Select(user => user.Email)));
+            return;
+        }
+
+        var configuredUser = await userManager.FindByEmailAsync(configuredAdminEmail);
+        if (configuredUser is not null &&
+            await userManager.IsInRoleAsync(configuredUser, PredefinedRole.Admin.ToString()))
+        {
+            await MarkSystemAdminAsync(userManager, configuredUser);
+            return;
+        }
+
+        logger.LogWarning(
+            "Unable to identify the legacy system admin for protection backfill. Checked CreatedBy='Seeder' and configured admin email {Email}.",
+            configuredAdminEmail);
+    }
+
+    private async Task MarkSystemAdminAsync(UserManager<ApplicationUser> userManager, ApplicationUser user)
+    {
+        user.IsSystemAdmin = true;
+        var result = await userManager.UpdateAsync(user);
+
+        if (result.Succeeded)
+        {
+            logger.LogInformation("Marked user {Email} as the protected system admin.", user.Email);
+            return;
+        }
+
+        logger.LogError(
+            "Failed to mark user {Email} as the protected system admin: {Errors}",
+            user.Email,
+            string.Join(", ", result.Errors.Select(error => error.Description)));
     }
 
     // ── Test Depot ─────────────────────────────────────────────────────────────

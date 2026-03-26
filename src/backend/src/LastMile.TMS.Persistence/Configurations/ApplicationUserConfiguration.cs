@@ -16,6 +16,16 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.HasOne(u => u.Depot)
+            .WithMany()
+            .HasForeignKey(u => u.DepotId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(u => u.Zone)
+            .WithMany()
+            .HasForeignKey(u => u.ZoneId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(u => u.Email)
             .IsUnique();
     }
