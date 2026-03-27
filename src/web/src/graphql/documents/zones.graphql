@@ -1,0 +1,55 @@
+query GetZones {
+  zones {
+    id
+    name
+    boundary
+    isActive
+    depotId
+    depotName
+    createdAt
+    updatedAt
+  }
+}
+
+query GetZone($id: UUID!) {
+  zone(id: $id) {
+    id
+    name
+    boundary
+    isActive
+    depotId
+    depotName
+    createdAt
+    updatedAt
+  }
+}
+
+mutation CreateZone($input: CreateZoneInput!) {
+  createZone(input: $input) {
+    id
+    name
+    boundary
+    isActive
+    depotId
+    depotName
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateZone($id: UUID!, $input: UpdateZoneInput!) {
+  updateZone(id: $id, input: $input) {
+    id
+    name
+    boundary
+    isActive
+    depotId
+    depotName
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteZone($id: UUID!) {
+  deleteZone(id: $id)
+}

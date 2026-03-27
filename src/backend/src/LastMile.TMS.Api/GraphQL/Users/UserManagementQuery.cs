@@ -2,6 +2,7 @@ using HotChocolate;
 using HotChocolate.Authorization;
 using LastMile.TMS.Application.Users.Common;
 using LastMile.TMS.Application.Users.Queries;
+using LastMile.TMS.Application.Users.Reads;
 using LastMile.TMS.Domain.Enums;
 using MediatR;
 
@@ -11,25 +12,18 @@ namespace LastMile.TMS.Api.GraphQL.Users;
 [Authorize(Roles = new[] { nameof(PredefinedRole.Admin) })]
 public sealed class UserManagementQuery
 {
-    public Task<UserManagementUsersResultDto> Users(
-        [Service] ISender sender,
-        string? search,
-        PredefinedRole? role,
-        bool? isActive,
-        Guid? depotId,
-        Guid? zoneId,
-        int skip = 0,
-        int take = 20,
-        CancellationToken cancellationToken = default) =>
-        sender.Send(
-            new GetUsersQuery(search, role, isActive, depotId, zoneId, skip, take),
-            cancellationToken);
+    public IQueryable<UserManagementUserDto> Users(
+        string? search = null,
+        bool? isActive = null,
+        Guid? depotId = null,
+        Guid? zoneId = null,
+        [Service] IUserReadService readService = null!) =>
+        readService.GetUsers(search, isActive, depotId, zoneId);
 
-    public Task<UserManagementUserDto> User(
+    public IQueryable<UserManagementUserDto> User(
         Guid id,
-        [Service] ISender sender,
-        CancellationToken cancellationToken) =>
-        sender.Send(new GetUserByIdQuery(id), cancellationToken);
+        [Service] IUserReadService readService = null!) =>
+        readService.GetUsers().Where(u => u.Id == id);
 
     public Task<UserManagementLookupsDto> UserManagementLookups(
         [Service] ISender sender,

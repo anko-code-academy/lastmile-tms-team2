@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Mail, Pencil, Plus, Search, UserX, Users } from "lucide-react";
 
 import {
@@ -38,7 +38,7 @@ import type {
 
 const PAGE_SIZE = 10;
 
-function formatRole(role: UserRole | null) {
+function formatRole(role: string | null) {
   switch (role) {
     case "Admin":
       return "Admin";
@@ -79,12 +79,9 @@ export function UserManagementClient({
 
   const usersFilters = {
     search: debouncedSearch || undefined,
-    role: roleFilter === "ALL" ? undefined : roleFilter,
     isActive: statusFilter === "ALL" ? undefined : statusFilter === "ACTIVE",
     depotId: depotFilter === "ALL" ? undefined : depotFilter,
     zoneId: zoneFilter === "ALL" ? undefined : zoneFilter,
-    skip: (page - 1) * PAGE_SIZE,
-    take: PAGE_SIZE,
   };
 
   const lookupsQuery = useUsersLookups(accessToken);
@@ -95,10 +92,15 @@ export function UserManagementClient({
   const sendResetMutation = useSendPasswordResetEmail(accessToken);
 
   const queryError = lookupsQuery.error ?? usersQuery.error;
-  const totalCount = usersQuery.data?.totalCount ?? 0;
+  const allUsers = usersQuery.data ?? [];
+  const totalCount = allUsers.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const from = totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const to = totalCount === 0 ? 0 : Math.min(page * PAGE_SIZE, totalCount);
+  const pagedUsers = useMemo(
+    () => allUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [allUsers, page],
+  );
   const zoneOptions = lookupsQuery.data?.zones.filter(
     (zone) => depotFilter === "ALL" || zone.depotId === depotFilter,
   );
@@ -310,8 +312,8 @@ export function UserManagementClient({
           </tr>
         </thead>
         <tbody>
-          {usersQuery.data?.items.length ? (
-            usersQuery.data.items.map((user) => (
+          {pagedUsers.length ? (
+            pagedUsers.map((user) => (
               <tr key={user.id} className={listDataTableBodyRowClass}>
                 <td className={cn(listDataTableTdClass, "align-top")}>
                   <div className="flex items-center gap-2">
@@ -396,11 +398,13 @@ export function UserManagementClient({
         </tbody>
       </ListDataTable>
 
-      <ListPagePagination
-        page={page}
-        totalPages={totalPages}
-        setPage={setPage}
-      />
+      {totalPages > 1 && (
+        <ListPagePagination
+          page={page}
+          totalPages={totalPages}
+          setPage={setPage}
+        />
+      )}
 
       <UserFormModal
         isOpen={dialogState !== null}

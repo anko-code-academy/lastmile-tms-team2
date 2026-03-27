@@ -34,8 +34,8 @@ public class UserManagementGraphQLTests(CustomWebApplicationFactory factory)
         var document = await PostGraphQLAsync(
             """
             query {
-              users(skip: 0, take: 10) {
-                totalCount
+              users {
+                id
               }
             }
             """);
@@ -57,8 +57,8 @@ public class UserManagementGraphQLTests(CustomWebApplicationFactory factory)
         var document = await PostGraphQLAsync(
             """
             query {
-              users(skip: 0, take: 10) {
-                totalCount
+              users {
+                id
               }
             }
             """,
@@ -130,11 +130,9 @@ public class UserManagementGraphQLTests(CustomWebApplicationFactory factory)
         var document = await PostGraphQLAsync(
             """
             query {
-              users(skip: 0, take: 20) {
-                items {
-                  email
-                  isProtected
-                }
+              users {
+                email
+                isProtected
               }
             }
             """,
@@ -143,7 +141,6 @@ public class UserManagementGraphQLTests(CustomWebApplicationFactory factory)
         document.RootElement
             .GetProperty("data")
             .GetProperty("users")
-            .GetProperty("items")
             .EnumerateArray()
             .Should()
             .Contain(x =>
@@ -325,22 +322,18 @@ public class UserManagementGraphQLTests(CustomWebApplicationFactory factory)
         var token = await GetAdminAccessTokenAsync();
         var document = await PostGraphQLAsync(
             """
-            query Users($search: String, $role: UserRole, $depotId: UUID, $zoneId: UUID) {
-              users(search: $search, role: $role, depotId: $depotId, zoneId: $zoneId, skip: 0, take: 10) {
-                totalCount
-                items {
-                  email
-                  role
-                  depotId
-                  zoneId
-                }
+            query Users($search: String, $depotId: UUID, $zoneId: UUID) {
+              users(search: $search, depotId: $depotId, zoneId: $zoneId) {
+                email
+                role
+                depotId
+                zoneId
               }
             }
             """,
             new
             {
-                search = "dispatch",
-                role = nameof(PredefinedRole.Dispatcher),
+                search = targetEmail,
                 depotId,
                 zoneId
             },
@@ -348,16 +341,17 @@ public class UserManagementGraphQLTests(CustomWebApplicationFactory factory)
 
         var users = document.RootElement
             .GetProperty("data")
-            .GetProperty("users");
+            .GetProperty("users")
+            .EnumerateArray();
 
-        users.GetProperty("totalCount").GetInt32().Should().Be(1);
-        var item = users.GetProperty("items")[0];
-        item.GetProperty("email").GetString().Should().Be(targetEmail);
-        item.GetProperty("role").GetString().Should().Be(nameof(PredefinedRole.Dispatcher));
+        users.Should().ContainSingle();
+        users.First().GetProperty("email").GetString().Should().Be(targetEmail);
+        users.First().GetProperty("depotId").GetString().Should().Be(depotId.ToString());
+        users.First().GetProperty("zoneId").GetString().Should().Be(zoneId.ToString());
     }
 
     [Fact]
-    public async Task Users_WithStatusFilterAndPaging_ReturnsExpectedSlice()
+    public async Task Users_WithStatusFilter_ReturnsOnlyActiveUsers()
     {
         var activeA = await SeedUserAsync(
             $"active-a-{Guid.NewGuid():N}@lastmile.test",
@@ -378,33 +372,26 @@ public class UserManagementGraphQLTests(CustomWebApplicationFactory factory)
         var token = await GetAdminAccessTokenAsync();
         var document = await PostGraphQLAsync(
             """
-            query Users($isActive: Boolean!, $skip: Int!, $take: Int!) {
-              users(isActive: $isActive, skip: $skip, take: $take) {
-                totalCount
-                items {
-                  email
-                  isActive
-                }
+            query Users($isActive: Boolean) {
+              users(isActive: $isActive) {
+                email
+                isActive
               }
             }
             """,
-            new
-            {
-                isActive = true,
-                skip = 0,
-                take = 1
-            },
+            new { isActive = true },
             token);
 
         var users = document.RootElement
             .GetProperty("data")
-            .GetProperty("users");
+            .GetProperty("users")
+            .EnumerateArray()
+            .ToList();
 
-        users.GetProperty("totalCount").GetInt32().Should().BeGreaterThanOrEqualTo(2);
-        users.GetProperty("items").GetArrayLength().Should().Be(1);
-        users.GetProperty("items")[0].GetProperty("isActive").GetBoolean().Should().BeTrue();
-        users.GetProperty("items")[0].GetProperty("email").GetString()
-            .Should().NotBe(inactive.Email);
+        users.Should().HaveCountGreaterThanOrEqualTo(2);
+        users.All(u => u.GetProperty("isActive").GetBoolean()).Should().BeTrue();
+        users.Select(u => u.GetProperty("email").GetString())
+            .Should().NotContain(inactive.Email);
     }
 
     [Fact]

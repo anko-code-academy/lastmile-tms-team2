@@ -55,24 +55,23 @@ export default function NewRoutePage() {
     });
   };
 
-  const { data: vehiclesData } = useVehicles({
-    pageSize: 100,
+  const { data: vehiclesData = [] } = useVehicles({
     status: "AVAILABLE",
   });
   const { data: parcels = [], isLoading: parcelsLoading, error: parcelsError } =
     useParcelsForRouteCreation();
 
   const selectedVehicle = useMemo(
-    () => vehiclesData?.items.find((v) => v.id === formData.vehicleId),
-    [vehiclesData?.items, formData.vehicleId],
+    () => vehiclesData.find((v) => v.id === formData.vehicleId),
+    [vehiclesData, formData.vehicleId],
   );
 
   const { data: drivers = [], isLoading: driversLoading, error: driversError } =
     useDrivers(selectedVehicle?.depotId);
 
   const vehicleOptions = useMemo(
-    () => vehicleSelectOptionsForRoute(vehiclesData?.items),
-    [vehiclesData?.items],
+    () => vehicleSelectOptionsForRoute(vehiclesData),
+    [vehiclesData],
   );
   const driverOptions = useMemo(
     () => driverSelectOptions(drivers),

@@ -43,28 +43,25 @@ describe("UserManagementClient", () => {
       zones: [{ id: "zone-1", depotId: "depot-1", name: "Zone A" }],
     });
 
-    mockedGetUsers.mockResolvedValue({
-      totalCount: 1,
-      items: [
-        {
-          id: "user-1",
-          firstName: "Alex",
-          lastName: "Admin",
-          fullName: "Alex Admin",
-          email: "alex@example.com",
-          phone: "+10000000000",
-          role: "Admin",
-          isActive: true,
-          isProtected: false,
-          depotId: null,
-          depotName: null,
-          zoneId: null,
-          zoneName: null,
-          createdAt: "2026-03-24T00:00:00Z",
-          lastModifiedAt: null,
-        },
-      ],
-    });
+    mockedGetUsers.mockResolvedValue([
+      {
+        id: "user-1",
+        firstName: "Alex",
+        lastName: "Admin",
+        fullName: "Alex Admin",
+        email: "alex@example.com",
+        phone: "+10000000000",
+        role: "Admin",
+        isActive: true,
+        isProtected: false,
+        depotId: null,
+        depotName: null,
+        zoneId: null,
+        zoneName: null,
+        createdAt: "2026-03-24T00:00:00Z",
+        lastModifiedAt: null,
+      },
+    ]);
 
     mockedCreateUser.mockResolvedValue({
       id: "user-2",
@@ -134,28 +131,25 @@ describe("UserManagementClient", () => {
   });
 
   it("renders protected system admin as read-only", async () => {
-    mockedGetUsers.mockResolvedValueOnce({
-      totalCount: 1,
-      items: [
-        {
-          id: "user-1",
-          firstName: "System",
-          lastName: "Admin",
-          fullName: "System Admin",
-          email: "admin@lastmile.com",
-          phone: null,
-          role: "Admin",
-          isActive: true,
-          isProtected: true,
-          depotId: null,
-          depotName: null,
-          zoneId: null,
-          zoneName: null,
-          createdAt: "2026-03-24T00:00:00Z",
-          lastModifiedAt: null,
-        },
-      ],
-    });
+    mockedGetUsers.mockResolvedValueOnce([
+      {
+        id: "user-1",
+        firstName: "System",
+        lastName: "Admin",
+        fullName: "System Admin",
+        email: "admin@lastmile.com",
+        phone: null,
+        role: "Admin",
+        isActive: true,
+        isProtected: true,
+        depotId: null,
+        depotName: null,
+        zoneId: null,
+        zoneName: null,
+        createdAt: "2026-03-24T00:00:00Z",
+        lastModifiedAt: null,
+      },
+    ]);
 
     const queryClient = new QueryClient({
       defaultOptions: {

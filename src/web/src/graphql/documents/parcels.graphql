@@ -1,0 +1,8 @@
+query GetParcelsForRouteCreation {
+  parcelsForRouteCreation {
+    id
+    trackingNumber
+    weight
+    weightUnit
+  }
+}

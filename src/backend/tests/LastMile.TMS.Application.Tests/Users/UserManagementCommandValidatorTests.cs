@@ -1,6 +1,5 @@
 using FluentAssertions;
 using LastMile.TMS.Application.Users.Commands;
-using LastMile.TMS.Application.Users.Queries;
 using LastMile.TMS.Domain.Enums;
 
 namespace LastMile.TMS.Application.Tests.Users;
@@ -72,44 +71,6 @@ public class UserManagementCommandValidatorTests
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(x => x.PropertyName == nameof(RequestPasswordResetCommand.Email));
-    }
-
-    [Fact]
-    public void GetUsersQueryValidator_ShouldRejectInvalidPaging()
-    {
-        var validator = new GetUsersQueryValidator();
-        var query = new GetUsersQuery(
-            Search: "dispatch",
-            Role: PredefinedRole.Dispatcher,
-            IsActive: true,
-            DepotId: null,
-            ZoneId: null,
-            Skip: -1,
-            Take: 101);
-
-        var result = validator.Validate(query);
-
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(x => x.PropertyName == nameof(GetUsersQuery.Skip));
-        result.Errors.Should().Contain(x => x.PropertyName == nameof(GetUsersQuery.Take));
-    }
-
-    [Fact]
-    public void GetUsersQueryValidator_ShouldAcceptValidPaging()
-    {
-        var validator = new GetUsersQueryValidator();
-        var query = new GetUsersQuery(
-            Search: "alex",
-            Role: null,
-            IsActive: null,
-            DepotId: null,
-            ZoneId: null,
-            Skip: 0,
-            Take: 25);
-
-        var result = validator.Validate(query);
-
-        result.IsValid.Should().BeTrue();
     }
 
     [Fact]

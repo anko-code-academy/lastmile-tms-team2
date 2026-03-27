@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Eye, Plus, Route as RouteIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -32,14 +32,14 @@ import { cn } from "@/lib/utils";
 import { useRoutes } from "@/queries/routes";
 import { RouteStatus } from "@/types/routes";
 
+const PAGE_SIZE = 20;
+
 export default function RoutesPage() {
   const { status: sessionStatus } = useSession();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<RouteStatus | undefined>();
 
-  const { data, isLoading, error } = useRoutes({
-    page,
-    pageSize: 20,
+  const { data = [], isLoading, error } = useRoutes({
     status: statusFilter,
   });
 
@@ -52,13 +52,14 @@ export default function RoutesPage() {
       />
     );
 
-  const total = data?.totalCount ?? 0;
-  const pageSize = data?.pageSize ?? 20;
-  const totalPages = data?.totalPages ?? 1;
-  const from =
-    total === 0 ? 0 : (data!.page - 1) * pageSize + 1;
-  const to = total === 0 ? 0 : Math.min(data!.page * pageSize, total);
-  const currentPage = data?.page ?? 1;
+  const total = data.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to = total === 0 ? 0 : Math.min(page * PAGE_SIZE, total);
+  const pagedItems = useMemo(
+    () => data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [data, page],
+  );
 
   return (
     <>
@@ -88,9 +89,9 @@ export default function RoutesPage() {
         rangeEntityLabel="in list"
         from={from}
         to={to}
-        page={currentPage}
+        page={page}
         totalPages={totalPages}
-        pageSize={pageSize}
+        pageSize={PAGE_SIZE}
         filterCardLabel="Status filter"
         filterCardHint="Filter applies to this table only"
         activeFilterDisplay={
@@ -134,7 +135,7 @@ export default function RoutesPage() {
           </tr>
         </thead>
         <tbody>
-          {data?.items.map((route) => (
+          {pagedItems.map((route) => (
             <tr key={route.id} className={listDataTableBodyRowClass}>
               <td className={cn(listDataTableTdClass, "max-w-[180px]")}>
                 <OverflowTooltipCell
@@ -200,7 +201,7 @@ export default function RoutesPage() {
         </tbody>
       </ListDataTable>
 
-      {data?.items.length === 0 && (
+      {data.length === 0 && (
         <p className="py-12 text-center text-muted-foreground">
           No routes yet.{" "}
           <Link
@@ -212,13 +213,13 @@ export default function RoutesPage() {
         </p>
       )}
 
-      {data ? (
+      {totalPages > 1 && (
         <ListPagePagination
           page={page}
-          totalPages={data.totalPages}
+          totalPages={totalPages}
           setPage={setPage}
         />
-      ) : null}
+      )}
     </>
   );
 }

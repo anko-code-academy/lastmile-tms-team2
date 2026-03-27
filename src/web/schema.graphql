@@ -65,22 +65,6 @@ type OperatingHours {
   isClosed: Boolean!
 }
 
-type PaginatedResultOfRouteDto {
-  items: [RouteDto!]!
-  totalCount: Int!
-  page: Int!
-  pageSize: Int!
-  totalPages: Int!
-}
-
-type PaginatedResultOfVehicleDto {
-  items: [VehicleDto!]!
-  totalCount: Int!
-  page: Int!
-  pageSize: Int!
-  totalPages: Int!
-}
-
 type ParcelDto {
   id: UUID!
   trackingNumber: String!
@@ -118,15 +102,12 @@ type Query @authorize(roles: [ "Admin" ]) {
   depot(id: UUID!): Depot @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   drivers(depotId: UUID): [DriverReadModel!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   parcelsForRouteCreation: [ParcelOptionDto!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
-  routes(vehicleId: UUID status: RouteStatus page: Int! = 1 pageSize: Int! = 20): PaginatedResultOfRouteDto! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
-  route(id: UUID!): RouteDto @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
-  vehicleHistory(vehicleId: UUID! status: RouteStatus page: Int! = 1 pageSize: Int! = 10): PaginatedResultOfRouteDto! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
-  users(search: String role: UserRole isActive: Boolean depotId: UUID zoneId: UUID skip: Int! = 0 take: Int! = 20): UserManagementUsersResultDto! @cost(weight: "10")
-  user(id: UUID!): UserManagementUserDto! @cost(weight: "10")
+  routes(order: [RouteDtoSortInput!] @cost(weight: "10") where: RouteDtoFilterInput @cost(weight: "10")): [RouteDto!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  users(search: String isActive: Boolean depotId: UUID zoneId: UUID): [UserManagementUserDto!]! @cost(weight: "10")
+  user(id: UUID!): [UserManagementUserDto!]! @cost(weight: "10")
   userManagementLookups: UserManagementLookupsDto! @cost(weight: "10")
-  vehicles(page: Int! = 1 pageSize: Int! = 20 status: VehicleStatus depotId: UUID): PaginatedResultOfVehicleDto! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
-  vehicle(id: UUID!): VehicleDto @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
-  zones: [Zone!]! @cost(weight: "10")
+  vehicles(order: [VehicleDtoSortInput!] @cost(weight: "10") where: VehicleDtoFilterInput @cost(weight: "10")): [VehicleDto!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  zones(order: [ZoneDtoSortInput!] @cost(weight: "10") where: ZoneDtoFilterInput @cost(weight: "10")): [Zone!]! @cost(weight: "10")
   zone(id: UUID!): Zone @cost(weight: "10")
 }
 
@@ -169,13 +150,13 @@ type UserManagementRoleOptionDto {
 }
 
 type UserManagementUserDto {
+  role: String @cost(weight: "10")
   id: UUID!
   firstName: String!
   lastName: String!
   fullName: String!
   email: String!
   phone: String
-  role: UserRole
   isActive: Boolean!
   isProtected: Boolean!
   depotId: UUID
@@ -184,11 +165,6 @@ type UserManagementUserDto {
   zoneName: String
   createdAt: DateTime!
   lastModifiedAt: DateTime
-}
-
-type UserManagementUsersResultDto {
-  totalCount: Int!
-  items: [UserManagementUserDto!]!
 }
 
 type UserManagementZoneOptionDto {
@@ -344,6 +320,21 @@ input DayOfWeekOperationFilterInput {
   nin: [DayOfWeek!] @cost(weight: "10")
 }
 
+input DecimalOperationFilterInput {
+  eq: Decimal @cost(weight: "10")
+  neq: Decimal @cost(weight: "10")
+  in: [Decimal] @cost(weight: "10")
+  nin: [Decimal] @cost(weight: "10")
+  gt: Decimal @cost(weight: "10")
+  ngt: Decimal @cost(weight: "10")
+  gte: Decimal @cost(weight: "10")
+  ngte: Decimal @cost(weight: "10")
+  lt: Decimal @cost(weight: "10")
+  nlt: Decimal @cost(weight: "10")
+  lte: Decimal @cost(weight: "10")
+  nlte: Decimal @cost(weight: "10")
+}
+
 input DepotDtoFilterInput {
   and: [DepotDtoFilterInput!]
   or: [DepotDtoFilterInput!]
@@ -363,6 +354,21 @@ input DepotDtoSortInput {
   isActive: SortEnumType @cost(weight: "10")
   createdAt: SortEnumType @cost(weight: "10")
   updatedAt: SortEnumType @cost(weight: "10")
+}
+
+input IntOperationFilterInput {
+  eq: Int @cost(weight: "10")
+  neq: Int @cost(weight: "10")
+  in: [Int] @cost(weight: "10")
+  nin: [Int] @cost(weight: "10")
+  gt: Int @cost(weight: "10")
+  ngt: Int @cost(weight: "10")
+  gte: Int @cost(weight: "10")
+  ngte: Int @cost(weight: "10")
+  lt: Int @cost(weight: "10")
+  nlt: Int @cost(weight: "10")
+  lte: Int @cost(weight: "10")
+  nlte: Int @cost(weight: "10")
 }
 
 input ListFilterInputTypeOfOperatingHoursDtoFilterInput {
@@ -413,6 +419,49 @@ input RegisterParcelInput {
   currency: String!
   estimatedDeliveryDate: DateTime!
   parcelType: String
+}
+
+input RouteDtoFilterInput {
+  and: [RouteDtoFilterInput!]
+  or: [RouteDtoFilterInput!]
+  id: UuidOperationFilterInput
+  vehicleId: UuidOperationFilterInput
+  vehiclePlate: StringOperationFilterInput
+  driverId: UuidOperationFilterInput
+  driverName: StringOperationFilterInput
+  startDate: DateTimeOperationFilterInput
+  endDate: DateTimeOperationFilterInput
+  startMileage: IntOperationFilterInput
+  endMileage: IntOperationFilterInput
+  totalMileage: IntOperationFilterInput
+  status: RouteStatusOperationFilterInput
+  parcelCount: IntOperationFilterInput
+  parcelsDelivered: IntOperationFilterInput
+  createdAt: DateTimeOperationFilterInput
+}
+
+input RouteDtoSortInput {
+  id: SortEnumType @cost(weight: "10")
+  vehicleId: SortEnumType @cost(weight: "10")
+  vehiclePlate: SortEnumType @cost(weight: "10")
+  driverId: SortEnumType @cost(weight: "10")
+  driverName: SortEnumType @cost(weight: "10")
+  startDate: SortEnumType @cost(weight: "10")
+  endDate: SortEnumType @cost(weight: "10")
+  startMileage: SortEnumType @cost(weight: "10")
+  endMileage: SortEnumType @cost(weight: "10")
+  totalMileage: SortEnumType @cost(weight: "10")
+  status: SortEnumType @cost(weight: "10")
+  parcelCount: SortEnumType @cost(weight: "10")
+  parcelsDelivered: SortEnumType @cost(weight: "10")
+  createdAt: SortEnumType @cost(weight: "10")
+}
+
+input RouteStatusOperationFilterInput {
+  eq: RouteStatus @cost(weight: "10")
+  neq: RouteStatus @cost(weight: "10")
+  in: [RouteStatus!] @cost(weight: "10")
+  nin: [RouteStatus!] @cost(weight: "10")
 }
 
 input StringOperationFilterInput {
@@ -495,6 +544,78 @@ input UuidOperationFilterInput {
   nlt: UUID @cost(weight: "10")
   lte: UUID @cost(weight: "10")
   nlte: UUID @cost(weight: "10")
+}
+
+input VehicleDtoFilterInput {
+  and: [VehicleDtoFilterInput!]
+  or: [VehicleDtoFilterInput!]
+  id: UuidOperationFilterInput
+  registrationPlate: StringOperationFilterInput
+  type: VehicleTypeOperationFilterInput
+  parcelCapacity: IntOperationFilterInput
+  weightCapacity: DecimalOperationFilterInput
+  status: VehicleStatusOperationFilterInput
+  depotId: UuidOperationFilterInput
+  depotName: StringOperationFilterInput
+  routesCompleted: IntOperationFilterInput
+  totalRoutes: IntOperationFilterInput
+  totalMileage: IntOperationFilterInput
+  createdAt: DateTimeOperationFilterInput
+  lastModifiedAt: DateTimeOperationFilterInput
+}
+
+input VehicleDtoSortInput {
+  id: SortEnumType @cost(weight: "10")
+  registrationPlate: SortEnumType @cost(weight: "10")
+  type: SortEnumType @cost(weight: "10")
+  parcelCapacity: SortEnumType @cost(weight: "10")
+  weightCapacity: SortEnumType @cost(weight: "10")
+  status: SortEnumType @cost(weight: "10")
+  depotId: SortEnumType @cost(weight: "10")
+  depotName: SortEnumType @cost(weight: "10")
+  routesCompleted: SortEnumType @cost(weight: "10")
+  totalRoutes: SortEnumType @cost(weight: "10")
+  totalMileage: SortEnumType @cost(weight: "10")
+  createdAt: SortEnumType @cost(weight: "10")
+  lastModifiedAt: SortEnumType @cost(weight: "10")
+}
+
+input VehicleStatusOperationFilterInput {
+  eq: VehicleStatus @cost(weight: "10")
+  neq: VehicleStatus @cost(weight: "10")
+  in: [VehicleStatus!] @cost(weight: "10")
+  nin: [VehicleStatus!] @cost(weight: "10")
+}
+
+input VehicleTypeOperationFilterInput {
+  eq: VehicleType @cost(weight: "10")
+  neq: VehicleType @cost(weight: "10")
+  in: [VehicleType!] @cost(weight: "10")
+  nin: [VehicleType!] @cost(weight: "10")
+}
+
+input ZoneDtoFilterInput {
+  and: [ZoneDtoFilterInput!]
+  or: [ZoneDtoFilterInput!]
+  id: UuidOperationFilterInput
+  name: StringOperationFilterInput
+  boundary: StringOperationFilterInput
+  isActive: BooleanOperationFilterInput
+  depotId: UuidOperationFilterInput
+  depotName: StringOperationFilterInput
+  createdAt: DateTimeOperationFilterInput
+  updatedAt: DateTimeOperationFilterInput
+}
+
+input ZoneDtoSortInput {
+  id: SortEnumType @cost(weight: "10")
+  name: SortEnumType @cost(weight: "10")
+  boundary: SortEnumType @cost(weight: "10")
+  isActive: SortEnumType @cost(weight: "10")
+  depotId: SortEnumType @cost(weight: "10")
+  depotName: SortEnumType @cost(weight: "10")
+  createdAt: SortEnumType @cost(weight: "10")
+  updatedAt: SortEnumType @cost(weight: "10")
 }
 
 "Defines when a policy shall be executed."

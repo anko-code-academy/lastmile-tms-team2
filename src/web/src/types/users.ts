@@ -18,7 +18,7 @@ export interface UserManagementUser {
   fullName: string;
   email: string;
   phone: string | null;
-  role: UserRole | null;
+  role: string | null;
   isActive: boolean;
   isProtected: boolean;
   depotId: string | null;
@@ -27,11 +27,6 @@ export interface UserManagementUser {
   zoneName: string | null;
   createdAt: string;
   lastModifiedAt: string | null;
-}
-
-export interface UserManagementUsersResult {
-  totalCount: number;
-  items: UserManagementUser[];
 }
 
 export interface UserRoleOption {
@@ -83,10 +78,7 @@ export interface UserActionResult {
 
 export interface GetUsersInput {
   search?: string;
-  role?: UserRole;
   isActive?: boolean;
   depotId?: string;
   zoneId?: string;
-  skip?: number;
-  take?: number;
 }

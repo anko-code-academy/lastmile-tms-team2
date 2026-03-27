@@ -68,13 +68,13 @@ public class ZoneReadServiceTests
     }
 
     [Fact]
-    public async Task GetZonesAsync_ReturnsAllZonesWithDepotName()
+    public async Task GetZones_ReturnsAllZonesWithDepotName()
     {
         var db = MakeDbContext();
         var (zone, depot) = await SeedZone(db, "Maadi District");
 
         var service = new ZoneReadService(db);
-        var result = await service.GetZonesAsync();
+        var result = await service.GetZones().ToListAsync();
 
         result.Should().HaveCount(1);
         result[0].Id.Should().Be(zone.Id);
@@ -86,26 +86,26 @@ public class ZoneReadServiceTests
     }
 
     [Fact]
-    public async Task GetZonesAsync_Boundary_IsWktString()
+    public async Task GetZones_Boundary_IsWktString()
     {
         var db = MakeDbContext();
         await SeedZone(db, "Maadi");
 
         var service = new ZoneReadService(db);
-        var result = await service.GetZonesAsync();
+        var result = await service.GetZones().ToListAsync();
 
         result[0].Boundary.Should().StartWith("POLYGON");
     }
 
     [Fact]
-    public async Task GetZonesAsync_ReturnsMultipleZones()
+    public async Task GetZones_ReturnsMultipleZones()
     {
         var db = MakeDbContext();
         await SeedZone(db, "Zone A", "Depot A");
         await SeedZone(db, "Zone B", "Depot B");
 
         var service = new ZoneReadService(db);
-        var result = await service.GetZonesAsync();
+        var result = await service.GetZones().ToListAsync();
 
         result.Should().HaveCount(2);
     }

@@ -138,7 +138,7 @@ internal static class UserManagementReadModel
             $"{user.FirstName} {user.LastName}".Trim(),
             user.Email,
             user.Phone,
-            UserManagementRoleHelper.Parse(roleName),
+            roleName,
             user.IsActive,
             user.IsSystemAdmin,
             user.DepotId,

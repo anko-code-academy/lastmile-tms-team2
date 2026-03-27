@@ -1,10 +1,8 @@
 using HotChocolate;
 using HotChocolate.Authorization;
-using LastMile.TMS.Application.Common;
+using HotChocolate.Data;
 using LastMile.TMS.Application.Routes.DTOs;
-using LastMile.TMS.Application.Routes.Queries;
-using LastMile.TMS.Domain.Enums;
-using MediatR;
+using LastMile.TMS.Application.Routes.Reads;
 
 namespace LastMile.TMS.Api.GraphQL.Routes;
 
@@ -12,29 +10,10 @@ namespace LastMile.TMS.Api.GraphQL.Routes;
 public sealed class RouteQuery
 {
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
-    public Task<PaginatedResult<RouteDto>> GetRoutes(
-        Guid? vehicleId = null,
-        RouteStatus? status = null,
-        int page = 1,
-        int pageSize = 20,
-        [Service] ISender mediator = null!,
-        CancellationToken cancellationToken = default) =>
-        mediator.Send(new GetRoutesQuery(vehicleId, status, page, pageSize), cancellationToken);
-
-    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
-    public Task<RouteDto?> GetRoute(
-        Guid id,
-        [Service] ISender mediator = null!,
-        CancellationToken cancellationToken = default) =>
-        mediator.Send(new GetRouteByIdQuery(id), cancellationToken);
-
-    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
-    public Task<PaginatedResult<RouteDto>> GetVehicleHistory(
-        Guid vehicleId,
-        RouteStatus? status = null,
-        int page = 1,
-        int pageSize = 10,
-        [Service] ISender mediator = null!,
-        CancellationToken cancellationToken = default) =>
-        mediator.Send(new GetRoutesQuery(vehicleId, status, page, pageSize), cancellationToken);
+    [UseProjection]
+    [UseSorting]
+    [UseFiltering]
+    public IQueryable<RouteDto> GetRoutes(
+        [Service] IRouteReadService readService = null!) =>
+        readService.GetRoutes();
 }

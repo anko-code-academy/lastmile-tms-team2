@@ -9,7 +9,7 @@ public sealed record UserManagementUserDto(
     string FullName,
     string Email,
     string? Phone,
-    PredefinedRole? Role,
+    string? Role,
     bool IsActive,
     bool IsProtected,
     Guid? DepotId,

@@ -1,4 +1,3 @@
-import type { PaginatedResponse } from "@/types/api";
 import type { Vehicle } from "@/types/vehicles";
 import type { VehicleStatus, VehicleType } from "@/graphql/generated";
 
@@ -87,7 +86,7 @@ export function getMockVehiclesPaginated(
   page = 1,
   pageSize = 20,
   status?: VehicleStatus
-): PaginatedResponse<Vehicle> {
+): { items: Vehicle[]; totalCount: number; page: number; pageSize: number; totalPages: number } {
   let items = [...mockVehicles];
 
   if (status !== undefined) {

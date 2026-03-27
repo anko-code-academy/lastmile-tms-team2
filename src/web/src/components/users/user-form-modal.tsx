@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { userFormSchema, type UserFormSchema } from "@/lib/validation/users";
 import type {
+  UserRole,
   UserManagementLookups,
   UserManagementUser,
 } from "@/types/users";
@@ -28,7 +29,7 @@ function getDefaultValues(user?: UserManagementUser | null): UserFormSchema {
     lastName: user?.lastName ?? "",
     email: user?.email ?? "",
     phone: user?.phone ?? "",
-    role: user?.role ?? "Dispatcher",
+    role: (user?.role ?? "Dispatcher") as UserRole,
     depotId: user?.depotId ?? "",
     zoneId: user?.zoneId ?? "",
     isActive: user?.isActive ?? true,

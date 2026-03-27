@@ -61,6 +61,7 @@ public static class ServiceCollectionExtensions
             .AddTypeExtension<ZoneMutation>()
             .AddType<VehicleDtoType>()
             .AddType<UserRoleType>()
+            .AddType<UserManagementUserDtoType>()
             .AddType<AddressType>()
             .AddType<OperatingHoursType>()
             .AddType<DepotType>()

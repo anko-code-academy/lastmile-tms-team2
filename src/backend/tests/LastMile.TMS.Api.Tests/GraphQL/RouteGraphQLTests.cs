@@ -18,7 +18,7 @@ public class RouteGraphQLTests(CustomWebApplicationFactory factory)
             """
             query {
               routes {
-                totalCount
+                id
               }
             }
             """);
@@ -164,63 +164,29 @@ public class RouteGraphQLTests(CustomWebApplicationFactory factory)
 
         using var document = await PostGraphQLAsync(
             """
-            query GetRoutes($status: RouteStatus!) {
-              routes(status: $status, page: 1, pageSize: 20) {
-                items {
-                  id
-                  status
-                }
+            query GetRoutes {
+              routes(where: { status: { eq: COMPLETED } }) {
+                id
+                status
               }
             }
             """,
-            new
-            {
-                status = "COMPLETED"
-            },
-            token);
+            accessToken: token);
 
-        var items = document.RootElement
+        var routes = document.RootElement
             .GetProperty("data")
             .GetProperty("routes")
-            .GetProperty("items")
             .EnumerateArray()
             .ToList();
 
-        items.Should().NotBeEmpty();
-        items.Should().OnlyContain(item => item.GetProperty("status").GetString() == "COMPLETED");
-        items.Select(item => item.GetProperty("id").GetString()).Should().Contain(completedRouteId.ToString());
-        items.Select(item => item.GetProperty("id").GetString()).Should().NotContain(plannedRouteId.ToString());
+        routes.Should().NotBeEmpty();
+        routes.Should().OnlyContain(r => r.GetProperty("status").GetString() == "COMPLETED");
+        routes.Select(r => r.GetProperty("id").GetString()).Should().Contain(completedRouteId.ToString());
+        routes.Select(r => r.GetProperty("id").GetString()).Should().NotContain(plannedRouteId.ToString());
     }
 
     [Fact]
-    public async Task GetRoute_WithUnknownId_ReturnsNull()
-    {
-        var token = await GetAdminAccessTokenAsync();
-
-        using var document = await PostGraphQLAsync(
-            """
-            query GetRoute($id: UUID!) {
-              route(id: $id) {
-                id
-              }
-            }
-            """,
-            new
-            {
-                id = Guid.NewGuid()
-            },
-            token);
-
-        document.RootElement
-            .GetProperty("data")
-            .GetProperty("route")
-            .ValueKind
-            .Should()
-            .Be(JsonValueKind.Null);
-    }
-
-    [Fact]
-    public async Task VehicleHistory_WithVehicleId_ReturnsOnlyMatchingRoutes()
+    public async Task GetRoutes_WithVehicleIdFilter_ReturnsOnlyMatchingRoutes()
     {
         var token = await GetAdminAccessTokenAsync();
         var vehicleAId = DbSeeder.TestVehicleId;
@@ -230,12 +196,10 @@ public class RouteGraphQLTests(CustomWebApplicationFactory factory)
 
         using var document = await PostGraphQLAsync(
             """
-            query VehicleHistory($vehicleId: UUID!) {
-              vehicleHistory(vehicleId: $vehicleId, page: 1, pageSize: 20) {
-                items {
-                  id
-                  vehicleId
-                }
+            query VehicleRoutes($vehicleId: UUID!) {
+              routes(where: { vehicleId: { eq: $vehicleId } }) {
+                id
+                vehicleId
               }
             }
             """,
@@ -245,15 +209,14 @@ public class RouteGraphQLTests(CustomWebApplicationFactory factory)
             },
             token);
 
-        var items = document.RootElement
+        var routes = document.RootElement
             .GetProperty("data")
-            .GetProperty("vehicleHistory")
-            .GetProperty("items")
+            .GetProperty("routes")
             .EnumerateArray()
             .ToList();
 
-        items.Should().ContainSingle(item => item.GetProperty("id").GetString() == vehicleARouteId.ToString());
-        items.Should().OnlyContain(item => item.GetProperty("vehicleId").GetString() == vehicleAId.ToString());
+        routes.Should().Contain(r => r.GetProperty("id").GetString() == vehicleARouteId.ToString());
+        routes.Should().OnlyContain(r => r.GetProperty("vehicleId").GetString() == vehicleAId.ToString());
     }
 
     public Task InitializeAsync() => factory.ResetDatabaseAsync();

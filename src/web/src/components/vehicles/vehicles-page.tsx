@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -35,6 +35,8 @@ import { VehicleStatusFilter } from "@/components/vehicles/status-filter-dropdow
 import { OverflowTooltipCell } from "@/components/list/overflow-tooltip-cell";
 import { cn } from "@/lib/utils";
 
+const PAGE_SIZE = 20;
+
 export default function VehiclesPage() {
   const { status: sessionStatus } = useSession();
   const [page, setPage] = useState(1);
@@ -46,14 +48,21 @@ export default function VehiclesPage() {
   } | null>(null);
 
   const { data: depotsData } = useDepots();
-  const { data, isLoading, error } = useVehicles({
-    page,
-    pageSize: 20,
+  const { data = [], isLoading, error } = useVehicles({
     status: statusFilter,
     depotId: depotFilter,
   });
 
   const deleteVehicle = useDeleteVehicle();
+
+  const total = data.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to = total === 0 ? 0 : Math.min(page * PAGE_SIZE, total);
+  const pagedItems = useMemo(
+    () => data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [data, page],
+  );
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -76,14 +85,6 @@ export default function VehiclesPage() {
         message={getErrorMessage(error)}
       />
     );
-
-  const total = data?.totalCount ?? 0;
-  const pageSize = data?.pageSize ?? 20;
-  const totalPages = data?.totalPages ?? 1;
-  const from =
-    total === 0 ? 0 : (data!.page - 1) * pageSize + 1;
-  const to = total === 0 ? 0 : Math.min(data!.page * pageSize, total);
-  const currentPage = data?.page ?? 1;
 
   return (
     <>
@@ -118,9 +119,9 @@ export default function VehiclesPage() {
         rangeEntityLabel="vehicles"
         from={from}
         to={to}
-        page={currentPage}
+        page={page}
         totalPages={totalPages}
-        pageSize={pageSize}
+        pageSize={PAGE_SIZE}
         filterCardLabel="Status filter"
         filterCardHint="Use the filter below to narrow the list"
         activeFilterDisplay={
@@ -168,7 +169,7 @@ export default function VehiclesPage() {
           </tr>
         </thead>
         <tbody>
-          {data?.items.map((vehicle) => (
+          {pagedItems.map((vehicle) => (
             <tr key={vehicle.id} className={listDataTableBodyRowClass}>
               <td className={cn(listDataTableTdClass, "max-w-[200px]")}>
                 <OverflowTooltipCell
@@ -194,7 +195,7 @@ export default function VehiclesPage() {
                 />
               </td>
               <td className={cn(listDataTableTdClass, "max-w-[160px] text-muted-foreground")}>
-                <OverflowTooltipCell fullText={vehicle.depotName || "вЂ”"} />
+                <OverflowTooltipCell fullText={vehicle.depotName || "вЂ"} />
               </td>
               <td className={cn(listDataTableTdClass, "max-w-[96px] tabular-nums")}>
                 <OverflowTooltipCell
@@ -226,13 +227,13 @@ export default function VehiclesPage() {
         </tbody>
       </ListDataTable>
 
-      {data ? (
+      {totalPages > 1 && (
         <ListPagePagination
           page={page}
-          totalPages={data.totalPages}
+          totalPages={totalPages}
           setPage={setPage}
         />
-      ) : null}
+      )}
     </>
   );
 }

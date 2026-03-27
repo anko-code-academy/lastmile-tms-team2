@@ -1,42 +1,42 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import type { MutationToastMeta } from "@/lib/query/mutation-toast-meta";
 import { routesService } from "@/services/routes.service";
 import { CreateRouteRequest, RouteStatus } from "@/types/routes";
 import { vehicleKeys } from "./vehicles";
 import { parcelKeys } from "./parcels";
+import type { RouteDtoFilterInput } from "@/graphql/generated";
 
 export const routeKeys = {
   all: ["routes"] as const,
   lists: () => [...routeKeys.all, "list"] as const,
-  list: (params: {
-    vehicleId?: string;
-    page?: number;
-    pageSize?: number;
-    status?: RouteStatus;
-  }) => [...routeKeys.lists(), params] as const,
+  list: (where?: RouteDtoFilterInput) =>
+    [...routeKeys.lists(), where] as const,
   details: () => [...routeKeys.all, "detail"] as const,
   detail: (id: string) => [...routeKeys.details(), id] as const,
-  vehicleHistory: (vehicleId: string, page?: number) =>
-    [...routeKeys.all, "vehicleHistory", vehicleId, page] as const,
 };
 
 export function useRoutes(params: {
   vehicleId?: string;
-  page?: number;
-  pageSize?: number;
   status?: RouteStatus;
 }) {
   const { status } = useSession();
+
+  const where: RouteDtoFilterInput | undefined =
+    params.vehicleId !== undefined || params.status !== undefined
+      ? {
+          ...(params.vehicleId !== undefined && {
+            vehicleId: { eq: params.vehicleId },
+          }),
+          ...(params.status !== undefined && {
+            status: { eq: params.status },
+          }),
+        }
+      : undefined;
+
   return useQuery({
-    queryKey: routeKeys.list(params),
-    queryFn: () =>
-      routesService.getAll(
-        params.vehicleId,
-        params.page,
-        params.pageSize,
-        params.status
-      ),
+    queryKey: routeKeys.list(where),
+    queryFn: () => routesService.getAll(where),
     enabled: status === "authenticated",
   });
 }
@@ -47,15 +47,6 @@ export function useRoute(id: string) {
     queryKey: routeKeys.detail(id),
     queryFn: () => routesService.getById(id),
     enabled: status === "authenticated" && !!id,
-  });
-}
-
-export function useVehicleHistory(vehicleId: string, page = 1) {
-  const { status } = useSession();
-  return useQuery({
-    queryKey: routeKeys.vehicleHistory(vehicleId, page),
-    queryFn: () => routesService.getVehicleHistory(vehicleId, page, 10),
-    enabled: status === "authenticated" && !!vehicleId,
   });
 }
 

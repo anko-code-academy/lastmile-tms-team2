@@ -1,6 +1,5 @@
 export {
   GetVehiclesDocument as PAGINATED_VEHICLES,
-  GetVehicleDocument as VEHICLE_BY_ID,
   CreateVehicleDocument as CREATE_VEHICLE,
   UpdateVehicleDocument as UPDATE_VEHICLE,
   DeleteVehicleDocument as DELETE_VEHICLE,
@@ -8,8 +7,6 @@ export {
 export type {
   GetVehiclesQuery,
   GetVehiclesQueryVariables,
-  GetVehicleQuery,
-  GetVehicleQueryVariables,
   CreateVehicleMutation,
   CreateVehicleMutationVariables,
   UpdateVehicleMutation,

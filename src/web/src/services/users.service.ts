@@ -18,7 +18,6 @@ import type {
   UserActionResult,
   UserManagementLookups,
   UserManagementUser,
-  UserManagementUsersResult,
 } from "@/types/users";
 
 export async function getUserManagementLookups(
@@ -34,17 +33,14 @@ export async function getUserManagementLookups(
 export async function getUsers(
   accessToken: string,
   filters: GetUsersInput
-): Promise<UserManagementUsersResult> {
-  const data = await graphqlRequest<{ users: UserManagementUsersResult }>(
+): Promise<UserManagementUser[]> {
+  const data = await graphqlRequest<{ users: UserManagementUser[] }>(
     USERS_LIST,
     {
       search: filters.search,
-      role: filters.role,
       isActive: filters.isActive,
       depotId: filters.depotId,
       zoneId: filters.zoneId,
-      skip: filters.skip ?? 0,
-      take: filters.take ?? 20,
     },
     accessToken
   );

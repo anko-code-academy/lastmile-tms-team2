@@ -17,7 +17,7 @@ public class VehicleGraphQLTests(CustomWebApplicationFactory factory)
             """
             query {
               vehicles {
-                totalCount
+                id
               }
             }
             """);
@@ -186,58 +186,24 @@ public class VehicleGraphQLTests(CustomWebApplicationFactory factory)
 
         using var document = await PostGraphQLAsync(
             """
-            query GetVehicles($status: VehicleStatus!) {
-              vehicles(status: $status, page: 1, pageSize: 20) {
-                items {
-                  id
-                  status
-                }
+            query GetVehicles {
+              vehicles(where: { status: { eq: AVAILABLE } }) {
+                id
+                status
               }
             }
             """,
-            new
-            {
-                status = "AVAILABLE"
-            },
-            token);
+            accessToken: token);
 
-        var items = document.RootElement
+        var vehicles = document.RootElement
             .GetProperty("data")
             .GetProperty("vehicles")
-            .GetProperty("items")
             .EnumerateArray()
             .ToList();
 
-        items.Should().NotBeEmpty();
-        items.Should().OnlyContain(item => item.GetProperty("status").GetString() == "AVAILABLE");
-        items.Select(item => item.GetProperty("id").GetString()).Should().NotContain(inUseVehicleId.ToString());
-    }
-
-    [Fact]
-    public async Task GetVehicle_WithUnknownId_ReturnsNull()
-    {
-        var token = await GetAdminAccessTokenAsync();
-
-        using var document = await PostGraphQLAsync(
-            """
-            query GetVehicle($id: UUID!) {
-              vehicle(id: $id) {
-                id
-              }
-            }
-            """,
-            new
-            {
-                id = Guid.NewGuid()
-            },
-            token);
-
-        document.RootElement
-            .GetProperty("data")
-            .GetProperty("vehicle")
-            .ValueKind
-            .Should()
-            .Be(JsonValueKind.Null);
+        vehicles.Should().NotBeEmpty();
+        vehicles.Should().OnlyContain(v => v.GetProperty("status").GetString() == "AVAILABLE");
+        vehicles.Select(v => v.GetProperty("id").GetString()).Should().NotContain(inUseVehicleId.ToString());
     }
 
     [Fact]

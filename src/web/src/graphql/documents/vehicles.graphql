@@ -1,0 +1,57 @@
+query GetVehicles($where: VehicleDtoFilterInput, $order: [VehicleDtoSortInput!]) {
+  vehicles(where: $where, order: $order) {
+    id
+    registrationPlate
+    type
+    parcelCapacity
+    weightCapacity
+    status
+    depotId
+    depotName
+    totalRoutes
+    routesCompleted
+    totalMileage
+    createdAt
+    lastModifiedAt
+  }
+}
+
+mutation CreateVehicle($input: CreateVehicleDtoInput!) {
+  createVehicle(input: $input) {
+    id
+    registrationPlate
+    type
+    parcelCapacity
+    weightCapacity
+    status
+    depotId
+    depotName
+    totalRoutes
+    routesCompleted
+    totalMileage
+    createdAt
+    lastModifiedAt
+  }
+}
+
+mutation UpdateVehicle($id: UUID!, $input: UpdateVehicleDtoInput!) {
+  updateVehicle(id: $id, input: $input) {
+    id
+    registrationPlate
+    type
+    parcelCapacity
+    weightCapacity
+    status
+    depotId
+    depotName
+    totalRoutes
+    routesCompleted
+    totalMileage
+    createdAt
+    lastModifiedAt
+  }
+}
+
+mutation DeleteVehicle($id: UUID!) {
+  deleteVehicle(id: $id)
+}

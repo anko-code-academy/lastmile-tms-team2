@@ -1,0 +1,118 @@
+query UserManagementLookups {
+  userManagementLookups {
+    roles {
+      value
+      label
+    }
+    depots {
+      id
+      name
+    }
+    zones {
+      id
+      depotId
+      name
+    }
+  }
+}
+
+query Users($search: String, $isActive: Boolean, $depotId: UUID, $zoneId: UUID) {
+  users(search: $search, isActive: $isActive, depotId: $depotId, zoneId: $zoneId) {
+    id
+    firstName
+    lastName
+    fullName
+    email
+    phone
+    role
+    isActive
+    isProtected
+    depotId
+    depotName
+    zoneId
+    zoneName
+    createdAt
+    lastModifiedAt
+  }
+}
+
+mutation CreateUser($input: CreateUserInput!) {
+  createUser(input: $input) {
+    id
+    firstName
+    lastName
+    fullName
+    email
+    phone
+    role
+    isActive
+    isProtected
+    depotId
+    depotName
+    zoneId
+    zoneName
+    createdAt
+    lastModifiedAt
+  }
+}
+
+mutation UpdateUser($input: UpdateUserInput!) {
+  updateUser(input: $input) {
+    id
+    firstName
+    lastName
+    fullName
+    email
+    phone
+    role
+    isActive
+    isProtected
+    depotId
+    depotName
+    zoneId
+    zoneName
+    createdAt
+    lastModifiedAt
+  }
+}
+
+mutation DeactivateUser($userId: UUID!) {
+  deactivateUser(userId: $userId) {
+    id
+    firstName
+    lastName
+    fullName
+    email
+    phone
+    role
+    isActive
+    isProtected
+    depotId
+    depotName
+    zoneId
+    zoneName
+    createdAt
+    lastModifiedAt
+  }
+}
+
+mutation SendPasswordResetEmail($userId: UUID!) {
+  sendPasswordResetEmail(userId: $userId) {
+    success
+    message
+  }
+}
+
+mutation CompletePasswordReset($input: CompletePasswordResetInput!) {
+  completePasswordReset(input: $input) {
+    success
+    message
+  }
+}
+
+mutation RequestPasswordReset($email: String!) {
+  requestPasswordReset(email: $email) {
+    success
+    message
+  }
+}

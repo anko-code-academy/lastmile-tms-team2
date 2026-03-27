@@ -55,17 +55,15 @@ export function DashboardOverviewClient({
   displayName: string;
   isAdmin: boolean;
 }) {
-  const vehiclesQuery = useVehicles({ page: 1, pageSize: 1 });
+  const vehiclesQuery = useVehicles({});
   const activeRoutesQuery = useRoutes({
-    page: 1,
-    pageSize: 1,
     status: "IN_PROGRESS",
   });
   const depotsQuery = useDepots();
   const zonesQuery = useZones();
   const usersQuery = useUsers(
     accessToken,
-    { skip: 0, take: 1 },
+    {},
     { enabled: isAdmin },
   );
 
@@ -73,7 +71,7 @@ export function DashboardOverviewClient({
     {
       key: "vehicles",
       label: "Fleet",
-      value: vehiclesQuery.data?.totalCount,
+      value: vehiclesQuery.data?.length,
       isLoading: vehiclesQuery.isLoading,
       hasError: Boolean(vehiclesQuery.error),
       hint: "Registered vehicles across your network",
@@ -84,7 +82,7 @@ export function DashboardOverviewClient({
     {
       key: "active-routes",
       label: "Active routes",
-      value: activeRoutesQuery.data?.totalCount,
+      value: activeRoutesQuery.data?.length,
       isLoading: activeRoutesQuery.isLoading,
       hasError: Boolean(activeRoutesQuery.error),
       hint: "Dispatch runs currently in progress",
@@ -156,7 +154,7 @@ export function DashboardOverviewClient({
     {
       label: "Users",
       value: isAdmin
-        ? renderMetricValue(usersQuery.data?.totalCount, usersQuery.isLoading)
+        ? renderMetricValue(usersQuery.data?.length, usersQuery.isLoading)
         : "Restricted",
       hint: isAdmin
         ? renderMetricHint(

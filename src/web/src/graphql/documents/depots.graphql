@@ -1,0 +1,119 @@
+query GetDepots {
+  depots {
+    id
+    name
+    address {
+      street1
+      street2
+      city
+      state
+      postalCode
+      countryCode
+      isResidential
+      contactName
+      companyName
+      phone
+      email
+    }
+    operatingHours {
+      dayOfWeek
+      openTime
+      closedTime
+      isClosed
+    }
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+query GetDepot($id: UUID!) {
+  depot(id: $id) {
+    id
+    name
+    address {
+      street1
+      street2
+      city
+      state
+      postalCode
+      countryCode
+      isResidential
+      contactName
+      companyName
+      phone
+      email
+    }
+    operatingHours {
+      dayOfWeek
+      openTime
+      closedTime
+      isClosed
+    }
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+mutation CreateDepot($input: CreateDepotInput!) {
+  createDepot(input: $input) {
+    id
+    name
+    address {
+      street1
+      street2
+      city
+      state
+      postalCode
+      countryCode
+      isResidential
+      contactName
+      companyName
+      phone
+      email
+    }
+    operatingHours {
+      dayOfWeek
+      openTime
+      closedTime
+      isClosed
+    }
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateDepot($id: UUID!, $input: UpdateDepotInput!) {
+  updateDepot(id: $id, input: $input) {
+    id
+    name
+    address {
+      street1
+      street2
+      city
+      state
+      postalCode
+      countryCode
+      isResidential
+      contactName
+      companyName
+      phone
+      email
+    }
+    operatingHours {
+      dayOfWeek
+      openTime
+      closedTime
+      isClosed
+    }
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteDepot($id: UUID!) {
+  deleteDepot(id: $id)
+}

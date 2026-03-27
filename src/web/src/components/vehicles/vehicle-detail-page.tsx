@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -32,7 +31,6 @@ import {
 } from "@/components/detail";
 import {
   ListDataTable,
-  ListPagePagination,
   listDataTableBodyRowClass,
   listDataTableHeadRowClass,
   listDataTableTdClass,
@@ -55,14 +53,12 @@ import {
   vehicleStatusBadgeClass,
 } from "@/lib/labels/vehicles";
 import { useVehicle } from "@/queries/vehicles";
-import { useVehicleHistory } from "@/queries/routes";
+import { useRoutes } from "@/queries/routes";
 
 function VehicleRouteHistory({ vehicleId }: { vehicleId: string }) {
-  const [historyPage, setHistoryPage] = useState(1);
-  const { data: history, isLoading: historyLoading } = useVehicleHistory(
+  const { data: routes = [], isLoading: historyLoading } = useRoutes({
     vehicleId,
-    historyPage
-  );
+  });
 
   return (
     <DetailPanel
@@ -71,102 +67,94 @@ function VehicleRouteHistory({ vehicleId }: { vehicleId: string }) {
       description="Recent routes for this vehicle. Open a row to see full details."
     >
       {historyLoading && (
-        <p className="text-sm text-muted-foreground">Loading routesвЂ¦</p>
+        <p className="text-sm text-muted-foreground">Loading routes…</p>
       )}
-      {!historyLoading && history && history.items.length === 0 && (
+      {!historyLoading && routes.length === 0 && (
         <p className="text-sm text-muted-foreground">
           No routes recorded for this vehicle yet.
         </p>
       )}
-      {!historyLoading && history && history.items.length > 0 && (
-        <>
-          <ListDataTable
-            minWidthClassName="min-w-[720px]"
-            className="bg-background/50"
-          >
-            <thead>
-              <tr className={listDataTableHeadRowClass}>
-                <th
-                  className={cn(
-                    listDataTableThClass,
-                    "min-w-[140px] whitespace-nowrap",
-                  )}
-                >
-                  Start date
-                </th>
-                <th className={listDataTableThClass}>Driver</th>
-                <th className={listDataTableThClass}>Status</th>
-                <th className={cn(listDataTableThClass, "whitespace-nowrap")}>
-                  Mileage
-                </th>
-                <th className={cn(listDataTableThClass, "whitespace-nowrap")}>
-                  Parcels
-                </th>
-                <th className={listDataTableThRightClass}>Actions</th>
+      {!historyLoading && routes.length > 0 && (
+        <ListDataTable
+          minWidthClassName="min-w-[720px]"
+          className="bg-background/50"
+        >
+          <thead>
+            <tr className={listDataTableHeadRowClass}>
+              <th
+                className={cn(
+                  listDataTableThClass,
+                  "min-w-[140px] whitespace-nowrap",
+                )}
+              >
+                Start date
+              </th>
+              <th className={listDataTableThClass}>Driver</th>
+              <th className={listDataTableThClass}>Status</th>
+              <th className={cn(listDataTableThClass, "whitespace-nowrap")}>
+                Mileage
+              </th>
+              <th className={cn(listDataTableThClass, "whitespace-nowrap")}>
+                Parcels
+              </th>
+              <th className={listDataTableThRightClass}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {routes.map((route) => (
+              <tr key={route.id} className={listDataTableBodyRowClass}>
+                <td className={cn(listDataTableTdClass, "tabular-nums text-muted-foreground")}>
+                  <OverflowTooltipCell
+                    fullText={new Date(route.startDate).toLocaleString()}
+                  />
+                </td>
+                <td className={cn(listDataTableTdClass, "max-w-[200px]")}>
+                  <OverflowTooltipCell fullText={route.driverName} />
+                </td>
+                <td className={cn(listDataTableTdClass, "max-w-[140px] align-middle")}>
+                  <OverflowTooltipCell
+                    shrinkToContent
+                    fullText={ROUTE_STATUS_LABELS[route.status]}
+                    className={routeRowStatusBadgeClass(route.status)}
+                  />
+                </td>
+                <td className={cn(listDataTableTdClass, "tabular-nums")}>
+                  {route.totalMileage > 0
+                    ? `${route.totalMileage} km`
+                    : `${route.startMileage} (start)`}
+                </td>
+                <td className={cn(listDataTableTdClass, "tabular-nums")}>
+                  {route.parcelsDelivered}/{route.parcelCount}
+                </td>
+                <td className={cn(listDataTableTdClass, "min-w-32 text-right align-middle")}>
+                  <div className="flex justify-end">
+                    <Tooltip.Root>
+                      <Tooltip.Trigger asChild>
+                        <Link
+                          href={`/routes/${route.id}`}
+                          className={listTableIconLinkClass}
+                          aria-label={`View route on ${new Date(route.startDate).toLocaleDateString()}`}
+                        >
+                          <Eye className="size-3.5" strokeWidth={2} aria-hidden />
+                        </Link>
+                      </Tooltip.Trigger>
+                      <Tooltip.Portal>
+                        <Tooltip.Content
+                          side="top"
+                          sideOffset={4}
+                          className="z-50 rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md"
+                        >
+                          View
+                          <Tooltip.Arrow className="fill-popover" />
+                        </Tooltip.Content>
+                      </Tooltip.Portal>
+                    </Tooltip.Root>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {history.items.map((route) => (
-                <tr key={route.id} className={listDataTableBodyRowClass}>
-                  <td className={cn(listDataTableTdClass, "tabular-nums text-muted-foreground")}>
-                    <OverflowTooltipCell
-                      fullText={new Date(route.startDate).toLocaleString()}
-                    />
-                  </td>
-                  <td className={cn(listDataTableTdClass, "max-w-[200px]")}>
-                    <OverflowTooltipCell fullText={route.driverName} />
-                  </td>
-                  <td className={cn(listDataTableTdClass, "max-w-[140px] align-middle")}>
-                    <OverflowTooltipCell
-                      shrinkToContent
-                      fullText={ROUTE_STATUS_LABELS[route.status]}
-                      className={routeRowStatusBadgeClass(route.status)}
-                    />
-                  </td>
-                  <td className={cn(listDataTableTdClass, "tabular-nums")}>
-                    {route.totalMileage > 0
-                      ? `${route.totalMileage} km`
-                      : `${route.startMileage} (start)`}
-                  </td>
-                  <td className={cn(listDataTableTdClass, "tabular-nums")}>
-                    {route.parcelsDelivered}/{route.parcelCount}
-                  </td>
-                  <td className={cn(listDataTableTdClass, "min-w-32 text-right align-middle")}>
-                    <div className="flex justify-end">
-                      <Tooltip.Root>
-                        <Tooltip.Trigger asChild>
-                          <Link
-                            href={`/routes/${route.id}`}
-                            className={listTableIconLinkClass}
-                            aria-label={`View route on ${new Date(route.startDate).toLocaleDateString()}`}
-                          >
-                            <Eye className="size-3.5" strokeWidth={2} aria-hidden />
-                          </Link>
-                        </Tooltip.Trigger>
-                        <Tooltip.Portal>
-                          <Tooltip.Content
-                            side="top"
-                            sideOffset={4}
-                            className="z-50 rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md"
-                          >
-                            View
-                            <Tooltip.Arrow className="fill-popover" />
-                          </Tooltip.Content>
-                        </Tooltip.Portal>
-                      </Tooltip.Root>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </ListDataTable>
-          <ListPagePagination
-            page={historyPage}
-            totalPages={history.totalPages}
-            setPage={setHistoryPage}
-            className="mt-6"
-          />
-        </>
+            ))}
+          </tbody>
+        </ListDataTable>
       )}
     </DetailPanel>
   );
@@ -229,7 +217,7 @@ export default function VehicleDetailPage() {
                 {VEHICLE_TYPE_LABELS[vehicle.type]}
                 {vehicle.depotName ? (
                   <>
-                    {" В· "}
+                    {" · "}
                     <span className="text-foreground/80">{vehicle.depotName}</span>
                   </>
                 ) : null}

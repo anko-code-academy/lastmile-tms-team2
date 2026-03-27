@@ -24,11 +24,3 @@ export type CreateRouteRequest = {
   startMileage: number;
   parcelIds: string[];
 };
-
-export type PaginatedRoutesResult = {
-  items: Route[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-};

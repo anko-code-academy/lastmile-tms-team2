@@ -1,0 +1,37 @@
+query GetRoutes($where: RouteDtoFilterInput, $order: [RouteDtoSortInput!]) {
+  routes(where: $where, order: $order) {
+    id
+    vehicleId
+    vehiclePlate
+    driverId
+    driverName
+    startDate
+    endDate
+    startMileage
+    endMileage
+    totalMileage
+    status
+    parcelCount
+    parcelsDelivered
+    createdAt
+  }
+}
+
+mutation CreateRoute($input: CreateRouteDtoInput!) {
+  createRoute(input: $input) {
+    id
+    vehicleId
+    vehiclePlate
+    driverId
+    driverName
+    startDate
+    endDate
+    startMileage
+    endMileage
+    totalMileage
+    status
+    parcelCount
+    parcelsDelivered
+    createdAt
+  }
+}

@@ -7,36 +7,38 @@ import {
   UpdateVehicleRequest,
   VehicleStatus,
 } from "@/types/vehicles";
+import type { VehicleDtoFilterInput } from "@/graphql/generated";
 
 export const vehicleKeys = {
   all: ["vehicles"] as const,
   lists: () => [...vehicleKeys.all, "list"] as const,
-  list: (params: {
-    page?: number;
-    pageSize?: number;
-    status?: VehicleStatus;
-    depotId?: string;
-  }) => [...vehicleKeys.lists(), params] as const,
+  list: (where?: VehicleDtoFilterInput) =>
+    [...vehicleKeys.lists(), where] as const,
   details: () => [...vehicleKeys.all, "detail"] as const,
   detail: (id: string) => [...vehicleKeys.details(), id] as const,
 };
 
 export function useVehicles(params: {
-  page?: number;
-  pageSize?: number;
   status?: VehicleStatus;
   depotId?: string;
 }) {
   const { status } = useSession();
+
+  const where: VehicleDtoFilterInput | undefined =
+    params.status !== undefined || params.depotId !== undefined
+      ? {
+          ...(params.status !== undefined && {
+            status: { eq: params.status },
+          }),
+          ...(params.depotId !== undefined && {
+            depotId: { eq: params.depotId },
+          }),
+        }
+      : undefined;
+
   return useQuery({
-    queryKey: vehicleKeys.list(params),
-    queryFn: () =>
-      vehiclesService.getAll(
-        params.page,
-        params.pageSize,
-        params.status,
-        params.depotId
-      ),
+    queryKey: vehicleKeys.list(where),
+    queryFn: () => vehiclesService.getAll(where),
     enabled: status === "authenticated",
   });
 }

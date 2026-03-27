@@ -9,7 +9,6 @@ import {
   useDeleteVehicle,
   vehicleKeys,
 } from "../vehicles";
-import type { PaginatedResponse } from "../../types/api";
 import type { Vehicle } from "../../types/vehicles";
 import type { VehicleStatus } from "../../types/vehicles";
 import * as vehiclesService from "../../services/vehicles.service";
@@ -57,18 +56,12 @@ describe("useVehicles", () => {
     vi.clearAllMocks();
   });
 
-  it("should fetch vehicles with default params", async () => {
-    const mockResponse = {
-      items: [{ id: "1", registrationPlate: "ABC-001" }],
-      totalCount: 1,
-      page: 1,
-      pageSize: 20,
-      totalPages: 1,
-    };
+  it("should fetch vehicles with no filters", async () => {
+    const mockVehicles = [
+      { id: "1", registrationPlate: "ABC-001" } as unknown as Vehicle,
+    ];
 
-    mockVehiclesService.getAll.mockResolvedValueOnce(
-      mockResponse as PaginatedResponse<Vehicle>,
-    );
+    mockVehiclesService.getAll.mockResolvedValueOnce(mockVehicles);
 
     const { result } = renderHook(() => useVehicles({}), {
       wrapper: createWrapper(),
@@ -76,46 +69,30 @@ describe("useVehicles", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockVehiclesService.getAll).toHaveBeenCalledWith(
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    );
-    expect(result.current.data).toEqual(mockResponse);
+    expect(mockVehiclesService.getAll).toHaveBeenCalledWith(undefined);
+    expect(result.current.data).toEqual(mockVehicles);
   });
 
-  it("should fetch vehicles with filters", async () => {
-    const mockResponse = {
-      items: [],
-      totalCount: 0,
-      page: 1,
-      pageSize: 10,
-      totalPages: 0,
-    };
+  it("should fetch vehicles with status filter", async () => {
+    const mockVehicles: Vehicle[] = [];
 
-    mockVehiclesService.getAll.mockResolvedValueOnce(
-      mockResponse as PaginatedResponse<Vehicle>,
-    );
+    mockVehiclesService.getAll.mockResolvedValueOnce(mockVehicles);
 
     const { result } = renderHook(
-      () => useVehicles({ page: 2, pageSize: 10, status: "AVAILABLE" }),
+      () => useVehicles({ status: "AVAILABLE" }),
       { wrapper: createWrapper() }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockVehiclesService.getAll).toHaveBeenCalledWith(
-      2,
-      10,
-      "AVAILABLE",
-      undefined
-    );
+    expect(mockVehiclesService.getAll).toHaveBeenCalledWith({
+      status: { eq: "AVAILABLE" },
+    });
   });
 
   it("should have correct query key", () => {
-    const keys = vehicleKeys.list({ page: 1, status: "AVAILABLE" });
-    expect(keys).toEqual(["vehicles", "list", { page: 1, status: "AVAILABLE" }]);
+    const keys = vehicleKeys.list({ status: { eq: "AVAILABLE" } });
+    expect(keys).toEqual(["vehicles", "list", { status: { eq: "AVAILABLE" } }]);
   });
 });
 
@@ -175,7 +152,7 @@ describe("useCreateVehicle", () => {
     );
 
     const queryClient = new QueryClient();
-    queryClient.setQueryData(vehicleKeys.lists(), { items: [], totalCount: 0 });
+    queryClient.setQueryData(vehicleKeys.lists(), []);
 
     const { result } = renderHook(() => useCreateVehicle(), {
       wrapper: ({ children }) => (
@@ -241,10 +218,7 @@ describe("useDeleteVehicle", () => {
     mockVehiclesService.delete.mockResolvedValueOnce(true);
 
     const queryClient = new QueryClient();
-    queryClient.setQueryData(vehicleKeys.lists(), {
-      items: [{ id: "123", registrationPlate: "ABC-001" }],
-      totalCount: 1,
-    });
+    queryClient.setQueryData(vehicleKeys.lists(), []);
 
     const { result } = renderHook(() => useDeleteVehicle(), {
       wrapper: ({ children }) => (
