@@ -105,7 +105,7 @@ export function LoginForm() {
         <Input
           id="password"
           type="password"
-          placeholder="вЂўвЂўвЂўвЂўвЂўвЂўвЂўвЂў"
+          placeholder="Admin@12345"
           autoComplete="current-password"
           disabled={isLoading}
           {...register("password")}
