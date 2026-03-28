@@ -24,9 +24,10 @@ Transport policy:
 - Keep transport thin. Controllers and GraphQL resolvers should delegate instead of owning business logic.
 - Keep GraphQL primary for domain behavior. Do not maintain parallel REST and GraphQL business endpoints without an active client need.
 - Use CQRS intentionally. Commands and complex reads go through MediatR handlers.
-- Use HotChocolate data middleware intentionally. Simple read-only list and detail queries may use projection-backed read services.
-- Do not expose domain entities directly through GraphQL. Use DTOs for handler-backed flows and dedicated read models for projection-backed flows.
+- Use HotChocolate data middleware intentionally. Simple read-only list and detail queries use projection-backed read services returning `IQueryable<Entity>`.
+- Do not expose domain entities directly through GraphQL. All `ObjectType<TEntity>` definitions must use `BindFieldsExplicitly()` via `EntityObjectType<T>` base class — only explicitly declared fields appear in the schema.
 - Keep business workflows in `Application`. Validation, orchestration, and use-case rules belong there.
+- Use Mapperly for all materialized object mapping. Never write manual property-by-property mapping.
 - Depend inward only. Outer layers may reference inner layers; inner layers must not reference transport concerns.
 - Test architecture as code. Dependency and resolver rules are enforced with dedicated tests.
 
@@ -72,16 +73,39 @@ LastMile.TMS.Api/
   Controllers/
   Diagnostics/
   GraphQL/
+    Common/
+      EntityObjectType.cs     ← base class for all domain ObjectType<T>
+      Query.cs
+      Mutation.cs
+      GraphQLErrorFilter.cs
+      DomainExceptionErrorFilter.cs
+    Depots/
+      DepotType.cs
+      AddressType.cs
+      OperatingHoursType.cs
+      DepotQuery.cs
+      DepotMutation.cs
+      DepotInputTypes.cs
+      DepotInputMapper.cs     ← Mapperly: Input → Dto (Api layer only)
+    Drivers/
+    Parcels/
+    Routes/
+    Users/
+    Vehicles/
+    Zones/
   Program.cs
 ```
 
 Rules:
 - GraphQL domain endpoints belong here as feature-scoped type extensions.
 - REST controllers should exist only for auth and system endpoints.
-- resolvers and controllers must not contain business rules
-- resolvers and controllers must not reach into `AppDbContext` directly
-- mutation resolvers depend on `ISender` only
-- query resolvers depend on either `ISender` or a read service, never both in the same field
+- Resolvers and controllers must not contain business rules.
+- Resolvers and controllers must not reach into `AppDbContext` directly.
+- Mutation resolvers depend on `ISender` only.
+- Query resolvers depend on either `ISender` or a read service, never both in the same field.
+- All `ObjectType<TEntity>` must extend `EntityObjectType<TEntity>` — never use `ObjectType<T>` directly for domain types.
+- Mutation resolvers map `Input → Dto` using a domain `InputMapper` (Mapperly) before sending to MediatR.
+- Mutation resolvers return `Entity` (not `DepotDto`) so HotChocolate uses the same `EntityObjectType<T>` for the response.
 
 ### `LastMile.TMS.Application`
 This is the use-case layer and the main home of backend behavior.
@@ -92,7 +116,8 @@ Responsibilities:
 - validators
 - MediatR pipeline behaviors
 - application interfaces used by outer layers
-- projection-backed read services and read models
+- projection-backed read services returning `IQueryable<Entity>`
+- Mapperly mappers for materialized object mapping
 
 Canonical feature structure:
 
@@ -103,8 +128,23 @@ LastMile.TMS.Application/
     Interfaces/
   Depots/
     Commands/
+      CreateDepotCommand.cs
+      UpdateDepotCommand.cs
+      DeleteDepotCommand.cs
+      Handlers/
+        CreateDepotCommandHandler.cs
+        UpdateDepotCommandHandler.cs
+        DeleteDepotCommandHandler.cs
     Queries/
     Reads/
+      IDepotReadService.cs    ← returns IQueryable<Depot>
+      DepotReadService.cs
+    DTOs/
+      DepotDto.cs
+      AddressDto.cs
+      OperatingHoursDto.cs
+    Validators/
+    DepotMapper.cs            ← Mapperly: Entity↔Dto, Dto→Entity
   Drivers/
   Parcels/
   Routes/
@@ -114,11 +154,12 @@ LastMile.TMS.Application/
 ```
 
 Rules:
-- `Commands/` is for state-changing use cases
-- `Queries/` is for complex, aggregate, or workflow-specific reads
-- `Reads/` is for projection-backed GraphQL read services returning `IQueryable<FeatureReadModel>`
-- handlers coordinate through `IAppDbContext` and application interfaces
-- read models are query-facing models, not domain entities
+- `Commands/` is for state-changing use cases.
+- `Queries/` is for complex, aggregate, or workflow-specific reads.
+- `Reads/` contains projection-backed read services returning `IQueryable<Entity>` — no `Select()` or DTO mapping here.
+- Handlers use Mapperly for all `Entity → Dto` and `Dto → Entity` conversions.
+- `XxxMapper.cs` lives at the domain root of Application (`Application/Depots/DepotMapper.cs`).
+- Read models are query-facing models, not domain entities.
 
 ### `LastMile.TMS.Domain`
 This is the inner model of the system.
@@ -134,6 +175,7 @@ What does not belong here:
 - EF Core configurations
 - GraphQL types
 - REST contracts
+- Mapperly attributes or any mapping concerns
 
 ### `LastMile.TMS.Infrastructure`
 This is the implementation layer for non-database external concerns.
@@ -199,9 +241,9 @@ Domain -> (no project dependencies)
 ```
 
 Practical rules:
-- `Application` uses `IAppDbContext` and application interfaces, not concrete persistence or transport details
-- `Api` depends on `Application` contracts, not on feature internals that should stay behind handlers or read services
-- `Persistence` and `Infrastructure` provide implementations for abstractions declared inward
+- `Application` uses `IAppDbContext` and application interfaces, not concrete persistence or transport details.
+- `Api` depends on `Application` contracts, not on feature internals that should stay behind handlers or read services.
+- `Persistence` and `Infrastructure` provide implementations for abstractions declared inward.
 
 ## Request Flow
 
@@ -221,18 +263,31 @@ REST rules:
 - do not add domain CRUD endpoints in REST by default
 - auth endpoints such as `/connect/token` remain REST
 
-### GraphQL Mutation And Complex Query Flow
+### GraphQL Mutation Flow
 
 ```text
 GraphQL request
--> Query or mutation resolver
--> ISender
--> FluentValidation pipeline
--> Application handler
--> IAppDbContext and/or application service interfaces
--> Persistence / Infrastructure implementation
--> DTO
--> GraphQL response
+-> Mutation resolver
+-> InputMapper.ToDto() [Mapperly, Api layer]
+-> ISender → MediatR pipeline → FluentValidation
+-> Command handler
+-> dto.ToEntity() [Mapperly, Application layer]
+-> IAppDbContext save
+-> entity.ToDtoMapped() [Mapperly, Application layer]
+-> Depot entity returned to resolver
+-> GraphQL response via EntityObjectType<Depot>
+```
+
+### GraphQL MediatR-Backed Query Flow
+
+```text
+GraphQL request
+-> Query resolver
+-> ISender → MediatR pipeline
+-> Query handler
+-> IAppDbContext query + materialise
+-> entity.ToDtoMapped() [Mapperly]
+-> DTO → GraphQL response
 ```
 
 Use this flow for:
@@ -247,10 +302,11 @@ Use this flow for:
 ```text
 GraphQL request
 -> Query resolver
--> IFeatureReadService
--> IQueryable<FeatureReadModel>
--> UseOffsetPaging / UseProjection / UseFiltering / UseSorting
--> GraphQL response
+-> IFeatureReadService.GetXxx() → IQueryable<Entity>
+-> [UseOffsetPaging] / [UseProjection] / [UseFiltering] / [UseSorting]
+-> HotChocolate builds SQL-level projection from GraphQL selection set
+-> EF Core executes single optimised query
+-> GraphQL response via EntityObjectType<Entity>
 ```
 
 Use this flow for:
@@ -259,20 +315,136 @@ Use this flow for:
 - reference data and lookup-style reads
 - cases where GraphQL selection, filtering, sorting, and paging should shape the query
 
+Key rules for this flow:
+- ReadService returns `IQueryable<Entity>` — no `Select()`, no `.Include()`, no DTO mapping.
+- `.Include()` must not appear in ReadService — it conflicts with `[UseProjection]` and causes extra columns.
+- HotChocolate builds the projection expression itself based on the GraphQL selection set.
+
 ## GraphQL Conventions
+
+### EntityObjectType<T> — required base for all domain types
+
+Every domain entity exposed through GraphQL must use `EntityObjectType<T>`:
+
+```csharp
+// Api/GraphQL/Common/EntityObjectType.cs
+public abstract class EntityObjectType<TEntity> : ObjectType<TEntity>
+    where TEntity : class
+{
+    protected override void Configure(IObjectTypeDescriptor<TEntity> descriptor)
+    {
+        descriptor.BindFieldsExplicitly();
+        ConfigureFields(descriptor);
+    }
+
+    protected abstract void ConfigureFields(IObjectTypeDescriptor<TEntity> descriptor);
+}
+```
+
+This guarantees:
+- `BindFieldsExplicitly()` is always called — no internal Entity fields leak into the schema.
+- Fields must be declared explicitly — safe by default.
+- Schema remains identical to clients even though the resolver now returns `Entity` instead of `DTO`.
+
+Example:
+```csharp
+public class DepotType : EntityObjectType<Depot>
+{
+    protected override void ConfigureFields(IObjectTypeDescriptor<Depot> descriptor)
+    {
+        descriptor.Field(d => d.Id);
+        descriptor.Field(d => d.Name);
+        descriptor.Field(d => d.IsActive);
+        descriptor.Field(d => d.CreatedAt);
+        descriptor.Field(d => d.LastModifiedAt).Name("updatedAt");
+        descriptor.Field(d => d.Address).Type<AddressType>();
+        descriptor.Field(d => d.OperatingHours).Type<ListType<OperatingHoursType>>();
+        descriptor.Field(d => d.Zones).Type<ListType<ZoneType>>();
+    }
+}
+```
+
+### Resolver attribute order (strictly enforced)
+
+```csharp
+[UseOffsetPaging(IncludeTotalCount = true)]
+[UseProjection]
+[UseSorting]
+[UseFiltering]
+public IQueryable<Depot> GetDepots([Service] IDepotReadService readService = null!) =>
+    readService.GetDepots();
+```
+
+Order must be: `[UseOffsetPaging]` → `[UseProjection]` → `[UseSorting]` → `[UseFiltering]`.
+
+### Other GraphQL conventions
 - Keep root `Query` and `Mutation` types empty and extend them by feature.
 - Keep GraphQL inputs and schema types in `Api/GraphQL/<Domain>`.
 - Keep business logic out of resolvers.
-- For projection-backed collection fields, prefer:
-  - `[UseOffsetPaging(IncludeTotalCount = true)]`
-  - `[UseProjection]`
-  - `[UseFiltering]`
-  - `[UseSorting]`
 - Return plain lists only for bounded lookups and genuinely small collections.
 - Use DataLoader only when a field cannot be satisfied efficiently by projection and would otherwise cause N+1 behavior.
 
+## Mapperly Conventions
+
+Mapperly is the only approved library for object-to-object mapping. Manual property-by-property mapping is not allowed except in the specific update-entity pattern described below.
+
+### Where mappers live
+
+| Layer | File | Purpose |
+|---|---|---|
+| `Application/<Domain>/` | `DepotMapper.cs` | `Entity↔Dto`, `Dto→Entity` for handlers |
+| `Api/GraphQL/<Domain>/` | `DepotInputMapper.cs` | `Input→Dto` for mutation resolvers |
+
+### Application layer mapper pattern
+
+```csharp
+// Application/Depots/DepotMapper.cs
+[Mapper]
+public static partial class DepotMapper
+{
+    // Dto → Entity (used in Create handlers)
+    public static partial Address ToEntity(this AddressDto dto);
+    public static partial OperatingHours ToEntity(this OperatingHoursDto dto);
+
+    // Entity → Dto (used in handler return values and Query handlers)
+    [MapProperty(nameof(Depot.LastModifiedAt), nameof(DepotDto.UpdatedAt))]
+    public static partial DepotDto ToDtoMapped(this Depot depot);
+    public static partial AddressDto ToDto(this Address address);
+    public static partial OperatingHoursDto ToDto(this OperatingHours hours);
+}
+```
+
+### Api layer input mapper pattern
+
+```csharp
+// Api/GraphQL/Depots/DepotInputMapper.cs
+[Mapper]
+public static partial class DepotInputMapper
+{
+    public static partial AddressDto ToDto(this AddressInput input);
+    public static partial OperatingHoursDto ToDto(this OperatingHoursInput input);
+    public static partial List<OperatingHoursDto> ToDtoList(this List<OperatingHoursInput> input);
+}
+```
+
+### Update handler — EF Core tracked entity rule
+
+When updating a navigation entity (e.g. `Address`) that is tracked by EF Core, you cannot replace the tracked object with a new Mapperly-generated instance — EF Core will lose tracking and throw. Instead:
+
+1. Generate an intermediate object via Mapperly: `var updated = request.Address.ToEntity();`
+2. Copy individual properties onto the existing tracked entity.
+
+This is the **only permitted** case for manual property assignment. It must be accompanied by a comment explaining the EF Core tracking constraint.
+
+```csharp
+// EF Core tracks this Address instance by Id — cannot replace with new object
+var updated = request.Address.ToEntity();
+depot.Address.Street1 = updated.Street1;
+depot.Address.City = updated.City;
+// ...
+```
+
 ## Default Read Strategy By Feature
-The default long-term read pattern is:
 
 - Projection-backed by default:
   - `depots`
@@ -287,6 +459,27 @@ The default long-term read pattern is:
   - dashboards, aggregates, history views, and bundled lookups
 
 This is a default, not a hard domain rule. The real choice is driven by read complexity.
+
+## Adding a New Domain Entity — Checklist
+
+When adding a new entity (e.g. `Vehicle`) follow these steps in order:
+
+### Application layer
+1. Add entity to `Domain/Entities/`.
+2. Add `Commands/`, `Queries/`, `Reads/`, `DTOs/`, `Validators/` folders under `Application/<Domain>/`.
+3. Create `<Domain>Mapper.cs` with Mapperly partial methods for `Entity↔Dto`.
+4. Create `I<Domain>ReadService` returning `IQueryable<Entity>` in `Reads/`.
+5. Implement `<Domain>ReadService` in `Reads/` — `AsNoTracking()` only, no `.Include()`, no `Select()`.
+6. Write Application tests for handlers, validators, and read service.
+
+### Api layer
+7. Create `<Domain>Type.cs` extending `EntityObjectType<Entity>` with explicit fields only.
+8. Create `<Domain>InputMapper.cs` (Mapperly) for `Input → Dto` conversions.
+9. Create `<Domain>Query.cs` with `[UseOffsetPaging]` → `[UseProjection]` → `[UseSorting]` → `[UseFiltering]` in that order.
+10. Create `<Domain>Mutation.cs` — use `InputMapper` before sending to MediatR, return `Entity`.
+11. Register new types in `Program.cs` / DI composition.
+12. Write Api tests for GraphQL contract.
+13. Update architecture tests if a new convention is introduced.
 
 ## Validation And Error Handling
 
@@ -328,16 +521,16 @@ Rules:
 - schema changes require migrations
 - entity configuration belongs in `Persistence/Configurations`
 - `Application` must not depend on EF configuration details
-- queryable read services may compose EF-backed expressions through `IAppDbContext`, but that logic still belongs in `Application`
+- queryable read services compose EF-backed expressions through `IAppDbContext`, but that logic still belongs in `Application`
 
 ## What Belongs Where
 
 ### Put code in `Api` when
 - it is about GraphQL schema, transport auth, middleware, or REST system endpoints
-- it defines resolvers, GraphQL types, controllers, or error filters
+- it defines resolvers, `EntityObjectType<T>` types, input types, input mappers, controllers, or error filters
 
 ### Put code in `Application` when
-- it defines a command, query, handler, validator, DTO, read service, or read model
+- it defines a command, query, handler, validator, DTO, read service, or domain Mapperly mapper
 - it coordinates business workflows
 - it shapes data for domain-facing use cases
 
@@ -351,13 +544,17 @@ Rules:
 - it configures EF Core, owns migrations, or defines database storage behavior
 
 ## Disallowed Patterns
-- business logic inside controllers
-- business logic inside GraphQL resolvers
+- business logic inside controllers or resolvers
 - direct `AppDbContext` access from `Api`
-- exposing domain entities directly through GraphQL
+- exposing domain entities directly through GraphQL without `EntityObjectType<T>` + `BindFieldsExplicitly()`
+- `ObjectType<T>` without extending `EntityObjectType<T>` for domain types
+- `.Include()` in ReadService — conflicts with `[UseProjection]`
+- `Select(MapToDto())` in ReadService — prevents HotChocolate from building its own projection
 - mixing `ISender` and direct query composition inside the same resolver field
+- manual property-by-property mapping outside of the EF Core tracked-entity update pattern
 - keeping parallel REST and GraphQL domain endpoints without an active consumer
 - EF Core configuration in `Api` or `Application`
+- Mapperly mappers in `Domain` or `Infrastructure`
 
 ## Testing Strategy
 Every layer should be covered at the level where it makes decisions.
@@ -383,6 +580,6 @@ If you are unsure where new code belongs, follow this order:
 3. add or reuse domain entities and enums in `Domain`
 4. add persistence wiring in `Persistence` if storage changes are required
 5. add infrastructure adapters in `Infrastructure` if an external capability is needed
-6. expose the capability through GraphQL in `Api`
+6. expose the capability through GraphQL in `Api` using `EntityObjectType<T>`
 
 This keeps the backend centered on use cases and read strategy instead of transport convenience.

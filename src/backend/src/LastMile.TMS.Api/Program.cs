@@ -25,7 +25,7 @@ try
     builder.Services
         .AddApplication()
         .AddInfrastructure(builder.Configuration)
-        .AddPersistence(builder.Configuration)
+        .AddPersistence(builder.Configuration, builder.Environment)
         .AddOpenIddictJwtAuthenticationDefaults()
         .AddLastMileApi(builder.Configuration);
 

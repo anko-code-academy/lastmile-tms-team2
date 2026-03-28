@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace LastMile.TMS.Persistence;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration, IHostEnvironment env)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         services.AddDbContext<AppDbContext>(options =>
@@ -32,6 +33,11 @@ public static class DependencyInjection
 
             // Register the entity sets needed by OpenIddict.
             options.UseOpenIddict();
+            // Enable SQL query logging in development.
+            if (env.IsDevelopment())
+            {
+                options.EnableSensitiveDataLogging();
+            }
         });
 
         services.AddIdentity<ApplicationUser, ApplicationRole>(options =>

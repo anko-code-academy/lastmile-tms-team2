@@ -225,6 +225,36 @@ Auth is the main exception:
 - NextAuth and token refresh still use REST auth endpoints
 - domain reads and writes should not go through REST by default
 
+## GraphQL Codegen And Type Contracts
+
+The backend exposes domain entities directly through GraphQL using `EntityObjectType<T>` with `BindFieldsExplicitly()`. This means:
+
+- The GraphQL schema shape is controlled on the backend by explicit field declarations.
+- Frontend generated types from codegen accurately reflect what the backend exposes.
+- No manual type mirroring is needed on the frontend — generated artifacts are the source of truth.
+
+When the backend adds or removes a field from an `EntityObjectType<T>`, run codegen to regenerate frontend types:
+
+```bash
+cd src/web && npm run codegen
+```
+
+Never handwrite types that duplicate GraphQL response shapes. If a UI component needs a differently shaped object, derive it in `services/` and declare the local type in `types/`.
+
+## Adding a New Domain Feature — Checklist
+
+When adding frontend support for a new domain entity (e.g. `Vehicle`):
+
+1. Add GraphQL operation documents under `graphql/operations/<domain>/`.
+2. Run `npm run codegen` to generate typed documents and result types.
+3. Add a service in `services/<domain>.service.ts` consuming generated documents.
+4. Add TanStack Query hooks in `queries/<domain>.ts`.
+5. Add domain components in `components/<domain>/`.
+6. Add route pages in `app/(dashboard)/<domain>/` — keep them thin.
+7. Add Zod validation schemas in `lib/validation/` if forms are involved.
+8. Write Vitest unit tests next to service and query files.
+9. Update Playwright e2e flows if the domain has CRUD that affects main navigation flows.
+
 ## Naming Rules
 - Use backend domain names for module names: `users`, not `user-management`.
 - Use kebab-case for file names except where framework conventions require otherwise.
