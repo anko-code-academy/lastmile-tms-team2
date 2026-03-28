@@ -37,34 +37,20 @@ export type Address = {
   street2?: Maybe<Scalars['String']['output']>;
 };
 
-export type AddressDtoFilterInput = {
-  and?: InputMaybe<Array<AddressDtoFilterInput>>;
+export type AddressFilterInput = {
+  and?: InputMaybe<Array<AddressFilterInput>>;
   city?: InputMaybe<StringOperationFilterInput>;
   companyName?: InputMaybe<StringOperationFilterInput>;
   contactName?: InputMaybe<StringOperationFilterInput>;
   countryCode?: InputMaybe<StringOperationFilterInput>;
   email?: InputMaybe<StringOperationFilterInput>;
   isResidential?: InputMaybe<BooleanOperationFilterInput>;
-  or?: InputMaybe<Array<AddressDtoFilterInput>>;
+  or?: InputMaybe<Array<AddressFilterInput>>;
   phone?: InputMaybe<StringOperationFilterInput>;
   postalCode?: InputMaybe<StringOperationFilterInput>;
   state?: InputMaybe<StringOperationFilterInput>;
   street1?: InputMaybe<StringOperationFilterInput>;
   street2?: InputMaybe<StringOperationFilterInput>;
-};
-
-export type AddressDtoSortInput = {
-  city?: InputMaybe<SortEnumType>;
-  companyName?: InputMaybe<SortEnumType>;
-  contactName?: InputMaybe<SortEnumType>;
-  countryCode?: InputMaybe<SortEnumType>;
-  email?: InputMaybe<SortEnumType>;
-  isResidential?: InputMaybe<SortEnumType>;
-  phone?: InputMaybe<SortEnumType>;
-  postalCode?: InputMaybe<SortEnumType>;
-  state?: InputMaybe<SortEnumType>;
-  street1?: InputMaybe<SortEnumType>;
-  street2?: InputMaybe<SortEnumType>;
 };
 
 export type AddressInput = {
@@ -79,6 +65,20 @@ export type AddressInput = {
   state: Scalars['String']['input'];
   street1: Scalars['String']['input'];
   street2?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type AddressSortInput = {
+  city?: InputMaybe<SortEnumType>;
+  companyName?: InputMaybe<SortEnumType>;
+  contactName?: InputMaybe<SortEnumType>;
+  countryCode?: InputMaybe<SortEnumType>;
+  email?: InputMaybe<SortEnumType>;
+  isResidential?: InputMaybe<SortEnumType>;
+  phone?: InputMaybe<SortEnumType>;
+  postalCode?: InputMaybe<SortEnumType>;
+  state?: InputMaybe<SortEnumType>;
+  street1?: InputMaybe<SortEnumType>;
+  street2?: InputMaybe<SortEnumType>;
 };
 
 /** Defines when a policy shall be executed. */
@@ -108,7 +108,7 @@ export type CreateDepotInput = {
   operatingHours?: InputMaybe<Array<OperatingHoursInput>>;
 };
 
-export type CreateRouteDtoInput = {
+export type CreateRouteInput = {
   driverId: Scalars['UUID']['input'];
   parcelIds: Array<Scalars['UUID']['input']>;
   startDate: Scalars['DateTime']['input'];
@@ -126,7 +126,7 @@ export type CreateUserInput = {
   zoneId?: InputMaybe<Scalars['UUID']['input']>;
 };
 
-export type CreateVehicleDtoInput = {
+export type CreateVehicleInput = {
   depotId: Scalars['UUID']['input'];
   parcelCapacity: Scalars['Int']['input'];
   registrationPlate: Scalars['String']['input'];
@@ -201,20 +201,20 @@ export type Depot = {
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
-export type DepotDtoFilterInput = {
-  address?: InputMaybe<AddressDtoFilterInput>;
-  and?: InputMaybe<Array<DepotDtoFilterInput>>;
+export type DepotFilterInput = {
+  address?: InputMaybe<AddressFilterInput>;
+  and?: InputMaybe<Array<DepotFilterInput>>;
   createdAt?: InputMaybe<DateTimeOperationFilterInput>;
   id?: InputMaybe<UuidOperationFilterInput>;
   isActive?: InputMaybe<BooleanOperationFilterInput>;
   name?: InputMaybe<StringOperationFilterInput>;
-  operatingHours?: InputMaybe<ListFilterInputTypeOfOperatingHoursDtoFilterInput>;
-  or?: InputMaybe<Array<DepotDtoFilterInput>>;
+  operatingHours?: InputMaybe<OperatingHoursListFilterInput>;
+  or?: InputMaybe<Array<DepotFilterInput>>;
   updatedAt?: InputMaybe<DateTimeOperationFilterInput>;
 };
 
-export type DepotDtoSortInput = {
-  address?: InputMaybe<AddressDtoSortInput>;
+export type DepotSortInput = {
+  address?: InputMaybe<AddressSortInput>;
   createdAt?: InputMaybe<SortEnumType>;
   id?: InputMaybe<SortEnumType>;
   isActive?: InputMaybe<SortEnumType>;
@@ -226,8 +226,8 @@ export type DimensionUnit =
   | 'CM'
   | 'IN';
 
-export type DriverReadModel = {
-  __typename?: 'DriverReadModel';
+export type Driver = {
+  __typename?: 'Driver';
   depotId: Scalars['UUID']['output'];
   displayName: Scalars['String']['output'];
   email?: Maybe<Scalars['String']['output']>;
@@ -259,31 +259,24 @@ export type IntOperationFilterInput = {
   nlte?: InputMaybe<Scalars['Int']['input']>;
 };
 
-export type ListFilterInputTypeOfOperatingHoursDtoFilterInput = {
-  all?: InputMaybe<OperatingHoursDtoFilterInput>;
-  any?: InputMaybe<Scalars['Boolean']['input']>;
-  none?: InputMaybe<OperatingHoursDtoFilterInput>;
-  some?: InputMaybe<OperatingHoursDtoFilterInput>;
-};
-
 export type Mutation = {
   __typename?: 'Mutation';
   completePasswordReset: UserActionResultDto;
   createDepot: Depot;
-  createRoute: RouteDto;
-  createUser: UserManagementUserDto;
-  createVehicle: VehicleDto;
+  createRoute: Route;
+  createUser: UserManagementUser;
+  createVehicle: Vehicle;
   createZone: Zone;
-  deactivateUser: UserManagementUserDto;
+  deactivateUser: UserManagementUser;
   deleteDepot: Scalars['Boolean']['output'];
   deleteVehicle: Scalars['Boolean']['output'];
   deleteZone: Scalars['Boolean']['output'];
-  registerParcel: ParcelDto;
+  registerParcel: RegisteredParcel;
   requestPasswordReset: UserActionResultDto;
   sendPasswordResetEmail: UserActionResultDto;
   updateDepot?: Maybe<Depot>;
-  updateUser: UserManagementUserDto;
-  updateVehicle?: Maybe<VehicleDto>;
+  updateUser: UserManagementUser;
+  updateVehicle?: Maybe<Vehicle>;
   updateZone?: Maybe<Zone>;
 };
 
@@ -299,7 +292,7 @@ export type MutationCreateDepotArgs = {
 
 
 export type MutationCreateRouteArgs = {
-  input: CreateRouteDtoInput;
+  input: CreateRouteInput;
 };
 
 
@@ -309,7 +302,7 @@ export type MutationCreateUserArgs = {
 
 
 export type MutationCreateVehicleArgs = {
-  input: CreateVehicleDtoInput;
+  input: CreateVehicleInput;
 };
 
 
@@ -366,7 +359,7 @@ export type MutationUpdateUserArgs = {
 
 export type MutationUpdateVehicleArgs = {
   id: Scalars['UUID']['input'];
-  input: UpdateVehicleDtoInput;
+  input: UpdateVehicleInput;
 };
 
 
@@ -383,13 +376,13 @@ export type OperatingHours = {
   openTime?: Maybe<Scalars['TimeSpan']['output']>;
 };
 
-export type OperatingHoursDtoFilterInput = {
-  and?: InputMaybe<Array<OperatingHoursDtoFilterInput>>;
+export type OperatingHoursFilterInput = {
+  and?: InputMaybe<Array<OperatingHoursFilterInput>>;
   closedTime?: InputMaybe<TimeSpanOperationFilterInput>;
   dayOfWeek?: InputMaybe<DayOfWeekOperationFilterInput>;
   isClosed?: InputMaybe<BooleanOperationFilterInput>;
   openTime?: InputMaybe<TimeSpanOperationFilterInput>;
-  or?: InputMaybe<Array<OperatingHoursDtoFilterInput>>;
+  or?: InputMaybe<Array<OperatingHoursFilterInput>>;
 };
 
 export type OperatingHoursInput = {
@@ -399,8 +392,123 @@ export type OperatingHoursInput = {
   openTime?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type ParcelDto = {
-  __typename?: 'ParcelDto';
+export type OperatingHoursListFilterInput = {
+  all?: InputMaybe<OperatingHoursFilterInput>;
+  any?: InputMaybe<Scalars['Boolean']['input']>;
+  none?: InputMaybe<OperatingHoursFilterInput>;
+  some?: InputMaybe<OperatingHoursFilterInput>;
+};
+
+export type ParcelRouteOption = {
+  __typename?: 'ParcelRouteOption';
+  id: Scalars['UUID']['output'];
+  trackingNumber: Scalars['String']['output'];
+  weight: Scalars['Decimal']['output'];
+  weightUnit: WeightUnit;
+};
+
+export type Query = {
+  __typename?: 'Query';
+  depot?: Maybe<Depot>;
+  depots: Array<Depot>;
+  drivers: Array<Driver>;
+  parcelsForRouteCreation: Array<ParcelRouteOption>;
+  routes: Array<Route>;
+  user?: Maybe<UserManagementUser>;
+  userManagementLookups: UserManagementLookupsDto;
+  users: Array<UserManagementUser>;
+  vehicles: Array<Vehicle>;
+  zone?: Maybe<Zone>;
+  zones: Array<Zone>;
+};
+
+
+export type QueryDepotArgs = {
+  id: Scalars['UUID']['input'];
+};
+
+
+export type QueryDepotsArgs = {
+  order?: InputMaybe<Array<DepotSortInput>>;
+  where?: InputMaybe<DepotFilterInput>;
+};
+
+
+export type QueryDriversArgs = {
+  depotId?: InputMaybe<Scalars['UUID']['input']>;
+};
+
+
+export type QueryRoutesArgs = {
+  order?: InputMaybe<Array<RouteSortInput>>;
+  where?: InputMaybe<RouteFilterInput>;
+};
+
+
+export type QueryUserArgs = {
+  id: Scalars['UUID']['input'];
+};
+
+
+export type QueryUsersArgs = {
+  depotId?: InputMaybe<Scalars['UUID']['input']>;
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  order?: InputMaybe<Array<UserManagementUserSortInput>>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  where?: InputMaybe<UserManagementUserFilterInput>;
+  zoneId?: InputMaybe<Scalars['UUID']['input']>;
+};
+
+
+export type QueryVehiclesArgs = {
+  order?: InputMaybe<Array<VehicleSortInput>>;
+  where?: InputMaybe<VehicleFilterInput>;
+};
+
+
+export type QueryZoneArgs = {
+  id: Scalars['UUID']['input'];
+};
+
+
+export type QueryZonesArgs = {
+  order?: InputMaybe<Array<ZoneSortInput>>;
+  where?: InputMaybe<ZoneFilterInput>;
+};
+
+export type RegisterParcelInput = {
+  currency: Scalars['String']['input'];
+  declaredValue: Scalars['Decimal']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  dimensionUnit: DimensionUnit;
+  estimatedDeliveryDate: Scalars['DateTime']['input'];
+  height: Scalars['Decimal']['input'];
+  length: Scalars['Decimal']['input'];
+  parcelType?: InputMaybe<Scalars['String']['input']>;
+  recipientAddress: RegisterParcelRecipientAddressInput;
+  serviceType: ServiceType;
+  shipperAddressId: Scalars['UUID']['input'];
+  weight: Scalars['Decimal']['input'];
+  weightUnit: WeightUnit;
+  width: Scalars['Decimal']['input'];
+};
+
+export type RegisterParcelRecipientAddressInput = {
+  city: Scalars['String']['input'];
+  companyName?: InputMaybe<Scalars['String']['input']>;
+  contactName?: InputMaybe<Scalars['String']['input']>;
+  countryCode: Scalars['String']['input'];
+  email?: InputMaybe<Scalars['String']['input']>;
+  isResidential: Scalars['Boolean']['input'];
+  phone?: InputMaybe<Scalars['String']['input']>;
+  postalCode: Scalars['String']['input'];
+  state: Scalars['String']['input'];
+  street1: Scalars['String']['input'];
+  street2?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type RegisteredParcel = {
+  __typename?: 'RegisteredParcel';
   createdAt: Scalars['DateTime']['output'];
   currency: Scalars['String']['output'];
   declaredValue: Scalars['Decimal']['output'];
@@ -425,115 +533,11 @@ export type ParcelDto = {
   zoneName?: Maybe<Scalars['String']['output']>;
 };
 
-export type ParcelOptionDto = {
-  __typename?: 'ParcelOptionDto';
-  id: Scalars['UUID']['output'];
-  trackingNumber: Scalars['String']['output'];
-  weight: Scalars['Decimal']['output'];
-  weightUnit: WeightUnit;
-};
-
-export type Query = {
-  __typename?: 'Query';
-  depot?: Maybe<Depot>;
-  depots: Array<Depot>;
-  drivers: Array<DriverReadModel>;
-  parcelsForRouteCreation: Array<ParcelOptionDto>;
-  routes: Array<RouteDto>;
-  user: Array<UserManagementUserDto>;
-  userManagementLookups: UserManagementLookupsDto;
-  users: Array<UserManagementUserDto>;
-  vehicles: Array<VehicleDto>;
-  zone?: Maybe<Zone>;
-  zones: Array<Zone>;
-};
-
-
-export type QueryDepotArgs = {
-  id: Scalars['UUID']['input'];
-};
-
-
-export type QueryDepotsArgs = {
-  order?: InputMaybe<Array<DepotDtoSortInput>>;
-  where?: InputMaybe<DepotDtoFilterInput>;
-};
-
-
-export type QueryDriversArgs = {
-  depotId?: InputMaybe<Scalars['UUID']['input']>;
-};
-
-
-export type QueryRoutesArgs = {
-  order?: InputMaybe<Array<RouteDtoSortInput>>;
-  where?: InputMaybe<RouteDtoFilterInput>;
-};
-
-
-export type QueryUserArgs = {
-  id: Scalars['UUID']['input'];
-};
-
-
-export type QueryUsersArgs = {
-  depotId?: InputMaybe<Scalars['UUID']['input']>;
-  isActive?: InputMaybe<Scalars['Boolean']['input']>;
-  order?: InputMaybe<Array<UserManagementUserDtoSortInput>>;
-  search?: InputMaybe<Scalars['String']['input']>;
-  where?: InputMaybe<UserManagementUserDtoFilterInput>;
-  zoneId?: InputMaybe<Scalars['UUID']['input']>;
-};
-
-
-export type QueryVehiclesArgs = {
-  order?: InputMaybe<Array<VehicleDtoSortInput>>;
-  where?: InputMaybe<VehicleDtoFilterInput>;
-};
-
-
-export type QueryZoneArgs = {
-  id: Scalars['UUID']['input'];
-};
-
-
-export type QueryZonesArgs = {
-  order?: InputMaybe<Array<ZoneDtoSortInput>>;
-  where?: InputMaybe<ZoneDtoFilterInput>;
-};
-
-export type RegisterParcelInput = {
-  currency: Scalars['String']['input'];
-  declaredValue: Scalars['Decimal']['input'];
-  description?: InputMaybe<Scalars['String']['input']>;
-  dimensionUnit: DimensionUnit;
-  estimatedDeliveryDate: Scalars['DateTime']['input'];
-  height: Scalars['Decimal']['input'];
-  length: Scalars['Decimal']['input'];
-  parcelType?: InputMaybe<Scalars['String']['input']>;
-  recipientCity: Scalars['String']['input'];
-  recipientCompanyName?: InputMaybe<Scalars['String']['input']>;
-  recipientContactName?: InputMaybe<Scalars['String']['input']>;
-  recipientCountryCode: Scalars['String']['input'];
-  recipientEmail?: InputMaybe<Scalars['String']['input']>;
-  recipientIsResidential: Scalars['Boolean']['input'];
-  recipientPhone?: InputMaybe<Scalars['String']['input']>;
-  recipientPostalCode: Scalars['String']['input'];
-  recipientState: Scalars['String']['input'];
-  recipientStreet1: Scalars['String']['input'];
-  recipientStreet2?: InputMaybe<Scalars['String']['input']>;
-  serviceType: ServiceType;
-  shipperAddressId: Scalars['UUID']['input'];
-  weight: Scalars['Decimal']['input'];
-  weightUnit: WeightUnit;
-  width: Scalars['Decimal']['input'];
-};
-
-export type RouteDto = {
-  __typename?: 'RouteDto';
+export type Route = {
+  __typename?: 'Route';
   createdAt: Scalars['DateTime']['output'];
   driverId: Scalars['UUID']['output'];
-  driverName: Scalars['String']['output'];
+  driverName?: Maybe<Scalars['String']['output']>;
   endDate?: Maybe<Scalars['DateTime']['output']>;
   endMileage: Scalars['Int']['output'];
   id: Scalars['UUID']['output'];
@@ -544,43 +548,33 @@ export type RouteDto = {
   status: RouteStatus;
   totalMileage: Scalars['Int']['output'];
   vehicleId: Scalars['UUID']['output'];
-  vehiclePlate: Scalars['String']['output'];
+  vehiclePlate?: Maybe<Scalars['String']['output']>;
 };
 
-export type RouteDtoFilterInput = {
-  and?: InputMaybe<Array<RouteDtoFilterInput>>;
+export type RouteFilterInput = {
+  and?: InputMaybe<Array<RouteFilterInput>>;
   createdAt?: InputMaybe<DateTimeOperationFilterInput>;
   driverId?: InputMaybe<UuidOperationFilterInput>;
-  driverName?: InputMaybe<StringOperationFilterInput>;
   endDate?: InputMaybe<DateTimeOperationFilterInput>;
   endMileage?: InputMaybe<IntOperationFilterInput>;
   id?: InputMaybe<UuidOperationFilterInput>;
-  or?: InputMaybe<Array<RouteDtoFilterInput>>;
-  parcelCount?: InputMaybe<IntOperationFilterInput>;
-  parcelsDelivered?: InputMaybe<IntOperationFilterInput>;
+  or?: InputMaybe<Array<RouteFilterInput>>;
   startDate?: InputMaybe<DateTimeOperationFilterInput>;
   startMileage?: InputMaybe<IntOperationFilterInput>;
   status?: InputMaybe<RouteStatusOperationFilterInput>;
-  totalMileage?: InputMaybe<IntOperationFilterInput>;
   vehicleId?: InputMaybe<UuidOperationFilterInput>;
-  vehiclePlate?: InputMaybe<StringOperationFilterInput>;
 };
 
-export type RouteDtoSortInput = {
+export type RouteSortInput = {
   createdAt?: InputMaybe<SortEnumType>;
   driverId?: InputMaybe<SortEnumType>;
-  driverName?: InputMaybe<SortEnumType>;
   endDate?: InputMaybe<SortEnumType>;
   endMileage?: InputMaybe<SortEnumType>;
   id?: InputMaybe<SortEnumType>;
-  parcelCount?: InputMaybe<SortEnumType>;
-  parcelsDelivered?: InputMaybe<SortEnumType>;
   startDate?: InputMaybe<SortEnumType>;
   startMileage?: InputMaybe<SortEnumType>;
   status?: InputMaybe<SortEnumType>;
-  totalMileage?: InputMaybe<SortEnumType>;
   vehicleId?: InputMaybe<SortEnumType>;
-  vehiclePlate?: InputMaybe<SortEnumType>;
 };
 
 export type RouteStatus =
@@ -655,7 +649,7 @@ export type UpdateUserInput = {
   zoneId?: InputMaybe<Scalars['UUID']['input']>;
 };
 
-export type UpdateVehicleDtoInput = {
+export type UpdateVehicleInput = {
   depotId: Scalars['UUID']['input'];
   parcelCapacity: Scalars['Int']['input'];
   registrationPlate: Scalars['String']['input'];
@@ -698,61 +692,51 @@ export type UserManagementRoleOptionDto = {
   value: UserRole;
 };
 
-export type UserManagementUserDto = {
-  __typename?: 'UserManagementUserDto';
+export type UserManagementUser = {
+  __typename?: 'UserManagementUser';
   createdAt: Scalars['DateTime']['output'];
   depotId?: Maybe<Scalars['UUID']['output']>;
   depotName?: Maybe<Scalars['String']['output']>;
-  email: Scalars['String']['output'];
+  email?: Maybe<Scalars['String']['output']>;
   firstName: Scalars['String']['output'];
   fullName: Scalars['String']['output'];
   id: Scalars['UUID']['output'];
   isActive: Scalars['Boolean']['output'];
   isProtected: Scalars['Boolean']['output'];
-  lastModifiedAt?: Maybe<Scalars['DateTime']['output']>;
   lastName: Scalars['String']['output'];
   phone?: Maybe<Scalars['String']['output']>;
   role?: Maybe<Scalars['String']['output']>;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
   zoneId?: Maybe<Scalars['UUID']['output']>;
   zoneName?: Maybe<Scalars['String']['output']>;
 };
 
-export type UserManagementUserDtoFilterInput = {
-  and?: InputMaybe<Array<UserManagementUserDtoFilterInput>>;
+export type UserManagementUserFilterInput = {
+  and?: InputMaybe<Array<UserManagementUserFilterInput>>;
   createdAt?: InputMaybe<DateTimeOperationFilterInput>;
   depotId?: InputMaybe<UuidOperationFilterInput>;
-  depotName?: InputMaybe<StringOperationFilterInput>;
   email?: InputMaybe<StringOperationFilterInput>;
   firstName?: InputMaybe<StringOperationFilterInput>;
-  fullName?: InputMaybe<StringOperationFilterInput>;
   id?: InputMaybe<UuidOperationFilterInput>;
   isActive?: InputMaybe<BooleanOperationFilterInput>;
-  isProtected?: InputMaybe<BooleanOperationFilterInput>;
-  lastModifiedAt?: InputMaybe<DateTimeOperationFilterInput>;
   lastName?: InputMaybe<StringOperationFilterInput>;
-  or?: InputMaybe<Array<UserManagementUserDtoFilterInput>>;
+  or?: InputMaybe<Array<UserManagementUserFilterInput>>;
   phone?: InputMaybe<StringOperationFilterInput>;
-  role?: InputMaybe<StringOperationFilterInput>;
+  updatedAt?: InputMaybe<DateTimeOperationFilterInput>;
   zoneId?: InputMaybe<UuidOperationFilterInput>;
-  zoneName?: InputMaybe<StringOperationFilterInput>;
 };
 
-export type UserManagementUserDtoSortInput = {
+export type UserManagementUserSortInput = {
   createdAt?: InputMaybe<SortEnumType>;
   depotId?: InputMaybe<SortEnumType>;
-  depotName?: InputMaybe<SortEnumType>;
   email?: InputMaybe<SortEnumType>;
   firstName?: InputMaybe<SortEnumType>;
-  fullName?: InputMaybe<SortEnumType>;
   id?: InputMaybe<SortEnumType>;
   isActive?: InputMaybe<SortEnumType>;
-  isProtected?: InputMaybe<SortEnumType>;
-  lastModifiedAt?: InputMaybe<SortEnumType>;
   lastName?: InputMaybe<SortEnumType>;
   phone?: InputMaybe<SortEnumType>;
-  role?: InputMaybe<SortEnumType>;
+  updatedAt?: InputMaybe<SortEnumType>;
   zoneId?: InputMaybe<SortEnumType>;
-  zoneName?: InputMaybe<SortEnumType>;
 };
 
 export type UserManagementZoneOptionDto = {
@@ -784,13 +768,12 @@ export type UuidOperationFilterInput = {
   nlte?: InputMaybe<Scalars['UUID']['input']>;
 };
 
-export type VehicleDto = {
-  __typename?: 'VehicleDto';
+export type Vehicle = {
+  __typename?: 'Vehicle';
   createdAt: Scalars['DateTime']['output'];
   depotId: Scalars['UUID']['output'];
-  depotName: Scalars['String']['output'];
+  depotName?: Maybe<Scalars['String']['output']>;
   id: Scalars['UUID']['output'];
-  lastModifiedAt?: Maybe<Scalars['DateTime']['output']>;
   parcelCapacity: Scalars['Int']['output'];
   registrationPlate: Scalars['String']['output'];
   routesCompleted: Scalars['Int']['output'];
@@ -798,40 +781,33 @@ export type VehicleDto = {
   totalMileage: Scalars['Int']['output'];
   totalRoutes: Scalars['Int']['output'];
   type: VehicleType;
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
   weightCapacity: Scalars['Decimal']['output'];
 };
 
-export type VehicleDtoFilterInput = {
-  and?: InputMaybe<Array<VehicleDtoFilterInput>>;
+export type VehicleFilterInput = {
+  and?: InputMaybe<Array<VehicleFilterInput>>;
   createdAt?: InputMaybe<DateTimeOperationFilterInput>;
   depotId?: InputMaybe<UuidOperationFilterInput>;
-  depotName?: InputMaybe<StringOperationFilterInput>;
   id?: InputMaybe<UuidOperationFilterInput>;
-  lastModifiedAt?: InputMaybe<DateTimeOperationFilterInput>;
-  or?: InputMaybe<Array<VehicleDtoFilterInput>>;
+  or?: InputMaybe<Array<VehicleFilterInput>>;
   parcelCapacity?: InputMaybe<IntOperationFilterInput>;
   registrationPlate?: InputMaybe<StringOperationFilterInput>;
-  routesCompleted?: InputMaybe<IntOperationFilterInput>;
   status?: InputMaybe<VehicleStatusOperationFilterInput>;
-  totalMileage?: InputMaybe<IntOperationFilterInput>;
-  totalRoutes?: InputMaybe<IntOperationFilterInput>;
   type?: InputMaybe<VehicleTypeOperationFilterInput>;
+  updatedAt?: InputMaybe<DateTimeOperationFilterInput>;
   weightCapacity?: InputMaybe<DecimalOperationFilterInput>;
 };
 
-export type VehicleDtoSortInput = {
+export type VehicleSortInput = {
   createdAt?: InputMaybe<SortEnumType>;
   depotId?: InputMaybe<SortEnumType>;
-  depotName?: InputMaybe<SortEnumType>;
   id?: InputMaybe<SortEnumType>;
-  lastModifiedAt?: InputMaybe<SortEnumType>;
   parcelCapacity?: InputMaybe<SortEnumType>;
   registrationPlate?: InputMaybe<SortEnumType>;
-  routesCompleted?: InputMaybe<SortEnumType>;
   status?: InputMaybe<SortEnumType>;
-  totalMileage?: InputMaybe<SortEnumType>;
-  totalRoutes?: InputMaybe<SortEnumType>;
   type?: InputMaybe<SortEnumType>;
+  updatedAt?: InputMaybe<SortEnumType>;
   weightCapacity?: InputMaybe<SortEnumType>;
 };
 
@@ -866,7 +842,7 @@ export type WeightUnit =
 
 export type Zone = {
   __typename?: 'Zone';
-  boundary: Scalars['String']['output'];
+  boundary?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   depotId: Scalars['UUID']['output'];
   depotName?: Maybe<Scalars['String']['output']>;
@@ -876,24 +852,20 @@ export type Zone = {
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
-export type ZoneDtoFilterInput = {
-  and?: InputMaybe<Array<ZoneDtoFilterInput>>;
-  boundary?: InputMaybe<StringOperationFilterInput>;
+export type ZoneFilterInput = {
+  and?: InputMaybe<Array<ZoneFilterInput>>;
   createdAt?: InputMaybe<DateTimeOperationFilterInput>;
   depotId?: InputMaybe<UuidOperationFilterInput>;
-  depotName?: InputMaybe<StringOperationFilterInput>;
   id?: InputMaybe<UuidOperationFilterInput>;
   isActive?: InputMaybe<BooleanOperationFilterInput>;
   name?: InputMaybe<StringOperationFilterInput>;
-  or?: InputMaybe<Array<ZoneDtoFilterInput>>;
+  or?: InputMaybe<Array<ZoneFilterInput>>;
   updatedAt?: InputMaybe<DateTimeOperationFilterInput>;
 };
 
-export type ZoneDtoSortInput = {
-  boundary?: InputMaybe<SortEnumType>;
+export type ZoneSortInput = {
   createdAt?: InputMaybe<SortEnumType>;
   depotId?: InputMaybe<SortEnumType>;
-  depotName?: InputMaybe<SortEnumType>;
   id?: InputMaybe<SortEnumType>;
   isActive?: InputMaybe<SortEnumType>;
   name?: InputMaybe<SortEnumType>;
@@ -939,27 +911,27 @@ export type GetDriversQueryVariables = Exact<{
 }>;
 
 
-export type GetDriversQuery = { __typename?: 'Query', drivers: Array<{ __typename?: 'DriverReadModel', id: string, displayName: string }> };
+export type GetDriversQuery = { __typename?: 'Query', drivers: Array<{ __typename?: 'Driver', id: string, displayName: string }> };
 
 export type GetParcelsForRouteCreationQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetParcelsForRouteCreationQuery = { __typename?: 'Query', parcelsForRouteCreation: Array<{ __typename?: 'ParcelOptionDto', id: string, trackingNumber: string, weight: number, weightUnit: WeightUnit }> };
+export type GetParcelsForRouteCreationQuery = { __typename?: 'Query', parcelsForRouteCreation: Array<{ __typename?: 'ParcelRouteOption', id: string, trackingNumber: string, weight: number, weightUnit: WeightUnit }> };
 
 export type GetRoutesQueryVariables = Exact<{
-  where?: InputMaybe<RouteDtoFilterInput>;
-  order?: InputMaybe<Array<RouteDtoSortInput> | RouteDtoSortInput>;
+  where?: InputMaybe<RouteFilterInput>;
+  order?: InputMaybe<Array<RouteSortInput> | RouteSortInput>;
 }>;
 
 
-export type GetRoutesQuery = { __typename?: 'Query', routes: Array<{ __typename?: 'RouteDto', id: string, vehicleId: string, vehiclePlate: string, driverId: string, driverName: string, startDate: string, endDate?: string | null, startMileage: number, endMileage: number, totalMileage: number, status: RouteStatus, parcelCount: number, parcelsDelivered: number, createdAt: string }> };
+export type GetRoutesQuery = { __typename?: 'Query', routes: Array<{ __typename?: 'Route', id: string, vehicleId: string, vehiclePlate?: string | null, driverId: string, driverName?: string | null, startDate: string, endDate?: string | null, startMileage: number, endMileage: number, totalMileage: number, status: RouteStatus, parcelCount: number, parcelsDelivered: number, createdAt: string }> };
 
 export type CreateRouteMutationVariables = Exact<{
-  input: CreateRouteDtoInput;
+  input: CreateRouteInput;
 }>;
 
 
-export type CreateRouteMutation = { __typename?: 'Mutation', createRoute: { __typename?: 'RouteDto', id: string, vehicleId: string, vehiclePlate: string, driverId: string, driverName: string, startDate: string, endDate?: string | null, startMileage: number, endMileage: number, totalMileage: number, status: RouteStatus, parcelCount: number, parcelsDelivered: number, createdAt: string } };
+export type CreateRouteMutation = { __typename?: 'Mutation', createRoute: { __typename?: 'Route', id: string, vehicleId: string, vehiclePlate?: string | null, driverId: string, driverName?: string | null, startDate: string, endDate?: string | null, startMileage: number, endMileage: number, totalMileage: number, status: RouteStatus, parcelCount: number, parcelsDelivered: number, createdAt: string } };
 
 export type UserManagementLookupsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -974,28 +946,28 @@ export type UsersQueryVariables = Exact<{
 }>;
 
 
-export type UsersQuery = { __typename?: 'Query', users: Array<{ __typename?: 'UserManagementUserDto', id: string, firstName: string, lastName: string, fullName: string, email: string, phone?: string | null, role?: string | null, isActive: boolean, isProtected: boolean, depotId?: string | null, depotName?: string | null, zoneId?: string | null, zoneName?: string | null, createdAt: string, lastModifiedAt?: string | null }> };
+export type UsersQuery = { __typename?: 'Query', users: Array<{ __typename?: 'UserManagementUser', id: string, firstName: string, lastName: string, fullName: string, email?: string | null, phone?: string | null, role?: string | null, isActive: boolean, isProtected: boolean, depotId?: string | null, depotName?: string | null, zoneId?: string | null, zoneName?: string | null, createdAt: string, updatedAt?: string | null }> };
 
 export type CreateUserMutationVariables = Exact<{
   input: CreateUserInput;
 }>;
 
 
-export type CreateUserMutation = { __typename?: 'Mutation', createUser: { __typename?: 'UserManagementUserDto', id: string, firstName: string, lastName: string, fullName: string, email: string, phone?: string | null, role?: string | null, isActive: boolean, isProtected: boolean, depotId?: string | null, depotName?: string | null, zoneId?: string | null, zoneName?: string | null, createdAt: string, lastModifiedAt?: string | null } };
+export type CreateUserMutation = { __typename?: 'Mutation', createUser: { __typename?: 'UserManagementUser', id: string, firstName: string, lastName: string, fullName: string, email?: string | null, phone?: string | null, role?: string | null, isActive: boolean, isProtected: boolean, depotId?: string | null, depotName?: string | null, zoneId?: string | null, zoneName?: string | null, createdAt: string, updatedAt?: string | null } };
 
 export type UpdateUserMutationVariables = Exact<{
   input: UpdateUserInput;
 }>;
 
 
-export type UpdateUserMutation = { __typename?: 'Mutation', updateUser: { __typename?: 'UserManagementUserDto', id: string, firstName: string, lastName: string, fullName: string, email: string, phone?: string | null, role?: string | null, isActive: boolean, isProtected: boolean, depotId?: string | null, depotName?: string | null, zoneId?: string | null, zoneName?: string | null, createdAt: string, lastModifiedAt?: string | null } };
+export type UpdateUserMutation = { __typename?: 'Mutation', updateUser: { __typename?: 'UserManagementUser', id: string, firstName: string, lastName: string, fullName: string, email?: string | null, phone?: string | null, role?: string | null, isActive: boolean, isProtected: boolean, depotId?: string | null, depotName?: string | null, zoneId?: string | null, zoneName?: string | null, createdAt: string, updatedAt?: string | null } };
 
 export type DeactivateUserMutationVariables = Exact<{
   userId: Scalars['UUID']['input'];
 }>;
 
 
-export type DeactivateUserMutation = { __typename?: 'Mutation', deactivateUser: { __typename?: 'UserManagementUserDto', id: string, firstName: string, lastName: string, fullName: string, email: string, phone?: string | null, role?: string | null, isActive: boolean, isProtected: boolean, depotId?: string | null, depotName?: string | null, zoneId?: string | null, zoneName?: string | null, createdAt: string, lastModifiedAt?: string | null } };
+export type DeactivateUserMutation = { __typename?: 'Mutation', deactivateUser: { __typename?: 'UserManagementUser', id: string, firstName: string, lastName: string, fullName: string, email?: string | null, phone?: string | null, role?: string | null, isActive: boolean, isProtected: boolean, depotId?: string | null, depotName?: string | null, zoneId?: string | null, zoneName?: string | null, createdAt: string, updatedAt?: string | null } };
 
 export type SendPasswordResetEmailMutationVariables = Exact<{
   userId: Scalars['UUID']['input'];
@@ -1019,27 +991,27 @@ export type RequestPasswordResetMutationVariables = Exact<{
 export type RequestPasswordResetMutation = { __typename?: 'Mutation', requestPasswordReset: { __typename?: 'UserActionResultDto', success: boolean, message: string } };
 
 export type GetVehiclesQueryVariables = Exact<{
-  where?: InputMaybe<VehicleDtoFilterInput>;
-  order?: InputMaybe<Array<VehicleDtoSortInput> | VehicleDtoSortInput>;
+  where?: InputMaybe<VehicleFilterInput>;
+  order?: InputMaybe<Array<VehicleSortInput> | VehicleSortInput>;
 }>;
 
 
-export type GetVehiclesQuery = { __typename?: 'Query', vehicles: Array<{ __typename?: 'VehicleDto', id: string, registrationPlate: string, type: VehicleType, parcelCapacity: number, weightCapacity: number, status: VehicleStatus, depotId: string, depotName: string, totalRoutes: number, routesCompleted: number, totalMileage: number, createdAt: string, lastModifiedAt?: string | null }> };
+export type GetVehiclesQuery = { __typename?: 'Query', vehicles: Array<{ __typename?: 'Vehicle', id: string, registrationPlate: string, type: VehicleType, parcelCapacity: number, weightCapacity: number, status: VehicleStatus, depotId: string, depotName?: string | null, totalRoutes: number, routesCompleted: number, totalMileage: number, createdAt: string, updatedAt?: string | null }> };
 
 export type CreateVehicleMutationVariables = Exact<{
-  input: CreateVehicleDtoInput;
+  input: CreateVehicleInput;
 }>;
 
 
-export type CreateVehicleMutation = { __typename?: 'Mutation', createVehicle: { __typename?: 'VehicleDto', id: string, registrationPlate: string, type: VehicleType, parcelCapacity: number, weightCapacity: number, status: VehicleStatus, depotId: string, depotName: string, totalRoutes: number, routesCompleted: number, totalMileage: number, createdAt: string, lastModifiedAt?: string | null } };
+export type CreateVehicleMutation = { __typename?: 'Mutation', createVehicle: { __typename?: 'Vehicle', id: string, registrationPlate: string, type: VehicleType, parcelCapacity: number, weightCapacity: number, status: VehicleStatus, depotId: string, depotName?: string | null, totalRoutes: number, routesCompleted: number, totalMileage: number, createdAt: string, updatedAt?: string | null } };
 
 export type UpdateVehicleMutationVariables = Exact<{
   id: Scalars['UUID']['input'];
-  input: UpdateVehicleDtoInput;
+  input: UpdateVehicleInput;
 }>;
 
 
-export type UpdateVehicleMutation = { __typename?: 'Mutation', updateVehicle?: { __typename?: 'VehicleDto', id: string, registrationPlate: string, type: VehicleType, parcelCapacity: number, weightCapacity: number, status: VehicleStatus, depotId: string, depotName: string, totalRoutes: number, routesCompleted: number, totalMileage: number, createdAt: string, lastModifiedAt?: string | null } | null };
+export type UpdateVehicleMutation = { __typename?: 'Mutation', updateVehicle?: { __typename?: 'Vehicle', id: string, registrationPlate: string, type: VehicleType, parcelCapacity: number, weightCapacity: number, status: VehicleStatus, depotId: string, depotName?: string | null, totalRoutes: number, routesCompleted: number, totalMileage: number, createdAt: string, updatedAt?: string | null } | null };
 
 export type DeleteVehicleMutationVariables = Exact<{
   id: Scalars['UUID']['input'];
@@ -1051,21 +1023,21 @@ export type DeleteVehicleMutation = { __typename?: 'Mutation', deleteVehicle: bo
 export type GetZonesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetZonesQuery = { __typename?: 'Query', zones: Array<{ __typename?: 'Zone', id: string, name: string, boundary: string, isActive: boolean, depotId: string, depotName?: string | null, createdAt: string, updatedAt?: string | null }> };
+export type GetZonesQuery = { __typename?: 'Query', zones: Array<{ __typename?: 'Zone', id: string, name: string, boundary?: string | null, isActive: boolean, depotId: string, depotName?: string | null, createdAt: string, updatedAt?: string | null }> };
 
 export type GetZoneQueryVariables = Exact<{
   id: Scalars['UUID']['input'];
 }>;
 
 
-export type GetZoneQuery = { __typename?: 'Query', zone?: { __typename?: 'Zone', id: string, name: string, boundary: string, isActive: boolean, depotId: string, depotName?: string | null, createdAt: string, updatedAt?: string | null } | null };
+export type GetZoneQuery = { __typename?: 'Query', zone?: { __typename?: 'Zone', id: string, name: string, boundary?: string | null, isActive: boolean, depotId: string, depotName?: string | null, createdAt: string, updatedAt?: string | null } | null };
 
 export type CreateZoneMutationVariables = Exact<{
   input: CreateZoneInput;
 }>;
 
 
-export type CreateZoneMutation = { __typename?: 'Mutation', createZone: { __typename?: 'Zone', id: string, name: string, boundary: string, isActive: boolean, depotId: string, depotName?: string | null, createdAt: string, updatedAt?: string | null } };
+export type CreateZoneMutation = { __typename?: 'Mutation', createZone: { __typename?: 'Zone', id: string, name: string, boundary?: string | null, isActive: boolean, depotId: string, depotName?: string | null, createdAt: string, updatedAt?: string | null } };
 
 export type UpdateZoneMutationVariables = Exact<{
   id: Scalars['UUID']['input'];
@@ -1073,7 +1045,7 @@ export type UpdateZoneMutationVariables = Exact<{
 }>;
 
 
-export type UpdateZoneMutation = { __typename?: 'Mutation', updateZone?: { __typename?: 'Zone', id: string, name: string, boundary: string, isActive: boolean, depotId: string, depotName?: string | null, createdAt: string, updatedAt?: string | null } | null };
+export type UpdateZoneMutation = { __typename?: 'Mutation', updateZone?: { __typename?: 'Zone', id: string, name: string, boundary?: string | null, isActive: boolean, depotId: string, depotName?: string | null, createdAt: string, updatedAt?: string | null } | null };
 
 export type DeleteZoneMutationVariables = Exact<{
   id: Scalars['UUID']['input'];
@@ -1090,19 +1062,19 @@ export const UpdateDepotDocument = {"kind":"Document","definitions":[{"kind":"Op
 export const DeleteDepotDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteDepot"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteDepot"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteDepotMutation, DeleteDepotMutationVariables>;
 export const GetDriversDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetDrivers"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"depotId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"drivers"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"depotId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"depotId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"displayName"}}]}}]}}]} as unknown as DocumentNode<GetDriversQuery, GetDriversQueryVariables>;
 export const GetParcelsForRouteCreationDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetParcelsForRouteCreation"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"parcelsForRouteCreation"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"trackingNumber"}},{"kind":"Field","name":{"kind":"Name","value":"weight"}},{"kind":"Field","name":{"kind":"Name","value":"weightUnit"}}]}}]}}]} as unknown as DocumentNode<GetParcelsForRouteCreationQuery, GetParcelsForRouteCreationQueryVariables>;
-export const GetRoutesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetRoutes"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"where"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"RouteDtoFilterInput"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"order"}},"type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"RouteDtoSortInput"}}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"routes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"where"},"value":{"kind":"Variable","name":{"kind":"Name","value":"where"}}},{"kind":"Argument","name":{"kind":"Name","value":"order"},"value":{"kind":"Variable","name":{"kind":"Name","value":"order"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"vehicleId"}},{"kind":"Field","name":{"kind":"Name","value":"vehiclePlate"}},{"kind":"Field","name":{"kind":"Name","value":"driverId"}},{"kind":"Field","name":{"kind":"Name","value":"driverName"}},{"kind":"Field","name":{"kind":"Name","value":"startDate"}},{"kind":"Field","name":{"kind":"Name","value":"endDate"}},{"kind":"Field","name":{"kind":"Name","value":"startMileage"}},{"kind":"Field","name":{"kind":"Name","value":"endMileage"}},{"kind":"Field","name":{"kind":"Name","value":"totalMileage"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"parcelCount"}},{"kind":"Field","name":{"kind":"Name","value":"parcelsDelivered"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]} as unknown as DocumentNode<GetRoutesQuery, GetRoutesQueryVariables>;
-export const CreateRouteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateRoute"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateRouteDtoInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createRoute"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"vehicleId"}},{"kind":"Field","name":{"kind":"Name","value":"vehiclePlate"}},{"kind":"Field","name":{"kind":"Name","value":"driverId"}},{"kind":"Field","name":{"kind":"Name","value":"driverName"}},{"kind":"Field","name":{"kind":"Name","value":"startDate"}},{"kind":"Field","name":{"kind":"Name","value":"endDate"}},{"kind":"Field","name":{"kind":"Name","value":"startMileage"}},{"kind":"Field","name":{"kind":"Name","value":"endMileage"}},{"kind":"Field","name":{"kind":"Name","value":"totalMileage"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"parcelCount"}},{"kind":"Field","name":{"kind":"Name","value":"parcelsDelivered"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]} as unknown as DocumentNode<CreateRouteMutation, CreateRouteMutationVariables>;
+export const GetRoutesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetRoutes"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"where"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"RouteFilterInput"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"order"}},"type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"RouteSortInput"}}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"routes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"where"},"value":{"kind":"Variable","name":{"kind":"Name","value":"where"}}},{"kind":"Argument","name":{"kind":"Name","value":"order"},"value":{"kind":"Variable","name":{"kind":"Name","value":"order"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"vehicleId"}},{"kind":"Field","name":{"kind":"Name","value":"vehiclePlate"}},{"kind":"Field","name":{"kind":"Name","value":"driverId"}},{"kind":"Field","name":{"kind":"Name","value":"driverName"}},{"kind":"Field","name":{"kind":"Name","value":"startDate"}},{"kind":"Field","name":{"kind":"Name","value":"endDate"}},{"kind":"Field","name":{"kind":"Name","value":"startMileage"}},{"kind":"Field","name":{"kind":"Name","value":"endMileage"}},{"kind":"Field","name":{"kind":"Name","value":"totalMileage"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"parcelCount"}},{"kind":"Field","name":{"kind":"Name","value":"parcelsDelivered"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]} as unknown as DocumentNode<GetRoutesQuery, GetRoutesQueryVariables>;
+export const CreateRouteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateRoute"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateRouteInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createRoute"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"vehicleId"}},{"kind":"Field","name":{"kind":"Name","value":"vehiclePlate"}},{"kind":"Field","name":{"kind":"Name","value":"driverId"}},{"kind":"Field","name":{"kind":"Name","value":"driverName"}},{"kind":"Field","name":{"kind":"Name","value":"startDate"}},{"kind":"Field","name":{"kind":"Name","value":"endDate"}},{"kind":"Field","name":{"kind":"Name","value":"startMileage"}},{"kind":"Field","name":{"kind":"Name","value":"endMileage"}},{"kind":"Field","name":{"kind":"Name","value":"totalMileage"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"parcelCount"}},{"kind":"Field","name":{"kind":"Name","value":"parcelsDelivered"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]} as unknown as DocumentNode<CreateRouteMutation, CreateRouteMutationVariables>;
 export const UserManagementLookupsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"UserManagementLookups"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userManagementLookups"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"roles"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"value"}},{"kind":"Field","name":{"kind":"Name","value":"label"}}]}},{"kind":"Field","name":{"kind":"Name","value":"depots"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"zones"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]}}]} as unknown as DocumentNode<UserManagementLookupsQuery, UserManagementLookupsQueryVariables>;
-export const UsersDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Users"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"search"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"isActive"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"depotId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"zoneId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"search"},"value":{"kind":"Variable","name":{"kind":"Name","value":"search"}}},{"kind":"Argument","name":{"kind":"Name","value":"isActive"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isActive"}}},{"kind":"Argument","name":{"kind":"Name","value":"depotId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"depotId"}}},{"kind":"Argument","name":{"kind":"Name","value":"zoneId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"zoneId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"phone"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"isProtected"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"zoneId"}},{"kind":"Field","name":{"kind":"Name","value":"zoneName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"lastModifiedAt"}}]}}]}}]} as unknown as DocumentNode<UsersQuery, UsersQueryVariables>;
-export const CreateUserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateUser"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateUserInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createUser"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"phone"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"isProtected"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"zoneId"}},{"kind":"Field","name":{"kind":"Name","value":"zoneName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"lastModifiedAt"}}]}}]}}]} as unknown as DocumentNode<CreateUserMutation, CreateUserMutationVariables>;
-export const UpdateUserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateUser"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateUserInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateUser"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"phone"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"isProtected"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"zoneId"}},{"kind":"Field","name":{"kind":"Name","value":"zoneName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"lastModifiedAt"}}]}}]}}]} as unknown as DocumentNode<UpdateUserMutation, UpdateUserMutationVariables>;
-export const DeactivateUserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeactivateUser"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"userId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deactivateUser"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"userId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"phone"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"isProtected"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"zoneId"}},{"kind":"Field","name":{"kind":"Name","value":"zoneName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"lastModifiedAt"}}]}}]}}]} as unknown as DocumentNode<DeactivateUserMutation, DeactivateUserMutationVariables>;
+export const UsersDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Users"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"search"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"isActive"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"depotId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"zoneId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"search"},"value":{"kind":"Variable","name":{"kind":"Name","value":"search"}}},{"kind":"Argument","name":{"kind":"Name","value":"isActive"},"value":{"kind":"Variable","name":{"kind":"Name","value":"isActive"}}},{"kind":"Argument","name":{"kind":"Name","value":"depotId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"depotId"}}},{"kind":"Argument","name":{"kind":"Name","value":"zoneId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"zoneId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"phone"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"isProtected"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"zoneId"}},{"kind":"Field","name":{"kind":"Name","value":"zoneName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<UsersQuery, UsersQueryVariables>;
+export const CreateUserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateUser"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateUserInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createUser"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"phone"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"isProtected"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"zoneId"}},{"kind":"Field","name":{"kind":"Name","value":"zoneName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<CreateUserMutation, CreateUserMutationVariables>;
+export const UpdateUserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateUser"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateUserInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateUser"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"phone"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"isProtected"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"zoneId"}},{"kind":"Field","name":{"kind":"Name","value":"zoneName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<UpdateUserMutation, UpdateUserMutationVariables>;
+export const DeactivateUserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeactivateUser"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"userId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deactivateUser"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"userId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"phone"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"isProtected"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"zoneId"}},{"kind":"Field","name":{"kind":"Name","value":"zoneName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<DeactivateUserMutation, DeactivateUserMutationVariables>;
 export const SendPasswordResetEmailDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SendPasswordResetEmail"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"userId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sendPasswordResetEmail"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"userId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}}]}}]} as unknown as DocumentNode<SendPasswordResetEmailMutation, SendPasswordResetEmailMutationVariables>;
 export const CompletePasswordResetDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CompletePasswordReset"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CompletePasswordResetInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"completePasswordReset"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}}]}}]} as unknown as DocumentNode<CompletePasswordResetMutation, CompletePasswordResetMutationVariables>;
 export const RequestPasswordResetDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"RequestPasswordReset"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"email"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"requestPasswordReset"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"email"},"value":{"kind":"Variable","name":{"kind":"Name","value":"email"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}}]}}]} as unknown as DocumentNode<RequestPasswordResetMutation, RequestPasswordResetMutationVariables>;
-export const GetVehiclesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetVehicles"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"where"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"VehicleDtoFilterInput"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"order"}},"type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"VehicleDtoSortInput"}}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"vehicles"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"where"},"value":{"kind":"Variable","name":{"kind":"Name","value":"where"}}},{"kind":"Argument","name":{"kind":"Name","value":"order"},"value":{"kind":"Variable","name":{"kind":"Name","value":"order"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"registrationPlate"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"parcelCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"weightCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"totalRoutes"}},{"kind":"Field","name":{"kind":"Name","value":"routesCompleted"}},{"kind":"Field","name":{"kind":"Name","value":"totalMileage"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"lastModifiedAt"}}]}}]}}]} as unknown as DocumentNode<GetVehiclesQuery, GetVehiclesQueryVariables>;
-export const CreateVehicleDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateVehicle"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateVehicleDtoInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createVehicle"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"registrationPlate"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"parcelCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"weightCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"totalRoutes"}},{"kind":"Field","name":{"kind":"Name","value":"routesCompleted"}},{"kind":"Field","name":{"kind":"Name","value":"totalMileage"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"lastModifiedAt"}}]}}]}}]} as unknown as DocumentNode<CreateVehicleMutation, CreateVehicleMutationVariables>;
-export const UpdateVehicleDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateVehicle"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateVehicleDtoInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateVehicle"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"registrationPlate"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"parcelCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"weightCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"totalRoutes"}},{"kind":"Field","name":{"kind":"Name","value":"routesCompleted"}},{"kind":"Field","name":{"kind":"Name","value":"totalMileage"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"lastModifiedAt"}}]}}]}}]} as unknown as DocumentNode<UpdateVehicleMutation, UpdateVehicleMutationVariables>;
+export const GetVehiclesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetVehicles"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"where"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"VehicleFilterInput"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"order"}},"type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"VehicleSortInput"}}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"vehicles"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"where"},"value":{"kind":"Variable","name":{"kind":"Name","value":"where"}}},{"kind":"Argument","name":{"kind":"Name","value":"order"},"value":{"kind":"Variable","name":{"kind":"Name","value":"order"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"registrationPlate"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"parcelCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"weightCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"totalRoutes"}},{"kind":"Field","name":{"kind":"Name","value":"routesCompleted"}},{"kind":"Field","name":{"kind":"Name","value":"totalMileage"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<GetVehiclesQuery, GetVehiclesQueryVariables>;
+export const CreateVehicleDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateVehicle"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateVehicleInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createVehicle"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"registrationPlate"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"parcelCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"weightCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"totalRoutes"}},{"kind":"Field","name":{"kind":"Name","value":"routesCompleted"}},{"kind":"Field","name":{"kind":"Name","value":"totalMileage"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<CreateVehicleMutation, CreateVehicleMutationVariables>;
+export const UpdateVehicleDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateVehicle"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateVehicleInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateVehicle"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"registrationPlate"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"parcelCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"weightCapacity"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"totalRoutes"}},{"kind":"Field","name":{"kind":"Name","value":"routesCompleted"}},{"kind":"Field","name":{"kind":"Name","value":"totalMileage"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<UpdateVehicleMutation, UpdateVehicleMutationVariables>;
 export const DeleteVehicleDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteVehicle"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteVehicle"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteVehicleMutation, DeleteVehicleMutationVariables>;
 export const GetZonesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetZones"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"zones"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"boundary"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<GetZonesQuery, GetZonesQueryVariables>;
 export const GetZoneDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetZone"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"zone"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"boundary"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<GetZoneQuery, GetZoneQueryVariables>;

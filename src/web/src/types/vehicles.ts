@@ -8,12 +8,12 @@ export type Vehicle = {
   weightCapacity: number;
   status: import("@/graphql/generated").VehicleStatus;
   depotId: string;
-  depotName: string;
+  depotName: string | null;
   totalRoutes: number;
   routesCompleted: number;
   totalMileage: number;
   createdAt: string;
-  lastModifiedAt: string | null;
+  updatedAt: string | null;
 };
 
 export type CreateVehicleRequest = {

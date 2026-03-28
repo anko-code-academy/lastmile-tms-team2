@@ -17,7 +17,7 @@ export const mockVehicles: Vehicle[] = [
     routesCompleted: 45,
     totalMileage: 12500,
     createdAt: "2024-01-15T10:00:00Z",
-    lastModifiedAt: null,
+    updatedAt: null,
   },
   {
     id: "10000000-0000-0000-0000-000000000002",
@@ -32,7 +32,7 @@ export const mockVehicles: Vehicle[] = [
     routesCompleted: 12,
     totalMileage: 3400,
     createdAt: "2024-02-20T09:30:00Z",
-    lastModifiedAt: "2024-03-01T14:22:00Z",
+    updatedAt: "2024-03-01T14:22:00Z",
   },
   {
     id: "10000000-0000-0000-0000-000000000003",
@@ -47,7 +47,7 @@ export const mockVehicles: Vehicle[] = [
     routesCompleted: 3,
     totalMileage: 180,
     createdAt: "2024-03-01T08:00:00Z",
-    lastModifiedAt: null,
+    updatedAt: null,
   },
   {
     id: "10000000-0000-0000-0000-000000000004",
@@ -62,7 +62,7 @@ export const mockVehicles: Vehicle[] = [
     routesCompleted: 89,
     totalMileage: 22400,
     createdAt: "2023-11-10T12:00:00Z",
-    lastModifiedAt: "2024-02-28T16:45:00Z",
+    updatedAt: "2024-02-28T16:45:00Z",
   },
   {
     id: "10000000-0000-0000-0000-000000000005",
@@ -77,7 +77,7 @@ export const mockVehicles: Vehicle[] = [
     routesCompleted: 312,
     totalMileage: 78000,
     createdAt: "2020-05-01T00:00:00Z",
-    lastModifiedAt: "2024-01-10T09:00:00Z",
+    updatedAt: "2024-01-10T09:00:00Z",
   },
 ];
 

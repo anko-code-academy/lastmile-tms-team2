@@ -5,12 +5,12 @@ import { routesService } from "@/services/routes.service";
 import { CreateRouteRequest, RouteStatus } from "@/types/routes";
 import { vehicleKeys } from "./vehicles";
 import { parcelKeys } from "./parcels";
-import type { RouteDtoFilterInput } from "@/graphql/generated";
+import type { RouteFilterInput } from "@/graphql/generated";
 
 export const routeKeys = {
   all: ["routes"] as const,
   lists: () => [...routeKeys.all, "list"] as const,
-  list: (where?: RouteDtoFilterInput) =>
+  list: (where?: RouteFilterInput) =>
     [...routeKeys.lists(), where] as const,
   details: () => [...routeKeys.all, "detail"] as const,
   detail: (id: string) => [...routeKeys.details(), id] as const,
@@ -22,7 +22,7 @@ export function useRoutes(params: {
 }) {
   const { status } = useSession();
 
-  const where: RouteDtoFilterInput | undefined =
+  const where: RouteFilterInput | undefined =
     params.vehicleId !== undefined || params.status !== undefined
       ? {
           ...(params.vehicleId !== undefined && {

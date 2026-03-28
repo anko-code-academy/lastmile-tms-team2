@@ -9,7 +9,7 @@ import type {
   CreateVehicleMutation,
   UpdateVehicleMutation,
 } from "@/graphql/vehicles";
-import type { VehicleDtoFilterInput } from "@/graphql/generated";
+import type { VehicleFilterInput } from "@/graphql/generated";
 import { graphqlRequest } from "@/lib/network/graphql-client";
 import type {
   Vehicle,
@@ -25,7 +25,7 @@ const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 
 export const vehiclesService = {
   getAll: async (
-    where?: VehicleDtoFilterInput
+    where?: VehicleFilterInput
   ): Promise<Vehicle[]> => {
     if (USE_MOCK) {
       return Promise.resolve(
@@ -50,12 +50,12 @@ export const vehiclesService = {
       weightCapacity: v.weightCapacity,
       status: v.status,
       depotId: v.depotId,
-      depotName: v.depotName,
+      depotName: v.depotName ?? null,
       totalRoutes: v.totalRoutes,
       routesCompleted: v.routesCompleted,
       totalMileage: v.totalMileage,
       createdAt: v.createdAt,
-      lastModifiedAt: v.lastModifiedAt ?? null,
+      updatedAt: v.updatedAt ?? null,
     }));
   },
 
@@ -82,7 +82,7 @@ export const vehiclesService = {
         routesCompleted: 0,
         totalMileage: 0,
         createdAt: new Date().toISOString(),
-        lastModifiedAt: null,
+        updatedAt: null,
       };
       return Promise.resolve(newVehicle);
     }
@@ -109,12 +109,12 @@ export const vehiclesService = {
       weightCapacity: v.weightCapacity,
       status: v.status,
       depotId: v.depotId,
-      depotName: v.depotName,
+      depotName: v.depotName ?? null,
       totalRoutes: v.totalRoutes,
       routesCompleted: v.routesCompleted,
       totalMileage: v.totalMileage,
       createdAt: v.createdAt,
-      lastModifiedAt: v.lastModifiedAt ?? null,
+      updatedAt: v.updatedAt ?? null,
     };
   },
 
@@ -126,7 +126,7 @@ export const vehiclesService = {
         ...existing,
         ...data,
         depotName: existing.depotName,
-        lastModifiedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
       return Promise.resolve(updated);
     }
@@ -155,12 +155,12 @@ export const vehiclesService = {
       weightCapacity: v.weightCapacity,
       status: v.status,
       depotId: v.depotId,
-      depotName: v.depotName,
+      depotName: v.depotName ?? null,
       totalRoutes: v.totalRoutes,
       routesCompleted: v.routesCompleted,
       totalMileage: v.totalMileage,
       createdAt: v.createdAt,
-      lastModifiedAt: v.lastModifiedAt ?? null,
+      updatedAt: v.updatedAt ?? null,
     };
   },
 

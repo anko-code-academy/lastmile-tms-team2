@@ -1,4 +1,4 @@
-query GetRoutes($where: RouteDtoFilterInput, $order: [RouteDtoSortInput!]) {
+query GetRoutes($where: RouteFilterInput, $order: [RouteSortInput!]) {
   routes(where: $where, order: $order) {
     id
     vehicleId
@@ -17,7 +17,7 @@ query GetRoutes($where: RouteDtoFilterInput, $order: [RouteDtoSortInput!]) {
   }
 }
 
-mutation CreateRoute($input: CreateRouteDtoInput!) {
+mutation CreateRoute($input: CreateRouteInput!) {
   createRoute(input: $input) {
     id
     vehicleId

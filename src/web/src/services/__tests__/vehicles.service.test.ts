@@ -30,7 +30,7 @@ describe("vehiclesService", () => {
           routesCompleted: 3,
           totalMileage: 1500,
           createdAt: "2024-01-01",
-          lastModifiedAt: null,
+          updatedAt: null,
         },
       ];
 
@@ -83,7 +83,7 @@ describe("vehiclesService", () => {
         routesCompleted: 3,
         totalMileage: 1500,
         createdAt: "2024-01-01",
-        lastModifiedAt: null,
+        updatedAt: null,
       };
 
       mockGraphql.mockResolvedValueOnce({ vehicles: [mockVehicle] });
@@ -117,7 +117,7 @@ describe("vehiclesService", () => {
         routesCompleted: 0,
         totalMileage: 0,
         createdAt: "2024-01-01",
-        lastModifiedAt: null,
+        updatedAt: null,
       };
 
       mockGraphql.mockResolvedValueOnce({ createVehicle: createdVehicle });
@@ -160,7 +160,7 @@ describe("vehiclesService", () => {
         routesCompleted: 3,
         totalMileage: 1500,
         createdAt: "2024-01-01",
-        lastModifiedAt: "2024-01-02",
+        updatedAt: "2024-01-02",
       };
 
       mockGraphql.mockResolvedValueOnce({ updateVehicle: updatedVehicle });

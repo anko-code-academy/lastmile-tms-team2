@@ -14,11 +14,11 @@ import type {
 import { graphqlRequest } from "@/lib/network/graphql-client";
 import type { CreateZoneRequest, UpdateZoneRequest, Zone } from "@/types/zones";
 
-function toZone(z: { id: string; name: string; boundary: string; isActive: boolean; depotId: string; depotName?: string | null; createdAt: string; updatedAt?: string | null }): Zone {
+function toZone(z: { id: string; name: string; boundary?: string | null; isActive: boolean; depotId: string; depotName?: string | null; createdAt: string; updatedAt?: string | null }): Zone {
   return {
     id: z.id,
     name: z.name,
-    boundary: z.boundary,
+    boundary: z.boundary ?? "",
     isActive: z.isActive,
     depotId: z.depotId,
     depotName: z.depotName ?? null,

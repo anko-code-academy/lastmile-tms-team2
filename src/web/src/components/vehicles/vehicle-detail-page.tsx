@@ -299,9 +299,9 @@ export default function VehicleDetailPage() {
               <DetailField label="Created">
                 {new Date(vehicle.createdAt).toLocaleString()}
               </DetailField>
-              {vehicle.lastModifiedAt && (
+              {vehicle.updatedAt && (
                 <DetailField label="Last modified">
-                  {new Date(vehicle.lastModifiedAt).toLocaleString()}
+                  {new Date(vehicle.updatedAt).toLocaleString()}
                 </DetailField>
               )}
             </DetailFieldGrid>

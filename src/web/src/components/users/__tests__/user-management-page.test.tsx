@@ -59,7 +59,7 @@ describe("UserManagementClient", () => {
         zoneId: null,
         zoneName: null,
         createdAt: "2026-03-24T00:00:00Z",
-        lastModifiedAt: null,
+        updatedAt: null,
       },
     ]);
 
@@ -78,7 +78,7 @@ describe("UserManagementClient", () => {
       zoneId: "zone-1",
       zoneName: "Zone A",
       createdAt: "2026-03-24T00:00:00Z",
-      lastModifiedAt: null,
+      updatedAt: null,
     });
   });
 
@@ -147,7 +147,7 @@ describe("UserManagementClient", () => {
         zoneId: null,
         zoneName: null,
         createdAt: "2026-03-24T00:00:00Z",
-        lastModifiedAt: null,
+        updatedAt: null,
       },
     ]);
 

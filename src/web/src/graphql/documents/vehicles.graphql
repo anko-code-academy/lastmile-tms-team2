@@ -1,4 +1,4 @@
-query GetVehicles($where: VehicleDtoFilterInput, $order: [VehicleDtoSortInput!]) {
+query GetVehicles($where: VehicleFilterInput, $order: [VehicleSortInput!]) {
   vehicles(where: $where, order: $order) {
     id
     registrationPlate
@@ -12,11 +12,11 @@ query GetVehicles($where: VehicleDtoFilterInput, $order: [VehicleDtoSortInput!])
     routesCompleted
     totalMileage
     createdAt
-    lastModifiedAt
+    updatedAt
   }
 }
 
-mutation CreateVehicle($input: CreateVehicleDtoInput!) {
+mutation CreateVehicle($input: CreateVehicleInput!) {
   createVehicle(input: $input) {
     id
     registrationPlate
@@ -30,11 +30,11 @@ mutation CreateVehicle($input: CreateVehicleDtoInput!) {
     routesCompleted
     totalMileage
     createdAt
-    lastModifiedAt
+    updatedAt
   }
 }
 
-mutation UpdateVehicle($id: UUID!, $input: UpdateVehicleDtoInput!) {
+mutation UpdateVehicle($id: UUID!, $input: UpdateVehicleInput!) {
   updateVehicle(id: $id, input: $input) {
     id
     registrationPlate
@@ -48,7 +48,7 @@ mutation UpdateVehicle($id: UUID!, $input: UpdateVehicleDtoInput!) {
     routesCompleted
     totalMileage
     createdAt
-    lastModifiedAt
+    updatedAt
   }
 }
 

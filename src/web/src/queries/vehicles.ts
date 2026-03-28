@@ -7,12 +7,12 @@ import {
   UpdateVehicleRequest,
   VehicleStatus,
 } from "@/types/vehicles";
-import type { VehicleDtoFilterInput } from "@/graphql/generated";
+import type { VehicleFilterInput } from "@/graphql/generated";
 
 export const vehicleKeys = {
   all: ["vehicles"] as const,
   lists: () => [...vehicleKeys.all, "list"] as const,
-  list: (where?: VehicleDtoFilterInput) =>
+  list: (where?: VehicleFilterInput) =>
     [...vehicleKeys.lists(), where] as const,
   details: () => [...vehicleKeys.all, "detail"] as const,
   detail: (id: string) => [...vehicleKeys.details(), id] as const,
@@ -24,7 +24,7 @@ export function useVehicles(params: {
 }) {
   const { status } = useSession();
 
-  const where: VehicleDtoFilterInput | undefined =
+  const where: VehicleFilterInput | undefined =
     params.status !== undefined || params.depotId !== undefined
       ? {
           ...(params.status !== undefined && {

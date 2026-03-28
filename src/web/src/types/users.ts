@@ -26,7 +26,7 @@ export interface UserManagementUser {
   zoneId: string | null;
   zoneName: string | null;
   createdAt: string;
-  lastModifiedAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface UserRoleOption {

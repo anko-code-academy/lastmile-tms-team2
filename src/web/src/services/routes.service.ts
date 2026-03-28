@@ -6,7 +6,7 @@ import type {
   GetRoutesQuery,
   CreateRouteMutation,
 } from "@/graphql/routes";
-import type { RouteDtoFilterInput } from "@/graphql/generated";
+import type { RouteFilterInput } from "@/graphql/generated";
 import { graphqlRequest } from "@/lib/network/graphql-client";
 import type {
   Route,
@@ -23,9 +23,9 @@ function mapRoute(raw: NonNullable<GetRoutesQuery["routes"]>[number]): Route {
   return {
     id: raw.id,
     vehicleId: raw.vehicleId,
-    vehiclePlate: raw.vehiclePlate,
+    vehiclePlate: raw.vehiclePlate ?? "Unknown vehicle",
     driverId: raw.driverId,
-    driverName: raw.driverName,
+    driverName: raw.driverName ?? "Unknown driver",
     startDate: raw.startDate,
     endDate: raw.endDate ?? null,
     startMileage: raw.startMileage,
@@ -40,7 +40,7 @@ function mapRoute(raw: NonNullable<GetRoutesQuery["routes"]>[number]): Route {
 
 export const routesService = {
   getAll: async (
-    where?: RouteDtoFilterInput
+    where?: RouteFilterInput
   ): Promise<Route[]> => {
     if (USE_MOCK) {
       let items = [...mockRoutes];
