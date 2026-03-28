@@ -217,7 +217,7 @@ export default function NewVehiclePage() {
                       setFormData({ ...formData, depotId: v });
                     }}
                     placeholder={
-                      depotsLoading ? "Loading depotsР Р†Р вЂљР’В¦" : "Select depot"
+                      depotsLoading ? "Loading depots" : "Select depot"
                     }
                   />
                   {depotsError && (
@@ -244,7 +244,7 @@ export default function NewVehiclePage() {
                 className="w-full sm:w-auto"
                 disabled={createVehicle.isPending}
               >
-                {createVehicle.isPending ? "CreatingР Р†Р вЂљР’В¦" : "Create vehicle"}
+                {createVehicle.isPending ? "Creating" : "Create vehicle"}
               </Button>
             </FormActionsBar>
         </form>

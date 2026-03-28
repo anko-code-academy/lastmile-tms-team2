@@ -10,7 +10,7 @@ import {
 import { LoginForm } from "@/components/auth";
 
 export const metadata: Metadata = {
-  title: "Login вЂ” Last Mile TMS",
+  title: "Login - Last Mile TMS",
   description: "Login to Last Mile TMS delivery management system",
 };
 

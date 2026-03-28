@@ -195,7 +195,7 @@ export default function VehiclesPage() {
                 />
               </td>
               <td className={cn(listDataTableTdClass, "max-w-[160px] text-muted-foreground")}>
-                <OverflowTooltipCell fullText={vehicle.depotName || "вЂ"} />
+                <OverflowTooltipCell fullText={vehicle.depotName || ""} />
               </td>
               <td className={cn(listDataTableTdClass, "max-w-[96px] tabular-nums")}>
                 <OverflowTooltipCell

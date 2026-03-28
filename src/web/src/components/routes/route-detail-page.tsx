@@ -34,11 +34,11 @@ import { cn } from "@/lib/utils";
 import { ROUTE_STATUS_LABELS, routeStatusBadgeClass } from "@/lib/labels/routes";
 import { useRoute } from "@/queries/routes";
 
-/** Backend default DateTimeOffset was not set on create for older routes в†’ year 0001 */
+/** Backend default DateTimeOffset was not set on create for older routes year 0001 */
 function formatCreatedAt(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime()) || d.getUTCFullYear() < 2000) {
-    return "вЂ”";
+    return "";
   }
   return d.toLocaleString();
 }
@@ -91,7 +91,7 @@ export default function RouteDetailPage({
             variant="route"
             items={[
               { label: "Routes", href: "/routes" },
-              { label: `Route ${shortId}вЂ¦` },
+              { label: `Route ${shortId}` },
             ]}
           />
 
@@ -103,7 +103,7 @@ export default function RouteDetailPage({
             subtitle={
               <>
                 Route <span className="font-mono text-foreground/80">{id}</span>
-                {" В· "}
+                {" · "}
                 {route.driverName}
               </>
             }
@@ -183,7 +183,7 @@ export default function RouteDetailPage({
             <DetailField label="End date">
               {route.endDate
                 ? new Date(route.endDate).toLocaleString()
-                : "вЂ”"}
+                : ""}
             </DetailField>
             <DetailField label="Start mileage">
               {route.startMileage.toLocaleString()} km
@@ -191,7 +191,7 @@ export default function RouteDetailPage({
             <DetailField label="End mileage">
               {route.endMileage > 0
                 ? `${route.endMileage.toLocaleString()} km`
-                : "вЂ”"}
+                : ""}
             </DetailField>
             <DetailField label="Parcels delivered">
               {route.parcelsDelivered} of {route.parcelCount}

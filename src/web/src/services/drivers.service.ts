@@ -15,7 +15,7 @@ export const driversService = {
     }
 
     const variables: Record<string, unknown> = {};
-    // Empty string is not a valid GraphQL UUID literal вЂ” omit variable to mean "no filter".
+    // Empty string is not a valid GraphQL UUID literal omit variable to mean "no filter".
     if (depotId !== undefined && depotId.trim() !== "") {
       variables.depotId = depotId;
     }

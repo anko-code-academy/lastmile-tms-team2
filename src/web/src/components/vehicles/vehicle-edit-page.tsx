@@ -204,7 +204,7 @@ function VehicleEditForm({
                 setFormData({ ...formData, depotId: v });
               }}
               placeholder={
-                depotsLoading ? "Loading depotsР Р†Р вЂљР’В¦" : "Select depot"
+                depotsLoading ? "Loading depots" : "Select depot"
               }
             />
             {depotsError && (
@@ -231,7 +231,7 @@ function VehicleEditForm({
           className="w-full sm:w-auto"
           disabled={updateVehicle.isPending}
         >
-          {updateVehicle.isPending ? "SavingР Р†Р вЂљР’В¦" : "Save changes"}
+          {updateVehicle.isPending ? "Saving" : "Save changes"}
         </Button>
       </FormActionsBar>
     </form>
