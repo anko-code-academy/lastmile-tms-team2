@@ -1,10 +1,8 @@
 using HotChocolate;
 using HotChocolate.Authorization;
 using HotChocolate.Data;
-using LastMile.TMS.Application.Depots.DTOs;
-using LastMile.TMS.Application.Depots.Queries;
 using LastMile.TMS.Application.Depots.Reads;
-using MediatR;
+using LastMile.TMS.Domain.Entities;
 
 namespace LastMile.TMS.Api.GraphQL.Depots;
 
@@ -13,16 +11,17 @@ public sealed class DepotQuery
 {
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
     [UseProjection]
-    [UseSorting]
-    [UseFiltering]
-    public IQueryable<DepotDto> GetDepots(
+    [UseSorting(typeof(DepotDtoSortInputType))]
+    [UseFiltering(typeof(DepotDtoFilterInputType))]
+    public IQueryable<Depot> GetDepots(
         [Service] IDepotReadService readService = null!) =>
         readService.GetDepots();
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
-    public Task<DepotDto?> GetDepot(
+    [UseFirstOrDefault]
+    [UseProjection]
+    public IQueryable<Depot> GetDepot(
         Guid id,
-        [Service] ISender mediator = null!,
-        CancellationToken cancellationToken = default) =>
-        mediator.Send(new GetDepotByIdQuery(id), cancellationToken);
+        [Service] IDepotReadService readService = null!) =>
+        readService.GetDepotById(id);
 }

@@ -27,6 +27,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     private readonly SemaphoreSlim _resetLock = new(1, 1);
 
     public TestUserAccountEmailService EmailService { get; } = new();
+    public SqlCommandCaptureInterceptor SqlCapture { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -53,6 +54,26 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton<DbSeeder>();
             services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<DbSeeder>());
 
+            services.AddSingleton(SqlCapture);
+
+            services.RemoveAll<AppDbContext>();
+            services.RemoveAll<DbContextOptions<AppDbContext>>();
+            services.RemoveAll<IAppDbContext>();
+            services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+            {
+                options.UseNpgsql(
+                    TestConnection,
+                    npgsql =>
+                    {
+                        npgsql.UseNetTopologySuite();
+                        npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                    });
+                options.UseOpenIddict();
+                options.EnableSensitiveDataLogging();
+                options.AddInterceptors(serviceProvider.GetRequiredService<SqlCommandCaptureInterceptor>());
+            });
+            services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
+
             services.RemoveAll<IUserAccountEmailService>();
             services.RemoveAll<IUserAccountEmailJobScheduler>();
             services.AddSingleton(EmailService);
@@ -74,6 +95,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             _ = Services;
             EmailService.Clear();
+            SqlCapture.Clear();
 
             NpgsqlConnection.ClearAllPools();
 
@@ -94,6 +116,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 var seeder = scope.ServiceProvider.GetRequiredService<DbSeeder>();
                 await seeder.SeedAsync(cancellationToken);
             }
+
+            SqlCapture.Clear();
         }
         finally
         {

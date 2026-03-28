@@ -1,18 +1,5 @@
 namespace LastMile.TMS.Application.Depots.DTOs;
 
-public sealed record DepotDto
-{
-    public Guid Id { get; init; }
-    public string Name { get; init; } = string.Empty;
-    public AddressDto? Address { get; init; }
-    public List<OperatingHoursDto>? OperatingHours { get; init; }
-    public bool IsActive { get; init; }
-    public DateTimeOffset CreatedAt { get; init; }
-    public DateTimeOffset? UpdatedAt { get; init; }
-
-    public DepotDto() { }
-}
-
 public sealed record AddressDto
 {
     public string Street1 { get; init; } = string.Empty;

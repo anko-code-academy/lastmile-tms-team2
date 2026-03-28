@@ -1,9 +1,9 @@
-using LastMile.TMS.Application.Depots.DTOs;
+using LastMile.TMS.Domain.Entities;
 
 namespace LastMile.TMS.Application.Depots.Reads;
 
 public interface IDepotReadService
 {
-    IQueryable<DepotDto> GetDepots();
-    IQueryable<DepotDto> GetDepotById(Guid id);
+    IQueryable<Depot> GetDepots();
+    IQueryable<Depot> GetDepotById(Guid id);
 }

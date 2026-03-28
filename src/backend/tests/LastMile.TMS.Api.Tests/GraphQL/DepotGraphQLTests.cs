@@ -1,33 +1,22 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Persistence;
-using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LastMile.TMS.Api.Tests.GraphQL;
 
 public class DepotGraphQLTests(CustomWebApplicationFactory factory)
-    : IClassFixture<CustomWebApplicationFactory>, IAsyncLifetime
+    : GraphQLTestBase(factory), IClassFixture<CustomWebApplicationFactory>, IAsyncLifetime
 {
-    private readonly HttpClient _client = factory.CreateClient(new WebApplicationFactoryClientOptions
-    {
-        BaseAddress = new Uri("https://localhost")
-    });
-
-    public Task InitializeAsync() => factory.ResetDatabaseAsync();
-    public Task DisposeAsync() => Task.CompletedTask;
-
     [Fact]
     public async Task Depots_WithAdminToken_ReturnsFullDepotFields()
     {
         var depotId = await SeedDepotAsync();
         var token = await GetAdminAccessTokenAsync();
 
-        var document = await PostGraphQLAsync(
+        using var document = await PostGraphQLAsync(
             """
             query {
               depots {
@@ -70,6 +59,121 @@ public class DepotGraphQLTests(CustomWebApplicationFactory factory)
         depot.GetProperty("operatingHours").GetArrayLength().Should().BeGreaterThan(0);
     }
 
+    [Fact]
+    public async Task Depots_Projection_SelectsOnlyRequestedAddressColumns()
+    {
+        await SeedDepotAsync();
+        var token = await GetAdminAccessTokenAsync();
+
+        Factory.SqlCapture.Clear();
+
+        using var document = await PostGraphQLAsync(
+            """
+            query {
+              depots {
+                id
+                name
+                address {
+                  city
+                }
+              }
+            }
+            """,
+            accessToken: token);
+
+        document.RootElement.TryGetProperty("errors", out _).Should().BeFalse(document.RootElement.GetRawText());
+
+        var sql = GetCapturedSql();
+        sql.Should().NotContain("SELECT TRUE");
+        sql.Should().Contain("\"City\"");
+        sql.Should().NotContain("\"Street1\"");
+        sql.Should().NotContain("\"Street2\"");
+        sql.Should().NotContain("\"State\"");
+        sql.Should().NotContain("\"PostalCode\"");
+        sql.Should().NotContain("\"CountryCode\"");
+        sql.Should().NotContain("\"ContactName\"");
+        sql.Should().NotContain("\"CompanyName\"");
+        sql.Should().NotContain("\"Phone\"");
+        sql.Should().NotContain("\"Email\"");
+    }
+
+    [Fact]
+    public async Task Depots_Projection_WithoutAddress_DoesNotJoinAddresses()
+    {
+        await SeedDepotAsync();
+        var token = await GetAdminAccessTokenAsync();
+
+        Factory.SqlCapture.Clear();
+
+        using var document = await PostGraphQLAsync(
+            """
+            query {
+              depots {
+                id
+                name
+              }
+            }
+            """,
+            accessToken: token);
+
+        document.RootElement.TryGetProperty("errors", out _).Should().BeFalse(document.RootElement.GetRawText());
+
+        var sql = GetCapturedSql();
+        sql.Should().NotContain("SELECT TRUE");
+        sql.Should().NotContain("JOIN \"Addresses\"");
+        sql.Should().NotContain("\"Street1\"");
+        sql.Should().NotContain("\"City\"");
+        sql.Should().NotContain("\"PostalCode\"");
+    }
+
+    [Fact]
+    public async Task Depots_Projection_SelectsOnlyRequestedNestedColumns()
+    {
+        await SeedDepotAsync();
+        var token = await GetAdminAccessTokenAsync();
+
+        Factory.SqlCapture.Clear();
+
+        using var document = await PostGraphQLAsync(
+            """
+            query {
+              depots {
+                id
+                address {
+                  city
+                  postalCode
+                }
+                operatingHours {
+                  dayOfWeek
+                }
+              }
+            }
+            """,
+            accessToken: token);
+
+        document.RootElement.TryGetProperty("errors", out _).Should().BeFalse(document.RootElement.GetRawText());
+
+        var sql = GetCapturedSql();
+        sql.Should().Contain("\"City\"");
+        sql.Should().Contain("\"PostalCode\"");
+        sql.Should().Contain("\"DayOfWeek\"");
+        sql.Should().NotContain("\"Street1\"");
+        sql.Should().NotContain("\"State\"");
+        sql.Should().NotContain("\"OpenTime\"");
+        sql.Should().NotContain("\"ClosedTime\"");
+        sql.Should().NotContain("\"IsClosed\"");
+    }
+
+    public Task InitializeAsync() => factory.ResetDatabaseAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
+
+    private string GetCapturedSql()
+    {
+        Factory.SqlCapture.Commands.Should().NotBeEmpty();
+        return string.Join(Environment.NewLine + Environment.NewLine, Factory.SqlCapture.Commands);
+    }
+
     private async Task<Guid> SeedDepotAsync()
     {
         await using var scope = factory.Services.CreateAsyncScope();
@@ -109,50 +213,5 @@ public class DepotGraphQLTests(CustomWebApplicationFactory factory)
         await dbContext.SaveChangesAsync();
 
         return depot.Id;
-    }
-
-    private async Task<string> GetAdminAccessTokenAsync() =>
-        await GetAccessTokenAsync("admin@lastmile.com", "Admin@12345");
-
-    private async Task<string> GetAccessTokenAsync(string username, string password)
-    {
-        var response = await _client.PostAsync(
-            "/connect/token",
-            new FormUrlEncodedContent(new Dictionary<string, string>
-            {
-                ["grant_type"] = "password",
-                ["username"] = username,
-                ["password"] = password
-            }));
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        return document.RootElement.GetProperty("access_token").GetString()!;
-    }
-
-    private async Task<JsonDocument> PostGraphQLAsync(
-        string query,
-        object? variables = null,
-        string? accessToken = null)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/graphql")
-        {
-            Content = JsonContent.Create(new
-            {
-                query,
-                variables
-            })
-        };
-
-        if (!string.IsNullOrWhiteSpace(accessToken))
-        {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        }
-
-        var response = await _client.SendAsync(request);
-        var content = await response.Content.ReadAsStringAsync();
-        response.StatusCode.Should().Be(HttpStatusCode.OK, content);
-        return JsonDocument.Parse(content);
     }
 }
