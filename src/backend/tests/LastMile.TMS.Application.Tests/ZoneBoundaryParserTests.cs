@@ -113,6 +113,40 @@ public class ZoneBoundaryParserTests
         result.Coordinates.First().Y.Should().BeApproximately(50.1, 0.0001);
     }
 
+    [Fact]
+    public void ParseGeoJson_FeatureCollectionWithSinglePolygon_ReturnsPolygon()
+    {
+        var geoJson = """
+        {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                  [30.5, 50.1],
+                  [30.6, 50.1],
+                  [30.6, 50.2],
+                  [30.5, 50.2],
+                  [30.5, 50.1]
+                ]]
+              },
+              "properties": {
+                "mode": "draw_polygon"
+              }
+            }
+          ]
+        }
+        """;
+
+        var result = _sut.ParseGeoJson(geoJson);
+
+        result.Should().NotBeNull();
+        result.Should().BeOfType<Polygon>();
+        result!.Coordinates.Should().HaveCount(5);
+    }
+
     #endregion
 
     #region ParseGeoJson — invalid inputs
@@ -145,6 +179,59 @@ public class ZoneBoundaryParserTests
     public void ParseGeoJson_EmptyFeatureCollection_ReturnsNull()
     {
         var result = _sut.ParseGeoJson("""{"type": "FeatureCollection", "features": []}""");
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ParseGeoJson_MultiFeatureCollection_ReturnsNull()
+    {
+        var geoJson = """
+        {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "geometry": {
+                "type": "Polygon",
+                "coordinates": [[[30.5, 50.1], [30.6, 50.1], [30.6, 50.2], [30.5, 50.2], [30.5, 50.1]]]
+              }
+            },
+            {
+              "type": "Feature",
+              "geometry": {
+                "type": "Polygon",
+                "coordinates": [[[31.5, 51.1], [31.6, 51.1], [31.6, 51.2], [31.5, 51.2], [31.5, 51.1]]]
+              }
+            }
+          ]
+        }
+        """;
+
+        var result = _sut.ParseGeoJson(geoJson);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ParseGeoJson_FeatureCollectionWithNonPolygonGeometry_ReturnsNull()
+    {
+        var geoJson = """
+        {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "geometry": {
+                "type": "LineString",
+                "coordinates": [[30.5, 50.1], [30.6, 50.1]]
+              }
+            }
+          ]
+        }
+        """;
+
+        var result = _sut.ParseGeoJson(geoJson);
+
         result.Should().BeNull();
     }
 

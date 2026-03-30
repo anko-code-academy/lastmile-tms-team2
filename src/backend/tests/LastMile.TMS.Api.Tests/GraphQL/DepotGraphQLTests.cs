@@ -4,6 +4,8 @@ using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using NetTopologySuite;
+using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Api.Tests.GraphQL;
 
@@ -11,6 +13,9 @@ namespace LastMile.TMS.Api.Tests.GraphQL;
 public class DepotGraphQLTests(CustomWebApplicationFactory factory)
     : GraphQLTestBase(factory), IAsyncLifetime
 {
+    private static readonly GeometryFactory GeometryFactory =
+        NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+
     [Fact]
     public async Task Depots_WithAdminToken_ReturnsFullDepotFields()
     {
@@ -30,6 +35,10 @@ public class DepotGraphQLTests(CustomWebApplicationFactory factory)
                   street1
                   city
                   countryCode
+                  geoLocation {
+                    latitude
+                    longitude
+                  }
                 }
                 operatingHours {
                   openTime
@@ -57,6 +66,8 @@ public class DepotGraphQLTests(CustomWebApplicationFactory factory)
         depot.GetProperty("updatedAt").ValueKind.Should().Be(JsonValueKind.Null);
         depot.GetProperty("address").GetProperty("city").GetString().Should().Be("Melbourne");
         depot.GetProperty("address").GetProperty("countryCode").GetString().Should().Be("AU");
+        depot.GetProperty("address").GetProperty("geoLocation").GetProperty("latitude").GetDouble().Should().BeApproximately(-37.8136, 0.0001);
+        depot.GetProperty("address").GetProperty("geoLocation").GetProperty("longitude").GetDouble().Should().BeApproximately(144.9631, 0.0001);
         depot.GetProperty("operatingHours").GetArrayLength().Should().BeGreaterThan(0);
     }
 
@@ -191,6 +202,7 @@ public class DepotGraphQLTests(CustomWebApplicationFactory factory)
                 State = "VIC",
                 PostalCode = "3000",
                 CountryCode = "AU",
+                GeoLocation = GeometryFactory.CreatePoint(new Coordinate(144.9631, -37.8136)),
                 CreatedAt = DateTimeOffset.UtcNow,
                 CreatedBy = "tests"
             },
