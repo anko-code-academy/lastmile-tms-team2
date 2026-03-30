@@ -10,6 +10,7 @@ import type {
 export const parcelKeys = {
   all: ["parcels"] as const,
   forRoute: () => [...parcelKeys.all, "forRoute"] as const,
+  registered: () => [...parcelKeys.all, "registered"] as const,
 };
 
 export function useParcelsForRouteCreation() {
@@ -17,6 +18,15 @@ export function useParcelsForRouteCreation() {
   return useQuery({
     queryKey: parcelKeys.forRoute(),
     queryFn: () => parcelsService.getForRouteCreation(),
+    enabled: status === "authenticated",
+  });
+}
+
+export function useRegisteredParcels() {
+  const { status } = useSession();
+  return useQuery({
+    queryKey: parcelKeys.registered(),
+    queryFn: () => parcelsService.getRegisteredParcels(),
     enabled: status === "authenticated",
   });
 }

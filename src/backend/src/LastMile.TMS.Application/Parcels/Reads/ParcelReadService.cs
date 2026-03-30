@@ -14,4 +14,10 @@ public sealed class ParcelReadService(IAppDbContext dbContext) : IParcelReadServ
             .AsNoTracking()
             .Where(p => RouteCreationStatuses.Contains(p.Status))
             .OrderBy(p => p.TrackingNumber);
+
+    public IQueryable<Parcel> GetRegisteredParcels() =>
+        dbContext.Parcels
+            .AsNoTracking()
+            .Where(p => p.Status == ParcelStatus.Registered)
+            .OrderByDescending(p => p.CreatedAt);
 }

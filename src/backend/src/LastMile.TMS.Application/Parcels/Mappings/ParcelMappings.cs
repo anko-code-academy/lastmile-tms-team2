@@ -37,6 +37,7 @@ public static partial class ParcelMappings
     [MapProperty(nameof(Parcel.Status), nameof(ParcelDto.Status))]
     [MapProperty(nameof(Parcel.WeightUnit), nameof(ParcelDto.WeightUnit))]
     [MapProperty(nameof(Parcel.DimensionUnit), nameof(ParcelDto.DimensionUnit))]
+    [MapProperty(nameof(Parcel.TrackingNumber), nameof(ParcelDto.Barcode))]
     public static partial ParcelDto ToDto(this Parcel parcel);
 
     private static string MapToString(Enum value) => value.ToString();

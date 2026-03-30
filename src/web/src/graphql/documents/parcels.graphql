@@ -1,3 +1,27 @@
+query GetRegisteredParcels {
+  getRegisteredParcels {
+    id
+    trackingNumber
+    status
+    serviceType
+    weight
+    weightUnit
+    parcelType
+    createdAt
+    recipientAddress {
+      contactName
+      city
+      state
+      postalCode
+      countryCode
+    }
+    zone {
+      id
+      name
+    }
+  }
+}
+
 query GetParcelsForRouteCreation {
   parcelsForRouteCreation {
     id

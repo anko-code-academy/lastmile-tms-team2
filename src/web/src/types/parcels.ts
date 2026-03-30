@@ -17,6 +17,20 @@ export type GraphQLServiceType =
   | "OVERNIGHT"
   | "STANDARD";
 
+/** GraphQL ParcelStatus enum */
+export type GraphQLParcelStatus =
+  | "REGISTERED"
+  | "RECEIVED_AT_DEPOT"
+  | "SORTED"
+  | "STAGED"
+  | "LOADED"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "FAILED_ATTEMPT"
+  | "RETURNED_TO_DEPOT"
+  | "CANCELLED"
+  | "EXCEPTION";
+
 /** Backend ServiceType enum values */
 export const ParcelServiceType = {
   Economy: "ECONOMY",
@@ -90,6 +104,7 @@ export interface RegisterParcelFormData {
 export interface RegisteredParcelResult {
   id: string;
   trackingNumber: string;
+  barcode: string;
   status: string;
   serviceType: string;
   weight: number;

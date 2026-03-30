@@ -1,8 +1,10 @@
 import {
   PARCELS_FOR_ROUTE,
   REGISTER_PARCEL,
+  REGISTERED_PARCELS,
 } from "@/graphql/parcels";
 import { graphqlRequest } from "@/lib/network/graphql-client";
+import type { GetRegisteredParcelsQuery } from "@/graphql/parcels";
 import type {
   ParcelOption,
   RegisterParcelFormData,
@@ -29,11 +31,23 @@ export const parcelsService = {
     return data.parcelsForRouteCreation;
   },
 
+  getRegisteredParcels: async (): Promise<GetRegisteredParcelsQuery["getRegisteredParcels"]> => {
+    if (USE_MOCK) {
+      return [];
+    }
+
+    const data = await graphqlRequest<{
+      getRegisteredParcels: GetRegisteredParcelsQuery["getRegisteredParcels"];
+    }>(REGISTERED_PARCELS);
+    return data.getRegisteredParcels;
+  },
+
   register: async (form: RegisterParcelFormData): Promise<RegisteredParcelResult> => {
     if (USE_MOCK) {
       return {
         id: "40000000-0000-0000-0000-000000000099",
         trackingNumber: "LM20260329MOCK001",
+        barcode: "LM20260329MOCK001",
         status: "Registered",
         serviceType: form.serviceType,
         weight: form.weight,
