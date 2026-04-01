@@ -1,8 +1,47 @@
+query GetRegisteredParcels {
+  registeredParcels {
+    id
+    trackingNumber
+    status
+    serviceType
+    weight
+    weightUnit
+    parcelType
+    createdAt
+    zoneName
+  }
+}
+
 query GetParcelsForRouteCreation {
   parcelsForRouteCreation {
     id
     trackingNumber
     weight
     weightUnit
+  }
+}
+
+mutation RegisterParcel($input: RegisterParcelInput!) {
+  registerParcel(input: $input) {
+    id
+    trackingNumber
+    status
+    serviceType
+    weight
+    weightUnit
+    length
+    width
+    height
+    dimensionUnit
+    declaredValue
+    currency
+    description
+    parcelType
+    estimatedDeliveryDate
+    createdAt
+    zoneId
+    zoneName
+    depotId
+    depotName
   }
 }

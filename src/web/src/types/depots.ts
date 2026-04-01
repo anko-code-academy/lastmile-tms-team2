@@ -6,6 +6,7 @@ export type DepotOption = {
 export interface Depot {
   id: string;
   name: string;
+  addressId: string;
   address: DepotAddress | null;
   operatingHours: DepotOperatingHours[] | null;
   isActive: boolean;

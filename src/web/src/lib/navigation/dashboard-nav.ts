@@ -3,6 +3,7 @@ import {
   Building2,
   LayoutDashboard,
   Map,
+  Package,
   Route,
   Truck,
   Users,
@@ -17,6 +18,7 @@ export type DashboardNavItem = {
 
 export const dashboardNavItems: readonly DashboardNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/parcels", label: "Parcels", icon: Package },
   { href: "/users", label: "Users", icon: Users, requiredRoles: ["Admin"] },
   { href: "/vehicles", label: "Vehicles", icon: Truck },
   { href: "/routes", label: "Routes", icon: Route },

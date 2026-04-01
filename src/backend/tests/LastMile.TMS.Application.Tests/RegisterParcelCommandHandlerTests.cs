@@ -53,7 +53,7 @@ public class RegisterParcelCommandHandlerTests
             DimensionUnit = DimensionUnit.Cm,
             DeclaredValue = 150.00m,
             Currency = "USD",
-            EstimatedDeliveryDate = DateTimeOffset.UtcNow.AddDays(5),
+            EstimatedDeliveryDate = DateTime.UtcNow.AddDays(5),
             ParcelType = "Package"
         });
     }

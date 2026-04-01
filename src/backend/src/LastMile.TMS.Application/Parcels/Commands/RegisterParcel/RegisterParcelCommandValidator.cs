@@ -46,7 +46,7 @@ public sealed class RegisterParcelCommandValidator : AbstractValidator<RegisterP
 
         RuleFor(x => x.Dto.EstimatedDeliveryDate)
             .NotEmpty().WithMessage("Estimated delivery date is required.")
-            .Must(d => d > DateTimeOffset.UtcNow)
+            .Must(d => d > DateTime.UtcNow)
             .WithMessage("Estimated delivery date must be in the future.");
 
         RuleFor(x => x.Dto.Description)

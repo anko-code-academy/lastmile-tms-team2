@@ -82,6 +82,7 @@ public sealed class DepotType : EntityObjectType<Depot>
         descriptor.Name("Depot");
         descriptor.Field(d => d.Id);
         descriptor.Field(d => d.Name);
+        descriptor.Field(d => d.AddressId);
         descriptor.Field(d => d.Address).Type<AddressType>();
         descriptor.Field(d => d.OperatingHours).Type<ListType<NonNullType<OperatingHoursType>>>();
         descriptor.Field(d => d.IsActive);

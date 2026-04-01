@@ -24,6 +24,9 @@ public sealed class GraphQLErrorFilter(ILogger<GraphQLErrorFilter> logger) : IEr
             System.Collections.Generic.KeyNotFoundException exception => error
                 .WithMessage(exception.Message)
                 .WithCode("NOT_FOUND"),
+            ArgumentException exception => error
+                .WithMessage(exception.Message)
+                .WithCode("INVALID_ARGUMENT"),
             InvalidOperationException exception => error
                 .WithMessage(exception.Message)
                 .WithCode("INVALID_OPERATION"),

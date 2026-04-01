@@ -4,6 +4,7 @@ public sealed record ParcelDto
 {
     public Guid Id { get; init; }
     public string TrackingNumber { get; init; } = string.Empty;
+    public string Barcode { get; init; } = string.Empty;
     public string? Description { get; init; }
     public string ServiceType { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;

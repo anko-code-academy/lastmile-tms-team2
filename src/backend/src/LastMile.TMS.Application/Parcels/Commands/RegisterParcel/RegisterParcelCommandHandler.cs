@@ -68,7 +68,7 @@ public sealed class RegisterParcelCommandHandler(
             DimensionUnit = dto.DimensionUnit,
             DeclaredValue = dto.DeclaredValue,
             Currency = dto.Currency,
-            EstimatedDeliveryDate = dto.EstimatedDeliveryDate,
+            EstimatedDeliveryDate = new DateTimeOffset(dto.EstimatedDeliveryDate, TimeSpan.Zero),
             ParcelType = dto.ParcelType,
             ZoneId = zoneId.Value,
         };

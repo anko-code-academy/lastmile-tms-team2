@@ -33,7 +33,7 @@ public sealed record RegisterParcelDto
     public DimensionUnit DimensionUnit { get; init; } = DimensionUnit.Cm;
     public decimal DeclaredValue { get; init; }
     public string Currency { get; init; } = "USD";
-    public DateTimeOffset EstimatedDeliveryDate { get; init; }
+    public DateTime EstimatedDeliveryDate { get; init; }
     public string? ParcelType { get; init; }
 
     public RegisterParcelDto() { }

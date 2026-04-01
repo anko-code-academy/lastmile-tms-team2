@@ -64,6 +64,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.AddSingleton(SqlCapture);
 
+            // Replace the real Nominatim geocoding service with a deterministic in-memory stub
+            // that always returns a point inside the seeded PostGIS zone polygon.
+            // This exercises the full PostGIS ST_Covers zone-matching path without any
+            // external HTTP calls or network dependency.
+            services.RemoveAll<LastMile.TMS.Application.Parcels.Services.IGeocodingService>();
+            services.AddScoped<LastMile.TMS.Application.Parcels.Services.IGeocodingService, TestGeocodingService>();
+
             services.RemoveAll<AppDbContext>();
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.RemoveAll<IAppDbContext>();

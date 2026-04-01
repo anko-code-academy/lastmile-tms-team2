@@ -9,7 +9,7 @@ namespace LastMile.TMS.Api.GraphQL.Parcels;
 [ExtendObjectType(OperationTypeNames.Mutation)]
 public sealed class ParcelMutations
 {
-    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
     public Task<ParcelDto> RegisterParcel(
         RegisterParcelInput input,
         [Service] ISender mediator = null!,
