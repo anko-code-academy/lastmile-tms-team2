@@ -3,6 +3,7 @@ export interface Zone {
   name: string;
   /** WKT polygon boundary, e.g. "POLYGON ((lon lat, ...))" */
   boundary: string;
+  boundaryGeoJson: string | null;
   isActive: boolean;
   depotId: string;
   depotName: string | null;
@@ -10,22 +11,16 @@ export interface Zone {
   updatedAt: string | null;
 }
 
-export interface ZoneBoundaryInput {
-  geoJson?: string;
-  coordinates?: [number, number][];
-  boundaryWkt?: string;
-}
-
 export interface CreateZoneRequest {
   name: string;
   depotId: string;
   isActive: boolean;
-  boundaryInput: ZoneBoundaryInput;
+  boundaryGeoJson: string;
 }
 
 export interface UpdateZoneRequest {
   name: string;
   depotId: string;
   isActive: boolean;
-  boundaryInput: ZoneBoundaryInput;
+  boundaryGeoJson: string;
 }

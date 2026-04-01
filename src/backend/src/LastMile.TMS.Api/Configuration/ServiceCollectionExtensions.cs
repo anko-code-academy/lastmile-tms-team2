@@ -69,6 +69,7 @@ public static class ServiceCollectionExtensions
             .AddType<UserManagementUserSortInputType>()
             .AddType<DriverType>()
             .AddType<AddressType>()
+            .AddType<GeoLocationType>()
             .AddType<OperatingHoursType>()
             .AddType<DepotType>()
             .AddType<AddressFilterInputType>()

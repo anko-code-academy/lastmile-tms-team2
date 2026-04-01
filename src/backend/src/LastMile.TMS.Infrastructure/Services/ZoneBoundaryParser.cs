@@ -21,46 +21,17 @@ public class ZoneBoundaryParser : IZoneBoundaryParser
         {
             using var doc = JsonDocument.Parse(geoJson);
             var root = doc.RootElement;
+            if (!TryGetPolygonGeometry(root, out var polygonElement))
+                return null;
 
-            JsonElement polygonElement;
-
-            // Navigate to the Polygon geometry
-            if (root.ValueKind == JsonValueKind.Array)
+            if (!polygonElement.TryGetProperty("coordinates", out var coordinatesElement)
+                || coordinatesElement.ValueKind != JsonValueKind.Array
+                || coordinatesElement.GetArrayLength() == 0)
             {
-                // FeatureCollection — take first feature
-                if (root.GetArrayLength() == 0)
-                    return null;
-                var feature = root[0];
-                if (!feature.TryGetProperty("geometry", out polygonElement))
-                    return null;
-            }
-            else if (root.TryGetProperty("geometry", out var geom))
-            {
-                polygonElement = geom;
-            }
-            else
-            {
-                // Raw Polygon (no wrapping Feature)
-                polygonElement = root;
+                return null;
             }
 
-            // Verify it is a Polygon
-            if (!polygonElement.TryGetProperty("type", out var typeEl)
-                || typeEl.ValueKind != JsonValueKind.String
-                || typeEl.GetString() != "Polygon")
-                return null;
-
-            // Get coordinates — coordinates[0] is the exterior ring
-            if (!polygonElement.TryGetProperty("coordinates", out var coordsArray))
-                return null;
-            if (coordsArray.ValueKind != JsonValueKind.Array)
-                return null;
-            if (coordsArray.GetArrayLength() == 0)
-                return null;
-
-            var exteriorRing = coordsArray[0];
-
-            // Parse the ring
+            var exteriorRing = coordinatesElement[0];
             var polygonCoords = ParseRing(exteriorRing);
             if (polygonCoords is null || polygonCoords.Count < 4)
                 return null;
@@ -70,6 +41,7 @@ public class ZoneBoundaryParser : IZoneBoundaryParser
                 return null;
 
             var polygon = GeometryFactory.CreatePolygon(ring);
+
             polygon.SRID = 4326;
             return polygon;
         }
@@ -136,6 +108,68 @@ public class ZoneBoundaryParser : IZoneBoundaryParser
         }
     }
 
+    private static bool TryGetPolygonGeometry(JsonElement root, out JsonElement polygonElement)
+    {
+        polygonElement = default;
+
+        if (root.ValueKind != JsonValueKind.Object)
+            return false;
+
+        if (!root.TryGetProperty("type", out var rootTypeElement)
+            || rootTypeElement.ValueKind != JsonValueKind.String)
+        {
+            return false;
+        }
+
+        var rootType = rootTypeElement.GetString();
+
+        if (rootType == "Polygon")
+        {
+            polygonElement = root;
+            return true;
+        }
+
+        if (rootType == "Feature")
+        {
+            if (!root.TryGetProperty("geometry", out var geometryElement) || !IsPolygonGeometry(geometryElement))
+                return false;
+
+            polygonElement = geometryElement;
+            return true;
+        }
+
+        if (rootType == "FeatureCollection")
+        {
+            if (!root.TryGetProperty("features", out var featuresElement)
+                || featuresElement.ValueKind != JsonValueKind.Array
+                || featuresElement.GetArrayLength() != 1)
+            {
+                return false;
+            }
+
+            var feature = featuresElement[0];
+            if (feature.ValueKind != JsonValueKind.Object
+                || !feature.TryGetProperty("geometry", out var geometryElement)
+                || !IsPolygonGeometry(geometryElement))
+            {
+                return false;
+            }
+
+            polygonElement = geometryElement;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsPolygonGeometry(JsonElement geometryElement)
+    {
+        return geometryElement.ValueKind == JsonValueKind.Object
+            && geometryElement.TryGetProperty("type", out var geometryTypeElement)
+            && geometryTypeElement.ValueKind == JsonValueKind.String
+            && geometryTypeElement.GetString() == "Polygon";
+    }
+
     private static List<Coordinate>? ParseRing(JsonElement element)
     {
         if (element.ValueKind != JsonValueKind.Array)
@@ -144,13 +178,13 @@ public class ZoneBoundaryParser : IZoneBoundaryParser
         var coords = new List<Coordinate>();
         foreach (var point in element.EnumerateArray())
         {
-            // Each point is a [lon, lat] pair (an array of 2 numbers)
             if (point.ValueKind != JsonValueKind.Array)
                 return null;
+
             var pair = point.EnumerateArray().ToList();
             if (pair.Count < 2)
                 return null;
-            // pair[0] = longitude, pair[1] = latitude
+
             coords.Add(new Coordinate(pair[0].GetDouble(), pair[1].GetDouble()));
         }
 

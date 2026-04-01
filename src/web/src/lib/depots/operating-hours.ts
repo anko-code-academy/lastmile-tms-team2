@@ -64,6 +64,12 @@ export function dayOfWeekFromIndex(index: number): DayOfWeekEnum {
 export function normalizeDepot(raw: GraphQLDepot): Depot {
   return {
     ...raw,
+    address: raw.address
+      ? {
+          ...raw.address,
+          geoLocation: raw.address.geoLocation ?? null,
+        }
+      : null,
     operatingHours: raw.operatingHours?.map((item) => ({
       ...item,
       dayOfWeek: dayOfWeekToIndex(item.dayOfWeek),

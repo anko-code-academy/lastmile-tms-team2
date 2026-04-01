@@ -35,5 +35,7 @@ public sealed class UpdateDepotCommandValidator : AbstractValidator<UpdateDepotC
                 .NotEmpty().WithMessage("Country code is required.")
                 .Length(2, 3).WithMessage("Country code must be 2 or 3 characters.");
         });
+
+        this.AddOperatingHoursRules(x => x.Dto.OperatingHours!);
     }
 }

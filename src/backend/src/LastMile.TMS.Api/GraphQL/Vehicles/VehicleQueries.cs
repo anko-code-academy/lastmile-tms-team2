@@ -11,8 +11,8 @@ public sealed class VehicleQueries
 {
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
     [UseProjection]
-    [UseSorting(typeof(VehicleSortInputType))]
     [UseFiltering(typeof(VehicleFilterInputType))]
+    [UseSorting(typeof(VehicleSortInputType))]
     public IQueryable<Vehicle> GetVehicles(
         [Service] IVehicleReadService readService = null!) =>
         readService.GetVehicles();

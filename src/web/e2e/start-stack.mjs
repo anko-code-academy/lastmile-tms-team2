@@ -16,6 +16,7 @@ const backendProject = path.resolve(
 const backendUrl = "http://127.0.0.1:5100";
 const webUrl = "http://127.0.0.1:3100";
 const supportKey = process.env.TEST_SUPPORT_KEY ?? "e2e-test-support-key";
+const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "test-mapbox-token";
 
 const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
 const commandShell = process.platform === "win32"
@@ -55,11 +56,70 @@ function runCommand(command, args, options) {
   }
 }
 
-function copyStandaloneAssets() {
+function findStandaloneServerEntry(rootDirectory) {
+  const directServerEntry = path.resolve(rootDirectory, "server.js");
+  if (fs.existsSync(directServerEntry)) {
+    return directServerEntry;
+  }
+
+  const directories = [rootDirectory];
+
+  while (directories.length > 0) {
+    const currentDirectory = directories.pop();
+    const entries = fs.readdirSync(currentDirectory, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const entryPath = path.resolve(currentDirectory, entry.name);
+
+      if (entry.isDirectory()) {
+        if (entry.name === "node_modules") {
+          continue;
+        }
+
+        directories.push(entryPath);
+        continue;
+      }
+
+      if (
+        entry.name === "server.js" &&
+        fs.existsSync(path.resolve(currentDirectory, ".next/required-server-files.json"))
+      ) {
+        return entryPath;
+      }
+    }
+  }
+
+  throw new Error(`Unable to find the standalone server entry under ${rootDirectory}.`);
+}
+
+function resolveStandaloneServerEntry() {
+  const requiredServerFilesPath = path.resolve(
+    webRoot,
+    ".next/required-server-files.json"
+  );
+
+  if (fs.existsSync(requiredServerFilesPath)) {
+    const requiredServerFiles = JSON.parse(
+      fs.readFileSync(requiredServerFilesPath, "utf8")
+    );
+    const relativeAppDir = requiredServerFiles.relativeAppDir;
+
+    if (typeof relativeAppDir === "string") {
+      const candidateEntry = path.resolve(standaloneRoot, relativeAppDir, "server.js");
+      if (fs.existsSync(candidateEntry)) {
+        return candidateEntry;
+      }
+    }
+  }
+
+  return findStandaloneServerEntry(standaloneRoot);
+}
+
+function copyStandaloneAssets(standaloneServerRoot) {
   const staticSource = path.resolve(webRoot, ".next/static");
-  const staticTarget = path.resolve(standaloneRoot, ".next/static");
+  const staticTarget = path.resolve(standaloneServerRoot, ".next/static");
   const publicSource = path.resolve(webRoot, "public");
-  const publicTarget = path.resolve(standaloneRoot, "public");
+  const publicTarget = path.resolve(standaloneServerRoot, "public");
 
   fs.mkdirSync(path.dirname(staticTarget), { recursive: true });
   fs.cpSync(staticSource, staticTarget, { recursive: true, force: true });
@@ -179,6 +239,7 @@ async function main() {
       env: createEnv({
         NEXT_PUBLIC_API_URL: backendUrl,
         API_URL: backendUrl,
+        NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: mapboxToken,
         AUTH_SECRET: "lastmile-tms-e2e-secret",
         AUTH_TRUST_HOST: "true",
         NEXTAUTH_URL: webUrl,
@@ -186,18 +247,20 @@ async function main() {
     }
   );
 
-  copyStandaloneAssets();
+  const standaloneServerEntry = resolveStandaloneServerEntry();
+  const standaloneServerRoot = path.dirname(standaloneServerEntry);
+
+  copyStandaloneAssets(standaloneServerRoot);
 
   spawnProcess(
-    process.platform === "win32" ? commandShell : "node",
-    process.platform === "win32"
-      ? ["/d", "/s", "/c", "node server.js"]
-      : ["server.js"],
+    process.execPath,
+    [standaloneServerEntry],
     {
-      cwd: standaloneRoot,
+      cwd: standaloneServerRoot,
       env: createEnv({
         NEXT_PUBLIC_API_URL: backendUrl,
         API_URL: backendUrl,
+        NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: mapboxToken,
         AUTH_SECRET: "lastmile-tms-e2e-secret",
         AUTH_TRUST_HOST: "true",
         NEXTAUTH_URL: webUrl,

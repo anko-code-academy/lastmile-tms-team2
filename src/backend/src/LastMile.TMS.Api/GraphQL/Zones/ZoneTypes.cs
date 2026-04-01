@@ -6,6 +6,7 @@ using LastMile.TMS.Api.GraphQL.Common;
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.IO;
 
 namespace LastMile.TMS.Api.GraphQL.Zones;
 
@@ -24,6 +25,14 @@ public sealed class ZoneType : EntityObjectType<Zone>
             {
                 var zone = ctx.Parent<Zone>();
                 return zone.Boundary?.AsText();
+            });
+        descriptor.Field("boundaryGeoJson")
+            .Name("boundaryGeoJson")
+            .Type<StringType>()
+            .Resolve(ctx =>
+            {
+                var zone = ctx.Parent<Zone>();
+                return zone.Boundary is null ? null : new GeoJsonWriter().Write(zone.Boundary);
             });
         descriptor.Field(z => z.IsActive);
         descriptor.Field(z => z.DepotId).IsProjected(true);

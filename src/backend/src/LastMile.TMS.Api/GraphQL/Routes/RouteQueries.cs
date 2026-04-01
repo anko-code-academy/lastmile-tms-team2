@@ -11,8 +11,8 @@ public sealed class RouteQueries
 {
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
     [UseProjection]
-    [UseSorting(typeof(RouteSortInputType))]
     [UseFiltering(typeof(RouteFilterInputType))]
+    [UseSorting(typeof(RouteSortInputType))]
     public IQueryable<RouteEntity> GetRoutes(
         [Service] IRouteReadService readService = null!) =>
         readService.GetRoutes();

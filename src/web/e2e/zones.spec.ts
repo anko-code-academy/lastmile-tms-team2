@@ -1,5 +1,25 @@
 import { expect, test, type Page } from "@playwright/test";
 
+declare global {
+  interface Window {
+    __zoneMap?: {
+      fire: (event: string, payload?: unknown) => void;
+      project: (lngLat: [number, number]) => { x: number; y: number };
+      queryRenderedFeatures: (
+        geometry?: unknown,
+        options?: { layers?: string[] },
+      ) => Array<{
+        geometry: { coordinates: number[][][] };
+        properties?: Record<string, string>;
+      }>;
+    };
+    __zoneMapDraw?: {
+      deleteAll: () => void;
+      add: (feature: unknown) => void;
+    } | null;
+  }
+}
+
 async function loginAsAdmin(page: Page) {
   await page.goto("/login");
   await page.getByLabel(/email/i).fill("admin@lastmile.com");
@@ -8,41 +28,74 @@ async function loginAsAdmin(page: Page) {
   await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15_000 });
 }
 
-test.describe("Zones smoke", () => {
+async function injectDraftPolygon(page: Page) {
+  await page.waitForFunction(() => Boolean(window.__zoneMap && window.__zoneMapDraw), {
+    timeout: 15_000,
+  });
+
+  await page.evaluate(() => {
+    const draw = window.__zoneMapDraw;
+    const map = window.__zoneMap;
+
+    if (!draw || !map) {
+      throw new Error("Zone map is not ready");
+    }
+
+    draw.deleteAll();
+    draw.add({
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [144.95, -37.82],
+          [144.99, -37.82],
+          [144.99, -37.78],
+          [144.95, -37.78],
+          [144.95, -37.82],
+        ]],
+      },
+    });
+
+    map.fire("draw.create", {});
+  });
+}
+
+async function clickZoneOverlay(page: Page, zoneName: string) {
+  const zoneLabel = page.locator(
+    `[aria-label="Select zone ${zoneName}"]`,
+  );
+
+  await expect(zoneLabel).toBeVisible({ timeout: 15_000 });
+  await zoneLabel.click();
+}
+
+test.describe("Zones map flows", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
   });
 
-  test("zones list page renders", async ({ page }) => {
+  test("zones page renders the map-first editor", async ({ page }) => {
     await page.goto("/zones");
 
     await expect(page.getByRole("heading", { name: /^zones$/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /add zone/i })).toBeEnabled({
       timeout: 15_000,
     });
-
-    const emptyState = page.getByText(/no zones yet/i);
-    if (await emptyState.isVisible()) {
-      await expect(emptyState).toBeVisible();
-      return;
-    }
-
-    await expect(page.getByRole("columnheader", { name: /zone/i })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: /depot/i })).toBeVisible();
+    await expect(page.getByTestId("zones-map")).toBeVisible();
   });
 
-  test("can create a zone", async ({ page }) => {
+  test("can create, select from the map, and delete a zone", async ({ page }) => {
     const zoneName = `E2E Zone ${Date.now()}`;
 
     await page.goto("/zones");
     await expect(page.getByRole("button", { name: /add zone/i })).toBeEnabled({
       timeout: 15_000,
     });
+
     await page.getByRole("button", { name: /add zone/i }).click();
-
-    await expect(page.getByRole("heading", { name: /new zone/i })).toBeVisible();
-
     await page.getByLabel(/zone name/i).fill(zoneName);
+
     const depotSelect = page.getByLabel(/^depot$/i);
     await expect
       .poll(
@@ -64,16 +117,24 @@ test.describe("Zones smoke", () => {
 
     expect(selectedDepotLabel).not.toBe("");
     await depotSelect.selectOption({ label: selectedDepotLabel });
-    await page
-      .getByPlaceholder(/polygon \(\(lon lat, lon lat, \.\.\.\)\)/i)
-      .fill(
-        "POLYGON ((145.0 -37.8, 145.1 -37.8, 145.1 -37.7, 145.0 -37.7, 145.0 -37.8))",
-      );
+
+    await injectDraftPolygon(page);
+    await expect(page.getByText(/polygon ready/i)).toBeVisible();
+
     await page.getByRole("button", { name: /create zone/i }).click();
 
     const createdRow = page.locator("tbody tr", { hasText: zoneName }).first();
     await expect(createdRow).toBeVisible({ timeout: 15_000 });
     await expect(createdRow).toContainText(selectedDepotLabel);
-    await expect(createdRow).toContainText("Active");
+
+    await clickZoneOverlay(page, zoneName);
+    await expect(page.getByRole("heading", { name: new RegExp(`editing ${zoneName}`, "i") })).toBeVisible();
+    await expect(page.getByLabel(/zone name/i)).toHaveValue(zoneName);
+
+    await page.getByRole("button", { name: /^delete zone$/i }).click();
+    await expect(page.getByRole("heading", { name: /delete zone/i })).toBeVisible();
+    await page.getByRole("button", { name: /^delete$/i }).first().click();
+
+    await expect(createdRow).toBeHidden({ timeout: 15_000 });
   });
 });

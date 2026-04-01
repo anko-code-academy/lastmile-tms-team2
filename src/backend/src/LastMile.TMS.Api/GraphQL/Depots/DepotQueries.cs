@@ -11,8 +11,8 @@ public sealed class DepotQueries
 {
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
     [UseProjection]
-    [UseSorting(typeof(DepotSortInputType))]
     [UseFiltering(typeof(DepotFilterInputType))]
+    [UseSorting(typeof(DepotSortInputType))]
     public IQueryable<Depot> GetDepots(
         [Service] IDepotReadService readService = null!) =>
         readService.GetDepots();

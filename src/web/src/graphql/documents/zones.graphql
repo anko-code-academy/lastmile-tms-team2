@@ -3,6 +3,7 @@ query GetZones {
     id
     name
     boundary
+    boundaryGeoJson
     isActive
     depotId
     depotName
@@ -16,6 +17,7 @@ query GetZone($id: UUID!) {
     id
     name
     boundary
+    boundaryGeoJson
     isActive
     depotId
     depotName
@@ -29,6 +31,7 @@ mutation CreateZone($input: CreateZoneInput!) {
     id
     name
     boundary
+    boundaryGeoJson
     isActive
     depotId
     depotName
@@ -42,6 +45,7 @@ mutation UpdateZone($id: UUID!, $input: UpdateZoneInput!) {
     id
     name
     boundary
+    boundaryGeoJson
     isActive
     depotId
     depotName

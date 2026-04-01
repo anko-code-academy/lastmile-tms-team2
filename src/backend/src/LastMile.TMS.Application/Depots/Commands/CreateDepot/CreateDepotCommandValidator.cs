@@ -33,26 +33,6 @@ public sealed class CreateDepotCommandValidator : AbstractValidator<CreateDepotC
             .NotEmpty().WithMessage("Country code is required.")
             .Length(2, 3).WithMessage("Country code must be 2 or 3 characters.");
 
-        When(x => x.Dto.OperatingHours is not null, () =>
-        {
-            RuleFor(x => x.Dto.OperatingHours!)
-                .Must(hours => hours.Count <= 7)
-                .WithMessage("Cannot have more than 7 operating hours entries (one per day).");
-
-            RuleForEach(x => x.Dto.OperatingHours!)
-                .ChildRules(hours =>
-                {
-                    hours.RuleFor(h => h.OpenTime)
-                        .NotNull().WithMessage("Open time is required when not closed.")
-                        .When(h => !h.IsClosed);
-                    hours.RuleFor(h => h.ClosedTime)
-                        .NotNull().WithMessage("Closed time is required when not closed.")
-                        .When(h => !h.IsClosed);
-                    hours.RuleFor(h => h.ClosedTime)
-                        .GreaterThan(h => h.OpenTime)
-                        .WithMessage("Closed time must be after open time.")
-                        .When(h => !h.IsClosed && h.OpenTime is not null && h.ClosedTime is not null);
-                });
-        });
+        this.AddOperatingHoursRules(x => x.Dto.OperatingHours!);
     }
 }

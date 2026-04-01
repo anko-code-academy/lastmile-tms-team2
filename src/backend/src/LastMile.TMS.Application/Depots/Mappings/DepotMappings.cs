@@ -36,7 +36,18 @@ public static partial class DepotMappings
     [MapperIgnoreTarget(nameof(OperatingHours.Id))]
     public static partial OperatingHours ToEntity(this OperatingHoursDto dto);
 
+    [MapperIgnoreTarget(nameof(OperatingHours.DepotId))]
+    [MapperIgnoreTarget(nameof(OperatingHours.Depot))]
+    [MapperIgnoreTarget(nameof(OperatingHours.CreatedAt))]
+    [MapperIgnoreTarget(nameof(OperatingHours.CreatedBy))]
+    [MapperIgnoreTarget(nameof(OperatingHours.LastModifiedAt))]
+    [MapperIgnoreTarget(nameof(OperatingHours.LastModifiedBy))]
+    [MapperIgnoreTarget(nameof(OperatingHours.Id))]
+    public static partial void UpdateEntity(this OperatingHoursDto dto, [MappingTarget] OperatingHours entity);
+
     [MapperIgnoreTarget(nameof(Depot.AddressId))]
+    [MapperIgnoreTarget(nameof(Depot.Address))]
+    [MapperIgnoreTarget(nameof(Depot.OperatingHours))]
     [MapperIgnoreTarget(nameof(Depot.Zones))]
     [MapperIgnoreTarget(nameof(Depot.Drivers))]
     [MapperIgnoreTarget(nameof(Depot.CreatedAt))]
@@ -44,6 +55,8 @@ public static partial class DepotMappings
     [MapperIgnoreTarget(nameof(Depot.LastModifiedAt))]
     [MapperIgnoreTarget(nameof(Depot.LastModifiedBy))]
     [MapperIgnoreTarget(nameof(Depot.Id))]
+    [MapperIgnoreSource(nameof(CreateDepotDto.Address))]
+    [MapperIgnoreSource(nameof(CreateDepotDto.OperatingHours))]
     public static partial Depot ToEntity(this CreateDepotDto dto);
 
     [MapperIgnoreTarget(nameof(Depot.AddressId))]

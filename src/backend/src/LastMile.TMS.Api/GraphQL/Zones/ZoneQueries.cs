@@ -9,8 +9,8 @@ namespace LastMile.TMS.Api.GraphQL.Zones;
 public sealed class ZoneQueries
 {
     [UseProjection]
-    [UseSorting(typeof(ZoneSortInputType))]
     [UseFiltering(typeof(ZoneFilterInputType))]
+    [UseSorting(typeof(ZoneSortInputType))]
     public IQueryable<Zone> GetZones(
         [Service] IZoneReadService readService = null!) =>
         readService.GetZones();

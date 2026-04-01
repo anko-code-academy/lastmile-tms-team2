@@ -15,8 +15,8 @@ namespace LastMile.TMS.Api.GraphQL.Users;
 public sealed class UserManagementQueries
 {
     [UseProjection]
-    [UseSorting(typeof(UserManagementUserSortInputType))]
     [UseFiltering(typeof(UserManagementUserFilterInputType))]
+    [UseSorting(typeof(UserManagementUserSortInputType))]
     public IQueryable<ApplicationUser> Users(
         string? search = null,
         bool? isActive = null,

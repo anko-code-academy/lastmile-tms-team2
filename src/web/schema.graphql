@@ -15,6 +15,7 @@ type Address {
   companyName: String
   phone: String
   email: String
+  geoLocation: GeoLocation @cost(weight: "10")
 }
 
 type Depot {
@@ -36,6 +37,11 @@ type Driver {
   email: String
   depotId: UUID!
   status: DriverStatus!
+}
+
+type GeoLocation {
+  latitude: Float!
+  longitude: Float!
 }
 
 type Mutation @authorize(roles: [ "Admin" ]) {
@@ -73,16 +79,16 @@ type ParcelRouteOption {
 }
 
 type Query @authorize(roles: [ "Admin" ]) {
-  depots(order: [DepotSortInput!] @cost(weight: "10") where: DepotFilterInput @cost(weight: "10")): [Depot!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  depots(where: DepotFilterInput @cost(weight: "10") order: [DepotSortInput!] @cost(weight: "10")): [Depot!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   depot(id: UUID!): Depot @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   drivers(depotId: UUID): [Driver!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   parcelsForRouteCreation: [ParcelRouteOption!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
-  routes(order: [RouteSortInput!] @cost(weight: "10") where: RouteFilterInput @cost(weight: "10")): [Route!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
-  users(search: String isActive: Boolean depotId: UUID zoneId: UUID order: [UserManagementUserSortInput!] @cost(weight: "10") where: UserManagementUserFilterInput @cost(weight: "10")): [UserManagementUser!]! @cost(weight: "10")
+  routes(where: RouteFilterInput @cost(weight: "10") order: [RouteSortInput!] @cost(weight: "10")): [Route!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  users(search: String isActive: Boolean depotId: UUID zoneId: UUID where: UserManagementUserFilterInput @cost(weight: "10") order: [UserManagementUserSortInput!] @cost(weight: "10")): [UserManagementUser!]! @cost(weight: "10")
   user(id: UUID!): UserManagementUser @cost(weight: "10")
   userManagementLookups: UserManagementLookupsDto! @cost(weight: "10")
-  vehicles(order: [VehicleSortInput!] @cost(weight: "10") where: VehicleFilterInput @cost(weight: "10")): [Vehicle!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
-  zones(order: [ZoneSortInput!] @cost(weight: "10") where: ZoneFilterInput @cost(weight: "10")): [Zone!]! @cost(weight: "10")
+  vehicles(where: VehicleFilterInput @cost(weight: "10") order: [VehicleSortInput!] @cost(weight: "10")): [Vehicle!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  zones(where: ZoneFilterInput @cost(weight: "10") order: [ZoneSortInput!] @cost(weight: "10")): [Zone!]! @cost(weight: "10")
   zone(id: UUID!): Zone @cost(weight: "10")
 }
 
@@ -193,6 +199,7 @@ type Zone {
   id: UUID!
   name: String!
   boundary: String @cost(weight: "10")
+  boundaryGeoJson: String @cost(weight: "10")
   isActive: Boolean!
   depotId: UUID!
   depotName: String @cost(weight: "10")
