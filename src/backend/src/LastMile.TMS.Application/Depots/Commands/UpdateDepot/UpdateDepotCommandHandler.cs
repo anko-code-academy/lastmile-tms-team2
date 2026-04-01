@@ -29,12 +29,28 @@ public sealed class UpdateDepotCommandHandler(IAppDbContext db)
 
         if (request.Dto.OperatingHours is not null)
         {
-            depot.OperatingHours.Clear();
-            foreach (var hours in request.Dto.OperatingHours)
+            var incomingDtos = request.Dto.OperatingHours;
+
+            var daysToKeep = incomingDtos.Select(d => d.DayOfWeek).ToHashSet();
+            var toRemove = depot.OperatingHours
+                .Where(oh => !daysToKeep.Contains(oh.DayOfWeek))
+                .ToList();
+            foreach (var removed in toRemove)
+                depot.OperatingHours.Remove(removed);
+
+            foreach (var dto in incomingDtos)
             {
-                var operatingHours = hours.ToEntity();
-                operatingHours.DepotId = depot.Id;
-                depot.OperatingHours.Add(operatingHours);
+                var existing = depot.OperatingHours
+                    .FirstOrDefault(oh => oh.DayOfWeek == dto.DayOfWeek);
+
+                if (existing is not null)
+                    dto.UpdateEntity(existing);
+                else
+                {
+                    var newHours = dto.ToEntity();
+                    newHours.DepotId = depot.Id;
+                    depot.OperatingHours.Add(newHours);
+                }
             }
         }
 

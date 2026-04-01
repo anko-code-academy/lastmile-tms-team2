@@ -17,6 +17,155 @@ public class DepotGraphQLTests(CustomWebApplicationFactory factory)
         NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
     [Fact]
+    public async Task CreateDepot_WithValidOperatingHours_CreatesDepot()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var depotName = $"Depot GraphQL Create {Guid.NewGuid():N}";
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation CreateDepot($input: CreateDepotInput!) {
+              createDepot(input: $input) {
+                id
+                name
+                isActive
+                address {
+                  city
+                  countryCode
+                }
+                operatingHours {
+                  dayOfWeek
+                  openTime
+                  closedTime
+                  isClosed
+                }
+              }
+            }
+            """,
+            new
+            {
+                input = new
+                {
+                    name = depotName,
+                    isActive = true,
+                    address = new
+                    {
+                        street1 = "500 Collins Street",
+                        city = "Melbourne",
+                        state = "VIC",
+                        postalCode = "3000",
+                        countryCode = "au",
+                        isResidential = false
+                    },
+                    operatingHours = new[]
+                    {
+                        new
+                        {
+                            dayOfWeek = "MONDAY",
+                            openTime = "08:00:00",
+                            closedTime = "17:00:00",
+                            isClosed = false
+                        },
+                        new
+                        {
+                            dayOfWeek = "TUESDAY",
+                            openTime = "09:00:00",
+                            closedTime = "18:00:00",
+                            isClosed = false
+                        }
+                    }
+                }
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out _).Should().BeFalse(document.RootElement.GetRawText());
+
+        var depot = document.RootElement
+            .GetProperty("data")
+            .GetProperty("createDepot");
+
+        depot.GetProperty("name").GetString().Should().Be(depotName);
+        depot.GetProperty("isActive").GetBoolean().Should().BeTrue();
+        depot.GetProperty("address").GetProperty("city").GetString().Should().Be("Melbourne");
+        depot.GetProperty("address").GetProperty("countryCode").GetString().Should().Be("AU");
+        depot.GetProperty("operatingHours").GetArrayLength().Should().Be(2);
+
+        var depotId = depot.GetProperty("id").GetGuid();
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var persistedDepot = await dbContext.Depots
+            .Include(d => d.Address)
+            .Include(d => d.OperatingHours)
+            .SingleAsync(d => d.Id == depotId);
+
+        persistedDepot.Name.Should().Be(depotName);
+        persistedDepot.Address.CountryCode.Should().Be("AU");
+        persistedDepot.OperatingHours.Should().HaveCount(2);
+        persistedDepot.OperatingHours.Should().ContainSingle(x => x.DayOfWeek == DayOfWeek.Monday);
+        persistedDepot.OperatingHours.Should().ContainSingle(x => x.DayOfWeek == DayOfWeek.Tuesday);
+    }
+
+    [Fact]
+    public async Task CreateDepot_WithDuplicateOperatingHoursDays_ReturnsValidationError()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var depotName = $"Depot GraphQL Duplicate Create {Guid.NewGuid():N}";
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation CreateDepot($input: CreateDepotInput!) {
+              createDepot(input: $input) {
+                id
+              }
+            }
+            """,
+            new
+            {
+                input = new
+                {
+                    name = depotName,
+                    isActive = true,
+                    address = new
+                    {
+                        street1 = "500 Collins Street",
+                        city = "Melbourne",
+                        state = "VIC",
+                        postalCode = "3000",
+                        countryCode = "AU",
+                        isResidential = false
+                    },
+                    operatingHours = new[]
+                    {
+                        new
+                        {
+                            dayOfWeek = "MONDAY",
+                            openTime = "08:00:00",
+                            closedTime = "17:00:00",
+                            isClosed = false
+                        },
+                        new
+                        {
+                            dayOfWeek = "MONDAY",
+                            openTime = "09:00:00",
+                            closedTime = "18:00:00",
+                            isClosed = false
+                        }
+                    }
+                }
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out var errors).Should().BeTrue();
+        errors[0].GetProperty("message").GetString().Should().Contain("duplicate days");
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        (await dbContext.Depots.AnyAsync(d => d.Name == depotName)).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Depots_WithAdminToken_ReturnsFullDepotFields()
     {
         var depotId = await SeedDepotAsync();
@@ -176,6 +325,212 @@ public class DepotGraphQLTests(CustomWebApplicationFactory factory)
         sql.Should().NotContain("\"IsClosed\"");
     }
 
+    [Fact]
+    public async Task UpdateDepot_WithExistingOperatingHoursDay_UpdatesWithoutUniqueConstraintErrors()
+    {
+        var depotId = await SeedDepotAsync();
+        var token = await GetAdminAccessTokenAsync();
+
+        await using var initialScope = factory.Services.CreateAsyncScope();
+        var initialDbContext = initialScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var originalHours = await initialDbContext.Depots
+            .Include(d => d.OperatingHours)
+            .Where(d => d.Id == depotId)
+            .SelectMany(d => d.OperatingHours)
+            .SingleAsync();
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation UpdateDepot($id: UUID!, $input: UpdateDepotInput!) {
+              updateDepot(id: $id, input: $input) {
+                id
+                name
+                isActive
+                operatingHours {
+                  dayOfWeek
+                  openTime
+                  closedTime
+                  isClosed
+                }
+              }
+            }
+            """,
+            new
+            {
+                id = depotId,
+                input = new
+                {
+                    name = "Depot GraphQL Updated",
+                    isActive = true,
+                    operatingHours = new[]
+                    {
+                        new
+                        {
+                            dayOfWeek = "MONDAY",
+                            openTime = "09:30:00",
+                            closedTime = "18:15:00",
+                            isClosed = false
+                        }
+                    }
+                }
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out _).Should().BeFalse(document.RootElement.GetRawText());
+
+        var depot = document.RootElement
+            .GetProperty("data")
+            .GetProperty("updateDepot");
+
+        depot.GetProperty("id").GetString().Should().Be(depotId.ToString());
+        depot.GetProperty("name").GetString().Should().Be("Depot GraphQL Updated");
+        depot.GetProperty("isActive").GetBoolean().Should().BeTrue();
+
+        var operatingHours = depot.GetProperty("operatingHours").EnumerateArray().ToList();
+        operatingHours.Should().HaveCount(1);
+        operatingHours[0].GetProperty("dayOfWeek").GetString().Should().Be("MONDAY");
+        operatingHours[0].GetProperty("openTime").GetString().Should().Be("PT9H30M");
+        operatingHours[0].GetProperty("closedTime").GetString().Should().Be("PT18H15M");
+        operatingHours[0].GetProperty("isClosed").GetBoolean().Should().BeFalse();
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var persistedDepot = await dbContext.Depots
+            .Include(d => d.OperatingHours)
+            .SingleAsync(d => d.Id == depotId);
+
+        persistedDepot.OperatingHours.Should().HaveCount(1);
+        var persistedHours = persistedDepot.OperatingHours.Single();
+        persistedHours.Id.Should().Be(originalHours.Id);
+        persistedHours.CreatedAt.Should().Be(originalHours.CreatedAt);
+        persistedHours.CreatedBy.Should().Be(originalHours.CreatedBy);
+        persistedHours.DayOfWeek.Should().Be(DayOfWeek.Monday);
+        persistedHours.OpenTime.Should().Be(new TimeOnly(9, 30));
+        persistedHours.ClosedTime.Should().Be(new TimeOnly(18, 15));
+        persistedHours.IsClosed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateDepot_WithMixedOperatingHoursPayload_UpsertsAndRemovesDays()
+    {
+        var depotId = await SeedDepotAsync([
+            CreateOperatingHoursEntity(DayOfWeek.Monday, 8, 0, 17, 0),
+            CreateOperatingHoursEntity(DayOfWeek.Tuesday, 9, 0, 18, 0)
+        ]);
+        var token = await GetAdminAccessTokenAsync();
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation UpdateDepot($id: UUID!, $input: UpdateDepotInput!) {
+              updateDepot(id: $id, input: $input) {
+                id
+                operatingHours {
+                  dayOfWeek
+                  openTime
+                  closedTime
+                  isClosed
+                }
+              }
+            }
+            """,
+            new
+            {
+                id = depotId,
+                input = new
+                {
+                    name = "Depot GraphQL Mixed Update",
+                    isActive = true,
+                    operatingHours = new[]
+                    {
+                        new
+                        {
+                            dayOfWeek = "TUESDAY",
+                            openTime = "10:15:00",
+                            closedTime = "19:45:00",
+                            isClosed = false
+                        },
+                        new
+                        {
+                            dayOfWeek = "WEDNESDAY",
+                            openTime = "07:30:00",
+                            closedTime = "16:00:00",
+                            isClosed = false
+                        }
+                    }
+                }
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out _).Should().BeFalse(document.RootElement.GetRawText());
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var persistedDepot = await dbContext.Depots
+            .Include(d => d.OperatingHours)
+            .SingleAsync(d => d.Id == depotId);
+
+        persistedDepot.OperatingHours.Should().HaveCount(2);
+        persistedDepot.OperatingHours.Should().NotContain(x => x.DayOfWeek == DayOfWeek.Monday);
+        persistedDepot.OperatingHours.Should().ContainSingle(x =>
+            x.DayOfWeek == DayOfWeek.Tuesday &&
+            x.OpenTime == new TimeOnly(10, 15) &&
+            x.ClosedTime == new TimeOnly(19, 45) &&
+            !x.IsClosed);
+        persistedDepot.OperatingHours.Should().ContainSingle(x =>
+            x.DayOfWeek == DayOfWeek.Wednesday &&
+            x.OpenTime == new TimeOnly(7, 30) &&
+            x.ClosedTime == new TimeOnly(16, 0) &&
+            !x.IsClosed);
+    }
+
+    [Fact]
+    public async Task UpdateDepot_WithDuplicateOperatingHoursDays_ReturnsValidationError()
+    {
+        var depotId = await SeedDepotAsync();
+        var token = await GetAdminAccessTokenAsync();
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation UpdateDepot($id: UUID!, $input: UpdateDepotInput!) {
+              updateDepot(id: $id, input: $input) {
+                id
+              }
+            }
+            """,
+            new
+            {
+                id = depotId,
+                input = new
+                {
+                    name = "Depot GraphQL Duplicate Hours",
+                    isActive = true,
+                    operatingHours = new[]
+                    {
+                        new
+                        {
+                            dayOfWeek = "MONDAY",
+                            openTime = "08:00:00",
+                            closedTime = "17:00:00",
+                            isClosed = false
+                        },
+                        new
+                        {
+                            dayOfWeek = "MONDAY",
+                            openTime = "09:00:00",
+                            closedTime = "18:00:00",
+                            isClosed = false
+                        }
+                    }
+                }
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out var errors).Should().BeTrue();
+        errors[0].GetProperty("message").GetString().Should().Contain("duplicate days");
+    }
+
     public Task InitializeAsync() => factory.ResetDatabaseAsync();
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -186,7 +541,7 @@ public class DepotGraphQLTests(CustomWebApplicationFactory factory)
         return string.Join(Environment.NewLine + Environment.NewLine, Factory.SqlCapture.Commands);
     }
 
-    private async Task<Guid> SeedDepotAsync()
+    private async Task<Guid> SeedDepotAsync(IEnumerable<OperatingHours>? operatingHours = null)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -206,17 +561,9 @@ public class DepotGraphQLTests(CustomWebApplicationFactory factory)
                 CreatedAt = DateTimeOffset.UtcNow,
                 CreatedBy = "tests"
             },
-            OperatingHours =
+            OperatingHours = operatingHours?.ToList() ??
             [
-                new OperatingHours
-                {
-                    DayOfWeek = DayOfWeek.Monday,
-                    OpenTime = new TimeOnly(8, 0),
-                    ClosedTime = new TimeOnly(17, 0),
-                    IsClosed = false,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    CreatedBy = "tests"
-                }
+                CreateOperatingHoursEntity(DayOfWeek.Monday, 8, 0, 17, 0)
             ],
             CreatedAt = DateTimeOffset.UtcNow,
             CreatedBy = "tests"
@@ -227,4 +574,20 @@ public class DepotGraphQLTests(CustomWebApplicationFactory factory)
 
         return depot.Id;
     }
+
+    private static OperatingHours CreateOperatingHoursEntity(
+        DayOfWeek dayOfWeek,
+        int openHour,
+        int openMinute,
+        int closeHour,
+        int closeMinute) =>
+        new()
+        {
+            DayOfWeek = dayOfWeek,
+            OpenTime = new TimeOnly(openHour, openMinute),
+            ClosedTime = new TimeOnly(closeHour, closeMinute),
+            IsClosed = false,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = "tests"
+        };
 }
