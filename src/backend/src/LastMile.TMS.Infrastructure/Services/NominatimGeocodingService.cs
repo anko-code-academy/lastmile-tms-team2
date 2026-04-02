@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
-using System.Text.Json;
+using System.Globalization;
 using LastMile.TMS.Application.Parcels.Services;
-using NetTopologySuite;
 using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Infrastructure.Services;
@@ -40,7 +39,8 @@ public class NominatimGeocodingService : IGeocodingService
                 return null;
 
             var result = json[0];
-            if (!double.TryParse(result.Lat, out var lat) || !double.TryParse(result.Lon, out var lon))
+            if (!double.TryParse(result.Lat, NumberStyles.Float, CultureInfo.InvariantCulture, out var lat) ||
+                !double.TryParse(result.Lon, NumberStyles.Float, CultureInfo.InvariantCulture, out var lon))
                 return null;
 
             var factory = new GeometryFactory(new PrecisionModel(), 4326);
