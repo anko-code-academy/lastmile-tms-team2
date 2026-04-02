@@ -722,7 +722,7 @@ export type Route = {
   __typename?: 'Route';
   createdAt: Scalars['DateTime']['output'];
   driverId: Scalars['UUID']['output'];
-  driverName: Scalars['String']['output'];
+  driverName?: Maybe<Scalars['String']['output']>;
   endDate?: Maybe<Scalars['DateTime']['output']>;
   endMileage: Scalars['Int']['output'];
   id: Scalars['UUID']['output'];
@@ -733,7 +733,7 @@ export type Route = {
   status: RouteStatus;
   totalMileage: Scalars['Int']['output'];
   vehicleId: Scalars['UUID']['output'];
-  vehiclePlate: Scalars['String']['output'];
+  vehiclePlate?: Maybe<Scalars['String']['output']>;
 };
 
 export type RouteFilterInput = {
@@ -1189,14 +1189,14 @@ export type GetRoutesQueryVariables = Exact<{
 }>;
 
 
-export type GetRoutesQuery = { __typename?: 'Query', routes: Array<{ __typename?: 'Route', id: string, vehicleId: string, vehiclePlate: string, driverId: string, driverName: string, startDate: string, endDate?: string | null, startMileage: number, endMileage: number, totalMileage: number, status: RouteStatus, parcelCount: number, parcelsDelivered: number, createdAt: string }> };
+export type GetRoutesQuery = { __typename?: 'Query', routes: Array<{ __typename?: 'Route', id: string, vehicleId: string, vehiclePlate?: string | null, driverId: string, driverName?: string | null, startDate: string, endDate?: string | null, startMileage: number, endMileage: number, totalMileage: number, status: RouteStatus, parcelCount: number, parcelsDelivered: number, createdAt: string }> };
 
 export type CreateRouteMutationVariables = Exact<{
   input: CreateRouteInput;
 }>;
 
 
-export type CreateRouteMutation = { __typename?: 'Mutation', createRoute: { __typename?: 'Route', id: string, vehicleId: string, vehiclePlate: string, driverId: string, driverName: string, startDate: string, endDate?: string | null, startMileage: number, endMileage: number, totalMileage: number, status: RouteStatus, parcelCount: number, parcelsDelivered: number, createdAt: string } };
+export type CreateRouteMutation = { __typename?: 'Mutation', createRoute: { __typename?: 'Route', id: string, vehicleId: string, vehiclePlate?: string | null, driverId: string, driverName?: string | null, startDate: string, endDate?: string | null, startMileage: number, endMileage: number, totalMileage: number, status: RouteStatus, parcelCount: number, parcelsDelivered: number, createdAt: string } };
 
 export type UserManagementLookupsQueryVariables = Exact<{ [key: string]: never; }>;
 

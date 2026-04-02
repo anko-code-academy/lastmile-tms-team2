@@ -147,8 +147,8 @@ type Route {
   id: UUID!
   vehicleId: UUID!
   driverId: UUID!
-  vehiclePlate: String! @cost(weight: "10")
-  driverName: String! @cost(weight: "10")
+  vehiclePlate: String @cost(weight: "10")
+  driverName: String @cost(weight: "10")
   startDate: DateTime!
   endDate: DateTime
   startMileage: Int!

@@ -22,11 +22,11 @@ public sealed class RouteType : EntityObjectType<RouteEntity>
         // Resolve plate/name by Route.Id + EF join — does not rely on VehicleId/DriverId on the
         // (possibly partial) parent entity when UseProjection materializes Route.
         descriptor.Field("vehiclePlate")
-            .Type<NonNullType<StringType>>()
+            .Type<StringType>()
             .Resolve(async ctx =>
                 (await LoadRouteLabelsAsync(ctx, ctx.Parent<RouteEntity>().Id)).VehiclePlate);
         descriptor.Field("driverName")
-            .Type<NonNullType<StringType>>()
+            .Type<StringType>()
             .Resolve(async ctx =>
                 (await LoadRouteLabelsAsync(ctx, ctx.Parent<RouteEntity>().Id)).DriverName);
         descriptor.Field(r => r.StartDate);
