@@ -62,6 +62,46 @@ query GetParcelsForRouteCreation {
   }
 }
 
+query GetParcel($id: UUID!) {
+  parcel(id: $id) {
+    id
+    trackingNumber
+    status
+    serviceType
+    weight
+    weightUnit
+    length
+    width
+    height
+    dimensionUnit
+    declaredValue
+    currency
+    description
+    parcelType
+    estimatedDeliveryDate
+    deliveryAttempts
+    zoneId
+    zoneName
+    depotId
+    depotName
+    createdAt
+    lastModifiedAt
+    recipientAddress {
+      street1
+      street2
+      city
+      state
+      postalCode
+      countryCode
+      isResidential
+      contactName
+      companyName
+      phone
+      email
+    }
+  }
+}
+
 mutation RegisterParcel($input: RegisterParcelInput!) {
   registerParcel(input: $input) {
     id
@@ -84,5 +124,6 @@ mutation RegisterParcel($input: RegisterParcelInput!) {
     zoneName
     depotId
     depotName
+    barcode
   }
 }

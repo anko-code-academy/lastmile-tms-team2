@@ -14,7 +14,6 @@ Object.defineProperty(globalThis, "ResizeObserver", {
   value: ResizeObserverMock,
 });
 
-// Cleanup after each test
 afterEach(() => {
   cleanup();
 });

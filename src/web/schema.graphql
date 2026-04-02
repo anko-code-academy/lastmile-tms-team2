@@ -36,8 +36,27 @@ type Driver {
   displayName: String! @cost(weight: "10")
   phone: String
   email: String
+  licenseNumber: String!
+  licenseExpiryDate: DateTime
+  photoUrl: String
+  zoneId: UUID!
   depotId: UUID!
   status: DriverStatus!
+  userId: UUID!
+  zoneName: String @cost(weight: "10")
+  depotName: String @cost(weight: "10")
+  userName: String @cost(weight: "10")
+  availabilitySchedule: [DriverAvailability!] @cost(weight: "10")
+  createdAt: DateTime!
+  updatedAt: DateTime
+}
+
+type DriverAvailability {
+  id: UUID!
+  dayOfWeek: DayOfWeek!
+  shiftStart: TimeSpan
+  shiftEnd: TimeSpan
+  isAvailable: Boolean!
 }
 
 type GeoLocation {
@@ -49,6 +68,9 @@ type Mutation @authorize(roles: [ "Admin" ]) {
   createDepot(input: CreateDepotInput!): Depot! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
   updateDepot(id: UUID! input: UpdateDepotInput!): Depot @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
   deleteDepot(id: UUID!): Boolean! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  createDriver(input: CreateDriverInput!): Driver! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  updateDriver(id: UUID! input: UpdateDriverInput!): Driver! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  deleteDriver(id: UUID!): Boolean! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
   registerParcel(input: RegisterParcelInput!): RegisteredParcel! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   createRoute(input: CreateRouteInput!): Route! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   createUser(input: CreateUserInput!): UserManagementUser! @cost(weight: "10")
@@ -70,6 +92,46 @@ type OperatingHours {
   openTime: TimeSpan
   closedTime: TimeSpan
   isClosed: Boolean!
+}
+
+type ParcelDetail {
+  id: UUID!
+  trackingNumber: String!
+  status: String!
+  serviceType: String!
+  weight: Decimal!
+  weightUnit: String!
+  length: Decimal!
+  width: Decimal!
+  height: Decimal!
+  dimensionUnit: String!
+  declaredValue: Decimal!
+  currency: String!
+  description: String
+  parcelType: String
+  estimatedDeliveryDate: DateTime!
+  deliveryAttempts: Int!
+  zoneId: UUID!
+  zoneName: String
+  depotId: UUID!
+  depotName: String
+  createdAt: DateTime!
+  lastModifiedAt: DateTime
+  recipientAddress: ParcelDetailAddress!
+}
+
+type ParcelDetailAddress {
+  street1: String!
+  street2: String
+  city: String!
+  state: String!
+  postalCode: String!
+  countryCode: String!
+  isResidential: Boolean!
+  contactName: String
+  companyName: String
+  phone: String
+  email: String
 }
 
 type ParcelImport {
@@ -121,7 +183,9 @@ type ParcelRouteOption {
 type Query @authorize(roles: [ "Admin" ]) {
   depots(where: DepotFilterInput @cost(weight: "10") order: [DepotSortInput!] @cost(weight: "10")): [Depot!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   depot(id: UUID!): Depot @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
-  drivers(depotId: UUID): [Driver!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  drivers(order: [DriverSortInput!] @cost(weight: "10") where: DriverFilterInput @cost(weight: "10")): [Driver!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  driver(id: UUID!): Driver @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  parcel(id: UUID!): ParcelDetail @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   parcelsForRouteCreation: [ParcelRouteOption!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   registeredParcels(where: ParcelFilterInput @cost(weight: "10") order: [ParcelSortInput!] @cost(weight: "10")): [RegisteredParcel!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   parcelImports: [ParcelImportHistory!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
@@ -164,8 +228,8 @@ type RegisteredParcel {
 type Route {
   id: UUID!
   vehicleId: UUID!
-  vehiclePlate: String @cost(weight: "10")
   driverId: UUID!
+  vehiclePlate: String @cost(weight: "10")
   driverName: String @cost(weight: "10")
   startDate: DateTime!
   endDate: DateTime
@@ -313,6 +377,28 @@ input CreateDepotInput {
   isActive: Boolean!
 }
 
+input CreateDriverAvailabilityInput {
+  dayOfWeek: DayOfWeek!
+  shiftStart: TimeSpan
+  shiftEnd: TimeSpan
+  isAvailable: Boolean!
+}
+
+input CreateDriverInput {
+  firstName: String!
+  lastName: String!
+  phone: String
+  email: String
+  licenseNumber: String!
+  licenseExpiryDate: DateTime
+  photoUrl: String
+  zoneId: UUID!
+  depotId: UUID!
+  status: DriverStatus!
+  userId: UUID!
+  availabilitySchedule: [CreateDriverAvailabilityInput!]!
+}
+
 input CreateRouteInput {
   vehicleId: UUID!
   driverId: UUID!
@@ -412,6 +498,47 @@ input DimensionUnitOperationFilterInput {
   neq: DimensionUnit @cost(weight: "10")
   in: [DimensionUnit!] @cost(weight: "10")
   nin: [DimensionUnit!] @cost(weight: "10")
+}
+
+input DriverFilterInput {
+  and: [DriverFilterInput!]
+  or: [DriverFilterInput!]
+  id: UuidOperationFilterInput
+  firstName: StringOperationFilterInput
+  lastName: StringOperationFilterInput
+  phone: StringOperationFilterInput
+  email: StringOperationFilterInput
+  licenseNumber: StringOperationFilterInput
+  licenseExpiryDate: DateTimeOperationFilterInput
+  zoneId: UuidOperationFilterInput
+  depotId: UuidOperationFilterInput
+  status: DriverStatusOperationFilterInput
+  userId: UuidOperationFilterInput
+  createdAt: DateTimeOperationFilterInput
+  updatedAt: DateTimeOperationFilterInput
+}
+
+input DriverSortInput {
+  id: SortEnumType @cost(weight: "10")
+  firstName: SortEnumType @cost(weight: "10")
+  lastName: SortEnumType @cost(weight: "10")
+  phone: SortEnumType @cost(weight: "10")
+  email: SortEnumType @cost(weight: "10")
+  licenseNumber: SortEnumType @cost(weight: "10")
+  licenseExpiryDate: SortEnumType @cost(weight: "10")
+  zoneId: SortEnumType @cost(weight: "10")
+  depotId: SortEnumType @cost(weight: "10")
+  status: SortEnumType @cost(weight: "10")
+  userId: SortEnumType @cost(weight: "10")
+  createdAt: SortEnumType @cost(weight: "10")
+  updatedAt: SortEnumType @cost(weight: "10")
+}
+
+input DriverStatusOperationFilterInput {
+  eq: DriverStatus @cost(weight: "10")
+  neq: DriverStatus @cost(weight: "10")
+  in: [DriverStatus!] @cost(weight: "10")
+  nin: [DriverStatus!] @cost(weight: "10")
 }
 
 input IntOperationFilterInput {
@@ -598,6 +725,29 @@ input UpdateDepotInput {
   address: AddressInput
   operatingHours: [OperatingHoursInput!]
   isActive: Boolean!
+}
+
+input UpdateDriverAvailabilityInput {
+  id: UUID
+  dayOfWeek: DayOfWeek!
+  shiftStart: TimeSpan
+  shiftEnd: TimeSpan
+  isAvailable: Boolean!
+}
+
+input UpdateDriverInput {
+  firstName: String!
+  lastName: String!
+  phone: String
+  email: String
+  licenseNumber: String!
+  licenseExpiryDate: DateTime
+  photoUrl: String
+  zoneId: UUID!
+  depotId: UUID!
+  status: DriverStatus!
+  userId: UUID!
+  availabilitySchedule: [UpdateDriverAvailabilityInput!]!
 }
 
 input UpdateUserInput {

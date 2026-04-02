@@ -1,4 +1,5 @@
 using LastMile.TMS.Application.Common.Interfaces;
+using LastMile.TMS.Application.Parcels.Services;
 using LastMile.TMS.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -19,8 +20,7 @@ namespace LastMile.TMS.Api.Tests;
 /// </summary>
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private const string DefaultTestConnection =
-        "Host=localhost;Port=5432;Database=lastmile_tms_test;Username=postgres;Password=postgres";
+    private static readonly string DefaultTestConnection = BuildDefaultTestConnection();
 
     private static string TestConnection =>
         Environment.GetEnvironmentVariable("TEST_DB_CONNECTION") ?? DefaultTestConnection;
@@ -32,6 +32,22 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     public TestUserAccountEmailService EmailService { get; } = new();
     public SqlCommandCaptureInterceptor SqlCapture { get; } = new();
+
+    private static string BuildDefaultTestConnection()
+    {
+        // Use a per-process database to avoid cross-run interference when multiple
+        // local/CI test runs hit the same PostgreSQL instance.
+        var builder = new NpgsqlConnectionStringBuilder
+        {
+            Host = "localhost",
+            Port = 5432,
+            Database = $"lastmile_tms_test_{Environment.ProcessId}",
+            Username = "postgres",
+            Password = "postgres"
+        };
+
+        return builder.ConnectionString;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -70,6 +86,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // external HTTP calls or network dependency.
             services.RemoveAll<LastMile.TMS.Application.Parcels.Services.IGeocodingService>();
             services.AddScoped<LastMile.TMS.Application.Parcels.Services.IGeocodingService, TestGeocodingService>();
+            services.RemoveAll<IZplLabelRasterizer>();
+            services.AddSingleton<IZplLabelRasterizer, TestZplLabelRasterizer>();
 
             services.RemoveAll<AppDbContext>();
             services.RemoveAll<DbContextOptions<AppDbContext>>();

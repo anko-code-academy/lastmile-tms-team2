@@ -9,8 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectDropdown } from "@/components/form/select-dropdown";
+import { appToast } from "@/lib/toast/app-toast";
 import { useDepots } from "@/queries/depots";
 import { useRegisterParcel } from "@/queries/parcels";
+import { parcelsService } from "@/services/parcels.service";
 import type { SelectOption } from "@/types/forms";
 import {
   ParcelDimensionUnit,
@@ -53,10 +55,14 @@ type ParcelFormState = {
 
 interface ParcelRegistrationFormProps {
   onSuccess?: (parcel: RegisteredParcelResult) => void;
+  onCancel?: () => void;
+  onViewQueue?: () => void;
 }
 
 export function ParcelRegistrationForm({
   onSuccess,
+  onCancel,
+  onViewQueue,
 }: ParcelRegistrationFormProps) {
   const router = useRouter();
   const { data: depots = [], isLoading: depotsLoading } = useDepots();
@@ -157,17 +163,27 @@ export function ParcelRegistrationForm({
         ? `${form.estimatedDeliveryDate}T00:00:00+00:00`
         : form.estimatedDeliveryDate;
 
-      const selectedDepot = depots.find(d => d.id === form.shipperAddressId);
-
       const parcel = await registerParcel.mutateAsync({
         ...form,
-        shipperAddressId: selectedDepot?.addressId ?? form.shipperAddressId,
+        shipperAddressId: form.shipperAddressId,
         estimatedDeliveryDate: isoDate,
       });
       setResult(parcel);
       onSuccess?.(parcel);
     } catch {
       // error is handled by mutation state
+    }
+  }
+
+  async function handleDownload(format: "zpl" | "pdf") {
+    if (!result) {
+      return;
+    }
+
+    try {
+      await parcelsService.downloadLabel(result.id, format);
+    } catch (downloadError) {
+      appToast.errorFromUnknown(downloadError);
     }
   }
 
@@ -216,14 +232,30 @@ export function ParcelRegistrationForm({
                 </div>
               </div>
             </div>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setResult(null)}
-              >
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button variant="outline" onClick={() => void handleDownload("zpl")}>
+                Download 4x6 ZPL
+              </Button>
+              <Button variant="outline" onClick={() => void handleDownload("pdf")}>
+                Download A4 PDF
+              </Button>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button variant="outline" onClick={() => setResult(null)}>
                 Register Another
               </Button>
-              <Button onClick={() => router.push("/parcels")}>
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/parcels/${result.id}`)}
+              >
+                Open Parcel Detail
+              </Button>
+              <Button
+                onClick={() => {
+                  onViewQueue?.();
+                  router.push("/parcels");
+                }}
+              >
                 View Intake Queue
               </Button>
             </div>
@@ -268,7 +300,7 @@ export function ParcelRegistrationForm({
               )}
               {form.shipperAddressId && (() => {
                 const selected = depots.find(
-                  (d) => d.addressId === form.shipperAddressId,
+                  (depot) => depot.addressId === form.shipperAddressId,
                 );
                 if (!selected?.address) return null;
                 const a = selected.address;
@@ -724,7 +756,14 @@ export function ParcelRegistrationForm({
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.back()}
+            onClick={() => {
+              if (onCancel) {
+                onCancel();
+                return;
+              }
+
+              router.back();
+            }}
           >
             Cancel
           </Button>

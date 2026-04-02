@@ -86,6 +86,8 @@ public static class ServiceCollectionExtensions
             .AddType<RouteFilterInputType>()
             .AddType<RouteSortInputType>()
             .AddType<ParcelType>()
+            .AddType<ParcelDetailType>()
+            .AddType<ParcelDetailAddressType>()
             .AddType<ParcelImportHistoryType>()
             .AddType<ParcelImportDetailType>()
             .AddType<ParcelImportRowFailurePreviewType>()

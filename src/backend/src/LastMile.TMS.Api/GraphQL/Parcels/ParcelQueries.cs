@@ -14,6 +14,13 @@ namespace LastMile.TMS.Api.GraphQL.Parcels;
 [ExtendObjectType(OperationTypeNames.Query)]
 public sealed class ParcelQueries
 {
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
+    public Task<ParcelDetailDto?> GetParcel(
+        Guid id,
+        [Service] IParcelReadService readService = null!,
+        CancellationToken cancellationToken = default) =>
+        readService.GetParcelByIdAsync(id, cancellationToken);
+
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
     [UseProjection]
     public IQueryable<Parcel> GetParcelsForRouteCreation(

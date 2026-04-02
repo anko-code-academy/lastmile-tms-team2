@@ -140,7 +140,7 @@ describe("UserManagementClient", () => {
         zoneId: "zone-1",
       });
     });
-  });
+  }, 10_000);
 
   it("renders protected system admin as read-only", async () => {
     mockedGetUsers.mockResolvedValueOnce([

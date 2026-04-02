@@ -16,6 +16,24 @@ public sealed class ParcelType : ObjectType<ParcelDto>
     }
 }
 
+public sealed class ParcelDetailType : ObjectType<ParcelDetailDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<ParcelDetailDto> descriptor)
+    {
+        descriptor.Name("ParcelDetail");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class ParcelDetailAddressType : ObjectType<ParcelDetailAddressDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<ParcelDetailAddressDto> descriptor)
+    {
+        descriptor.Name("ParcelDetailAddress");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
 public sealed class ParcelImportHistoryType : ObjectType<ParcelImportHistoryDto>
 {
     protected override void Configure(IObjectTypeDescriptor<ParcelImportHistoryDto> descriptor)

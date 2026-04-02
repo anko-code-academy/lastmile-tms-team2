@@ -69,6 +69,8 @@ export interface ParcelOption {
   weightUnit: number;
 }
 
+export type LabelDownloadFormat = "zpl" | "pdf";
+
 export interface RegisterParcelFormData {
   shipperAddressId: string;
   recipientStreet1: string;
@@ -118,6 +120,26 @@ export interface RegisteredParcelResult {
   zoneName: string | null;
   depotId: string;
   depotName: string | null;
+}
+
+export interface ParcelDetailAddress {
+  street1: string;
+  street2: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  countryCode: string;
+  isResidential: boolean;
+  contactName: string | null;
+  companyName: string | null;
+  phone: string | null;
+  email: string | null;
+}
+
+export interface ParcelDetail extends RegisteredParcelResult {
+  deliveryAttempts: number;
+  lastModifiedAt: string | null;
+  recipientAddress: ParcelDetailAddress;
 }
 
 export type ParcelImportFileFormat = "Csv" | "Xlsx";

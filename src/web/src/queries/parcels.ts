@@ -3,6 +3,7 @@ import { useSession } from "next-auth/react";
 
 import { parcelsService } from "@/services/parcels.service";
 import type {
+  ParcelDetail,
   ParcelImportDetail,
   ParcelImportTemplateFormat,
   RegisterParcelFormData,
@@ -17,6 +18,8 @@ export const parcelKeys = {
   all: ["parcels"] as const,
   forRoute: () => [...parcelKeys.all, "forRoute"] as const,
   registered: () => [...parcelKeys.all, "registered"] as const,
+  details: () => [...parcelKeys.all, "detail"] as const,
+  detail: (id: string) => [...parcelKeys.details(), id] as const,
   imports: () => [...parcelKeys.all, "imports"] as const,
   importDetail: (id: string) => [...parcelKeys.imports(), "detail", id] as const,
 };
@@ -53,6 +56,16 @@ export function useRegisterParcel() {
   });
 }
 
+export function useParcel(id: string) {
+  const { status } = useSession();
+
+  return useQuery<ParcelDetail>({
+    queryKey: parcelKeys.detail(id),
+    queryFn: () => parcelsService.getById(id),
+    enabled: status === "authenticated" && Boolean(id),
+  });
+}
+
 export function useParcelImports() {
   const { status } = useSession();
   return useQuery({
@@ -65,12 +78,12 @@ export function useParcelImports() {
 export function useParcelImport(importId: string | null | undefined) {
   const { status } = useSession();
 
-  return useQuery({
+  return useQuery<ParcelImportDetail | null>({
     queryKey: parcelKeys.importDetail(importId ?? "latest"),
     queryFn: () => parcelsService.getParcelImport(importId!),
     enabled: status === "authenticated" && !!importId,
     refetchInterval: (query) => {
-      const data = query.state.data as ParcelImportDetail | null | undefined;
+      const data = query.state.data;
       return data && parcelImportPollingStatuses.has(data.status) ? 1000 : false;
     },
   });

@@ -15,7 +15,6 @@ namespace LastMile.TMS.Api.Controllers;
 [Route("api/test-support/user-management")]
 public sealed class TestSupportController(
     AppDbContext dbContext,
-    UserManager<ApplicationUser> userManager,
     RoleManager<ApplicationRole> roleManager,
     IOptions<TestingOptions> testingOptions,
     IConfiguration configuration,
@@ -38,46 +37,23 @@ public sealed class TestSupportController(
             return Unauthorized();
         }
 
-        await DeleteNonAdminUsersAsync(cancellationToken);
-        await ClearAssignmentsAsync(cancellationToken);
-        await SeedFixtureAsync(cancellationToken);
+        var fixtureSuffix = Guid.NewGuid().ToString("N")[..8];
+        var depotName = $"{FixtureDepotName} {fixtureSuffix}";
+        var zoneName = $"{FixtureZoneName} {fixtureSuffix}";
+
+        await SeedFixtureAsync(depotName, zoneName, cancellationToken);
 
         return Ok(new TestSupportFixtureResponse(
             configuration["AdminCredentials:Email"] ?? "admin@lastmile.com",
             configuration["AdminCredentials:Password"] ?? "Admin@12345",
-            FixtureDepotName,
-            FixtureZoneName));
+            depotName,
+            zoneName));
     }
 
-    private async Task DeleteNonAdminUsersAsync(CancellationToken cancellationToken)
-    {
-        var adminUsers = await userManager.GetUsersInRoleAsync(nameof(PredefinedRole.Admin));
-        var adminIds = adminUsers.Select(user => user.Id).ToHashSet();
-
-        var usersToDelete = await dbContext.Users
-            .Where(user => !adminIds.Contains(user.Id))
-            .ToListAsync(cancellationToken);
-
-        foreach (var user in usersToDelete)
-        {
-            var result = await userManager.DeleteAsync(user);
-            if (!result.Succeeded)
-            {
-                throw new InvalidOperationException(
-                    $"Failed to delete test user {user.Email}: {string.Join(", ", result.Errors.Select(error => error.Description))}");
-            }
-        }
-    }
-
-    private async Task ClearAssignmentsAsync(CancellationToken cancellationToken)
-    {
-        dbContext.Zones.RemoveRange(dbContext.Zones);
-        dbContext.Depots.RemoveRange(dbContext.Depots);
-        dbContext.Addresses.RemoveRange(dbContext.Addresses);
-        await dbContext.SaveChangesAsync(cancellationToken);
-    }
-
-    private async Task SeedFixtureAsync(CancellationToken cancellationToken)
+    private async Task SeedFixtureAsync(
+        string depotName,
+        string zoneName,
+        CancellationToken cancellationToken)
     {
         if (!await roleManager.RoleExistsAsync(nameof(PredefinedRole.Admin)))
         {
@@ -97,7 +73,7 @@ public sealed class TestSupportController(
 
         var depot = new Depot
         {
-            Name = FixtureDepotName,
+            Name = depotName,
             Address = address,
             CreatedAt = DateTimeOffset.UtcNow,
             CreatedBy = "test-support"
@@ -106,7 +82,7 @@ public sealed class TestSupportController(
         var geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
         var zone = new Zone
         {
-            Name = FixtureZoneName,
+            Name = zoneName,
             Depot = depot,
             Boundary = geometryFactory.CreatePolygon([
                 new Coordinate(151.0, -34.0),

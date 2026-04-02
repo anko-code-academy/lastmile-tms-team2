@@ -314,9 +314,98 @@ public class ParcelGraphQLTests(CustomWebApplicationFactory factory)
         }
     }
 
+    [Fact]
+    public async Task GetParcel_AfterRegisteringParcel_ReturnsParcelDetail()
+    {
+        var token = await GetAdminAccessTokenAsync();
+
+        using var registerDoc = await PostGraphQLAsync(
+            """
+            mutation RegisterParcel($input: RegisterParcelInput!) {
+              registerParcel(input: $input) {
+                id
+                trackingNumber
+              }
+            }
+            """,
+            variables: new
+            {
+                input = new
+                {
+                    shipperAddressId = TestParcelShipperAddressId.ToString(),
+                    recipientAddress = new
+                    {
+                        street1 = "42 Parcel Detail Ave",
+                        city = "Cairo",
+                        state = "Cairo",
+                        postalCode = "11511",
+                        countryCode = "EG",
+                        isResidential = true,
+                        contactName = "Mona Saleh",
+                        phone = "+201000000000",
+                        email = "mona@example.com"
+                    },
+                    description = "Parcel detail test",
+                    parcelType = "Box",
+                    serviceType = "STANDARD",
+                    weight = 1.75,
+                    weightUnit = "KG",
+                    length = 20.0,
+                    width = 15.0,
+                    height = 10.0,
+                    dimensionUnit = "CM",
+                    declaredValue = 200.0,
+                    currency = "USD",
+                    estimatedDeliveryDate = DateTimeOffset.UtcNow.AddDays(3).ToString("o")
+                }
+            },
+            accessToken: token);
+
+        var registeredParcel = registerDoc.RootElement
+            .GetProperty("data")
+            .GetProperty("registerParcel");
+
+        var parcelId = registeredParcel.GetProperty("id").GetString();
+        var trackingNumber = registeredParcel.GetProperty("trackingNumber").GetString();
+
+        using var parcelDoc = await PostGraphQLAsync(
+            """
+            query GetParcel($id: UUID!) {
+              parcel(id: $id) {
+                id
+                trackingNumber
+                parcelType
+                zoneName
+                recipientAddress {
+                  contactName
+                  street1
+                  city
+                  postalCode
+                }
+              }
+            }
+            """,
+            variables: new { id = parcelId },
+            accessToken: token);
+
+        parcelDoc.RootElement.TryGetProperty("errors", out var errors)
+            .Should().BeFalse("parcel query should not return errors: {0}", errors.ToString());
+
+        var parcel = parcelDoc.RootElement
+            .GetProperty("data")
+            .GetProperty("parcel");
+
+        parcel.GetProperty("id").GetString().Should().Be(parcelId);
+        parcel.GetProperty("trackingNumber").GetString().Should().Be(trackingNumber);
+        parcel.GetProperty("parcelType").GetString().Should().Be("Box");
+        parcel.GetProperty("zoneName").GetString().Should().NotBeNullOrEmpty();
+        parcel.GetProperty("recipientAddress").GetProperty("contactName").GetString().Should().Be("Mona Saleh");
+        parcel.GetProperty("recipientAddress").GetProperty("street1").GetString().Should().Be("42 Parcel Detail Ave");
+    }
+
     #endregion
 
-    public Task InitializeAsync() => factory.ResetDatabaseAsync();
+    public Task InitializeAsync() => Factory.ResetDatabaseAsync();
 
     public Task DisposeAsync() => Task.CompletedTask;
 }

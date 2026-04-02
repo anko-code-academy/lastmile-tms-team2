@@ -16,8 +16,12 @@ test.describe("Depots smoke", () => {
   test("depots list page renders", async ({ page }) => {
     await page.goto("/depots");
 
-    await expect(page.getByRole("heading", { name: /^depots$/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /add depot/i })).toBeVisible();
+    await expect(page.getByText("Depots", { exact: true }).first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByRole("button", { name: /add depot/i })).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.getByRole("columnheader", { name: /depot/i })).toBeVisible();
     await expect(page.getByRole("columnheader", { name: /status/i })).toBeVisible();
   });

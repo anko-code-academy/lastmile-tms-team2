@@ -6,6 +6,7 @@ using LastMile.TMS.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
+using QuestPDF.Infrastructure;
 
 namespace LastMile.TMS.Infrastructure;
 
@@ -15,6 +16,12 @@ public static class DependencyInjection
     {
         var disableExternalInfrastructure = configuration.GetValue("Testing:DisableExternalInfrastructure", false);
         var enableTestSupport = configuration.GetValue("Testing:EnableTestSupport", false);
+        var isInMemoryDatabase = string.Equals(
+            configuration.GetConnectionString("DefaultConnection"),
+            "InMemory",
+            StringComparison.OrdinalIgnoreCase);
+
+        QuestPDF.Settings.License = LicenseType.Community;
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -22,6 +29,8 @@ public static class DependencyInjection
         services.AddScoped<DriverPhotoOrphanCleanupJob>();
         services.AddScoped<FrontendBaseUrlResolver>();
         services.AddScoped<IZoneBoundaryParser, ZoneBoundaryParser>();
+        services.AddSingleton<IZplLabelRasterizer, ZplLabelRasterizer>();
+        services.AddScoped<IParcelLabelGenerator, ParcelLabelGenerator>();
         services.AddScoped<IParcelImportFileParser, ParcelImportFileParser>();
         services.AddScoped<IParcelImportTemplateGenerator, ParcelImportTemplateGenerator>();
         services.AddScoped<ParcelImportBackgroundJob>();
@@ -30,6 +39,10 @@ public static class DependencyInjection
         if (enableTestSupport)
         {
             services.AddScoped<IGeocodingService, TestSupportGeocodingService>();
+        }
+        else if (isInMemoryDatabase)
+        {
+            services.AddScoped<IGeocodingService, DeterministicGeocodingService>();
         }
         else
         {
