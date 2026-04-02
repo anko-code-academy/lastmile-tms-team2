@@ -71,6 +71,78 @@ interface DriverFormData {
   availabilitySchedule: AvailabilityEntry[];
 }
 
+interface DriverFormPhotoAreaProps {
+  photoPreview: string | null;
+  serverPhotoUrl: string | undefined;
+  onRemove: () => void;
+}
+
+/** Isolated state so `key` on the parent resets load error when URL/preview changes (no setState in effects). */
+function DriverFormPhotoArea({
+  photoPreview,
+  serverPhotoUrl,
+  onRemove,
+}: DriverFormPhotoAreaProps) {
+  const [photoLoadError, setPhotoLoadError] = useState(false);
+  const serverSrc = absoluteApiAssetUrl(serverPhotoUrl) ?? "";
+
+  return (
+    <div className="flex shrink-0 flex-col gap-1.5 sm:max-w-44">
+      <div className="relative size-24 shrink-0">
+        {photoPreview ? (
+          <Image
+            src={photoPreview}
+            alt=""
+            width={96}
+            height={96}
+            sizes="96px"
+            unoptimized
+            className="rounded-full border object-cover"
+          />
+        ) : photoLoadError ? (
+          <div
+            className="flex size-24 items-center justify-center rounded-full border border-dashed border-muted-foreground/35 bg-muted/40 text-muted-foreground"
+            role="img"
+            aria-label="Photo file not found on server"
+          >
+            <UserCircle
+              className="h-12 w-12 shrink-0 opacity-80"
+              strokeWidth={1.25}
+              aria-hidden
+            />
+          </div>
+        ) : (
+          <Image
+            src={serverSrc}
+            alt=""
+            width={96}
+            height={96}
+            sizes="96px"
+            unoptimized
+            className="rounded-full border object-cover"
+            onError={() => setPhotoLoadError(true)}
+          />
+        )}
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className="absolute -end-1 -top-1 size-8 rounded-full border border-border shadow-sm"
+          onClick={onRemove}
+          aria-label="Remove photo"
+        >
+          <X className="size-4" aria-hidden />
+        </Button>
+      </div>
+      {photoLoadError && !photoPreview && (
+        <p className="text-xs leading-snug text-muted-foreground">
+          File missing — upload a new photo
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function DriverForm({ mode, driver }: DriverFormProps) {
   const router = useRouter();
   const createDriver = useCreateDriver();
@@ -121,13 +193,8 @@ export function DriverForm({ mode, driver }: DriverFormProps) {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   /** User removed existing server photo or cleared a new selection — submit sends photoUrl: null when no new file. */
   const [photoRemoved, setPhotoRemoved] = useState(false);
-  const [photoLoadError, setPhotoLoadError] = useState(false);
   const previewObjectUrlRef = useRef<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setPhotoLoadError(false);
-  }, [driver?.id, driver?.photoUrl, photoPreview, photoRemoved]);
 
   useEffect(() => {
     return () => {
@@ -355,72 +422,24 @@ export function DriverForm({ mode, driver }: DriverFormProps) {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                   {(photoPreview ||
                     (!photoRemoved && driver?.photoUrl)) && (
-                    <div className="flex shrink-0 flex-col gap-1.5 sm:max-w-44">
-                      <div className="relative size-24 shrink-0">
-                      {photoPreview ? (
-                        <Image
-                          src={photoPreview}
-                          alt=""
-                          width={96}
-                          height={96}
-                          sizes="96px"
-                          unoptimized
-                          className="rounded-full border object-cover"
-                        />
-                      ) : photoLoadError ? (
-                        <div
-                          className="flex size-24 items-center justify-center rounded-full border border-dashed border-muted-foreground/35 bg-muted/40 text-muted-foreground"
-                          role="img"
-                          aria-label="Photo file not found on server"
-                        >
-                          <UserCircle
-                            className="h-12 w-12 shrink-0 opacity-80"
-                            strokeWidth={1.25}
-                            aria-hidden
-                          />
-                        </div>
-                      ) : (
-                        <Image
-                          src={absoluteApiAssetUrl(driver?.photoUrl) ?? ""}
-                          alt=""
-                          width={96}
-                          height={96}
-                          sizes="96px"
-                          unoptimized
-                          className="rounded-full border object-cover"
-                          onError={() => setPhotoLoadError(true)}
-                        />
-                      )}
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="icon"
-                        className="absolute -end-1 -top-1 size-8 rounded-full border border-border shadow-sm"
-                        onClick={() => {
-                          clearError("photo");
-                          if (previewObjectUrlRef.current) {
-                            URL.revokeObjectURL(previewObjectUrlRef.current);
-                            previewObjectUrlRef.current = null;
-                          }
-                          setPhotoFile(null);
-                          setPhotoPreview(null);
-                          setPhotoRemoved(true);
-                          setPhotoLoadError(false);
-                          if (photoInputRef.current) {
-                            photoInputRef.current.value = "";
-                          }
-                        }}
-                        aria-label="Remove photo"
-                      >
-                        <X className="size-4" aria-hidden />
-                      </Button>
-                      </div>
-                      {photoLoadError && !photoPreview && (
-                        <p className="text-xs leading-snug text-muted-foreground">
-                          File missing — upload a new photo
-                        </p>
-                      )}
-                    </div>
+                    <DriverFormPhotoArea
+                      key={`${driver?.id ?? "new"}-${driver?.photoUrl ?? ""}-${photoPreview ?? ""}-${photoRemoved}`}
+                      photoPreview={photoPreview}
+                      serverPhotoUrl={driver?.photoUrl}
+                      onRemove={() => {
+                        clearError("photo");
+                        if (previewObjectUrlRef.current) {
+                          URL.revokeObjectURL(previewObjectUrlRef.current);
+                          previewObjectUrlRef.current = null;
+                        }
+                        setPhotoFile(null);
+                        setPhotoPreview(null);
+                        setPhotoRemoved(true);
+                        if (photoInputRef.current) {
+                          photoInputRef.current.value = "";
+                        }
+                      }}
+                    />
                   )}
                   <Input
                     ref={photoInputRef}

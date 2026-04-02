@@ -41,21 +41,53 @@ import {
 } from "@/lib/labels/drivers";
 import { useDriver, useDeleteDriver } from "@/queries/drivers";
 import { DeleteDriverDialog } from "@/components/drivers/delete-driver-dialog";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
+function DriverDetailProfilePhoto({
+  photoSrc,
+  displayName,
+}: {
+  photoSrc: string;
+  displayName: string;
+}) {
+  const [photoLoadError, setPhotoLoadError] = useState(false);
+  return (
+    <>
+      {!photoLoadError ? (
+        <Image
+          src={photoSrc}
+          alt={`${displayName} profile`}
+          width={128}
+          height={128}
+          sizes="128px"
+          unoptimized
+          className="h-32 w-32 rounded-full border object-cover"
+          onError={() => setPhotoLoadError(true)}
+        />
+      ) : (
+        <div
+          className="flex h-32 w-32 flex-col items-center justify-center gap-1 rounded-full border border-dashed border-muted-foreground/35 bg-muted/40 p-2 text-center text-muted-foreground"
+          role="img"
+          aria-label="Photo file not found on server"
+        >
+          <UserCircle className="h-14 w-14 shrink-0 opacity-80" strokeWidth={1.25} />
+          <span className="text-[10px] leading-tight">
+            File missing — re-upload in Edit
+          </span>
+        </div>
+      )}
+    </>
+  );
+}
 
 export default function DriverDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { status: sessionStatus } = useSession();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [photoLoadError, setPhotoLoadError] = useState(false);
 
   const { data: driver, isLoading, error } = useDriver(id);
   const deleteDriver = useDeleteDriver();
-
-  useEffect(() => {
-    setPhotoLoadError(false);
-  }, [driver?.id, driver?.photoUrl]);
 
   if (sessionStatus === "loading" || isLoading)
     return <DetailPageSkeleton variant="driver" />;
@@ -165,29 +197,11 @@ export default function DriverDetailPage() {
             <DetailFieldGrid>
               {photoSrc && (
                 <DetailField label="Photo">
-                  {!photoLoadError ? (
-                    <Image
-                      src={photoSrc}
-                      alt={`${driver.displayName} profile`}
-                      width={128}
-                      height={128}
-                      sizes="128px"
-                      unoptimized
-                      className="h-32 w-32 rounded-full border object-cover"
-                      onError={() => setPhotoLoadError(true)}
-                    />
-                  ) : (
-                    <div
-                      className="flex h-32 w-32 flex-col items-center justify-center gap-1 rounded-full border border-dashed border-muted-foreground/35 bg-muted/40 p-2 text-center text-muted-foreground"
-                      role="img"
-                      aria-label="Photo file not found on server"
-                    >
-                      <UserCircle className="h-14 w-14 shrink-0 opacity-80" strokeWidth={1.25} />
-                      <span className="text-[10px] leading-tight">
-                        File missing — re-upload in Edit
-                      </span>
-                    </div>
-                  )}
+                  <DriverDetailProfilePhoto
+                    key={`${driver.id}-${driver.photoUrl ?? ""}`}
+                    photoSrc={photoSrc}
+                    displayName={driver.displayName}
+                  />
                 </DetailField>
               )}
               {driver.phone && (

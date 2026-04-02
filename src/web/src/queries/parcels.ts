@@ -1,11 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { parcelsService } from "@/services/parcels.service";
-import type {
-  ParcelOption,
-  RegisterParcelFormData,
-  RegisteredParcelResult,
-} from "@/types/parcels";
+import type { RegisterParcelFormData, RegisteredParcelResult } from "@/types/parcels";
 
 export const parcelKeys = {
   all: ["parcels"] as const,
