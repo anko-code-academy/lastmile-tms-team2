@@ -23,6 +23,7 @@ query GetPreLoadParcels {
     parcelType
     createdAt
     zoneName
+    estimatedDeliveryDate
   }
 }
 

@@ -122,6 +122,7 @@ type ParcelDetail {
   parcelType: String
   cancellationReason: String
   estimatedDeliveryDate: DateTime!
+  actualDeliveryDate: DateTime
   deliveryAttempts: Int!
   zoneId: UUID!
   zoneName: String
@@ -231,6 +232,7 @@ type RegisteredParcel {
   declaredValue: Decimal!
   currency: String!
   estimatedDeliveryDate: DateTime!
+  actualDeliveryDate: DateTime
   deliveryAttempts: Int!
   parcelType: String
   zoneId: UUID!

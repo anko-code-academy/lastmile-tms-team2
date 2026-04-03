@@ -223,6 +223,7 @@ export default function ParcelsPage() {
                   <th className={listDataTableThClass}>Type</th>
                   <th className={listDataTableThClass}>Zone</th>
                   <th className={listDataTableThClass}>Created</th>
+                  <th className={listDataTableThClass}>Delivery Date</th>
                   <th className={listDataTableThClass}>Status</th>
                   <th className={listDataTableThRightClass}>Actions</th>
                 </tr>
@@ -289,6 +290,16 @@ export default function ParcelsPage() {
                       )}
                     >
                       {new Date(parcel.createdAt).toLocaleDateString()}
+                    </td>
+                    <td
+                      className={cn(
+                        listDataTableTdClass,
+                        "tabular-nums text-muted-foreground",
+                      )}
+                    >
+                      {parcel.estimatedDeliveryDate
+                        ? new Date(parcel.estimatedDeliveryDate).toLocaleDateString()
+                        : "-"}
                     </td>
                     <td
                       className={cn(

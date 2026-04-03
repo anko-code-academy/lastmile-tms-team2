@@ -17,6 +17,7 @@ public sealed record ParcelDto
     public decimal DeclaredValue { get; init; }
     public string Currency { get; init; } = string.Empty;
     public DateTimeOffset EstimatedDeliveryDate { get; init; }
+    public DateTimeOffset? ActualDeliveryDate { get; init; }
     public int DeliveryAttempts { get; init; }
     public string? ParcelType { get; init; }
     public Guid ZoneId { get; init; }

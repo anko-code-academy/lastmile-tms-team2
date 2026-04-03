@@ -20,7 +20,6 @@ public static partial class ParcelMappings
 
     [MapperIgnoreSource(nameof(Parcel.ShipperAddressId))]
     [MapperIgnoreSource(nameof(Parcel.RecipientAddressId))]
-    [MapperIgnoreSource(nameof(Parcel.ActualDeliveryDate))]
     [MapperIgnoreSource(nameof(Parcel.ShipperAddress))]
     [MapperIgnoreSource(nameof(Parcel.RecipientAddress))]
     [MapperIgnoreSource(nameof(Parcel.DeliveryConfirmation))]
@@ -43,6 +42,7 @@ public static partial class ParcelMappings
     [MapProperty(nameof(Parcel.WeightUnit), nameof(ParcelDto.WeightUnit))]
     [MapProperty(nameof(Parcel.DimensionUnit), nameof(ParcelDto.DimensionUnit))]
     [MapProperty(nameof(Parcel.TrackingNumber), nameof(ParcelDto.Barcode))]
+    [MapProperty(nameof(Parcel.ActualDeliveryDate), nameof(ParcelDto.ActualDeliveryDate))]
     public static partial ParcelDto ToDto(this Parcel parcel);
 
     [MapProperty(nameof(Address.ContactName), nameof(ParcelDetailAddressDto.ContactName))]
