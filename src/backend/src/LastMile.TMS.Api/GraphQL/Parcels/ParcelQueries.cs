@@ -31,15 +31,17 @@ public sealed class ParcelQueries
     [UseFiltering(typeof(ParcelFilterInputType))]
     [UseSorting(typeof(ParcelSortInputType))]
     public IQueryable<ParcelDto> GetRegisteredParcels(
+        string? search = null,
         [Service] IParcelReadService readService = null!) =>
-        readService.GetRegisteredParcels();
+        readService.GetRegisteredParcels(search);
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
     [UseFiltering(typeof(ParcelFilterInputType))]
     [UseSorting(typeof(ParcelSortInputType))]
     public IQueryable<ParcelDto> GetPreLoadParcels(
+        string? search = null,
         [Service] IParcelReadService readService = null!) =>
-        readService.GetPreLoadParcels();
+        readService.GetPreLoadParcels(search);
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
     public Task<IReadOnlyList<ParcelImportHistoryDto>> GetParcelImports(

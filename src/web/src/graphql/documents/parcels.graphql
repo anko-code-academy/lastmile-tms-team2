@@ -12,8 +12,8 @@ query GetRegisteredParcels {
   }
 }
 
-query GetPreLoadParcels {
-  preLoadParcels {
+query GetPreLoadParcels($search: String) {
+  preLoadParcels(search: $search) {
     id
     trackingNumber
     status
@@ -24,6 +24,11 @@ query GetPreLoadParcels {
     createdAt
     zoneName
     estimatedDeliveryDate
+    recipientContactName
+    recipientCompanyName
+    recipientStreet1
+    recipientCity
+    recipientPostalCode
   }
 }
 

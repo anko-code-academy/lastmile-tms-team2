@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FileText, Package, PackagePlus, Printer } from "lucide-react";
+import { FileText, Package, PackagePlus, Printer, Search } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import { QueryErrorAlert } from "@/components/feedback/query-error-alert";
@@ -20,6 +20,7 @@ import { OverflowTooltipCell } from "@/components/list/overflow-tooltip-cell";
 import { CancelParcelDialog } from "@/components/parcels/cancel-parcel-dialog";
 import { ParcelRowActions } from "@/components/parcels/parcel-row-actions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   formatParcelServiceType,
   formatParcelStatus,
@@ -27,6 +28,7 @@ import {
 } from "@/lib/labels/parcels";
 import { getErrorMessage } from "@/lib/network/error-message";
 import { appToast } from "@/lib/toast/app-toast";
+import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { useCancelParcel, usePreLoadParcels } from "@/queries/parcels";
 import { parcelsService } from "@/services/parcels.service";
@@ -41,7 +43,11 @@ type PendingCancellation = {
 
 export default function ParcelsPage() {
   const { status: sessionStatus } = useSession();
-  const { data = [], isLoading, error } = usePreLoadParcels();
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
+  const { data = [], isLoading, error } = usePreLoadParcels(
+    debouncedSearch || undefined,
+  );
   const cancelParcel = useCancelParcel();
 
   const [showForm, setShowForm] = useState(false);
@@ -183,12 +189,25 @@ export default function ParcelsPage() {
           showHistory={false}
         />
 
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by tracking number, recipient, or address"
+              className="pl-9"
+            />
+          </div>
+        </div>
+
         {data.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-12 text-center">
             <p className="font-medium">No parcels are waiting before load</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Registered, received, sorted, or staged parcels will appear here until
-              they are loaded for delivery.
+              {debouncedSearch
+                ? "No parcels match your search."
+                : "Registered, received, sorted, or staged parcels will appear here until they are loaded for delivery."}
             </p>
           </div>
         ) : (

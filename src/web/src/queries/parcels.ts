@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 
 import { parcelsService } from "@/services/parcels.service";
@@ -19,7 +24,7 @@ const parcelImportPollingStatuses = new Set(["Queued", "Processing"]);
 
 export const parcelKeys = {
   all: ["parcels"] as const,
-  preLoad: () => [...parcelKeys.all, "preLoad"] as const,
+  preLoad: (search?: string) => [...parcelKeys.all, "preLoad", search ?? ""] as const,
   forRoute: () => [...parcelKeys.all, "forRoute"] as const,
   registered: () => [...parcelKeys.all, "registered"] as const,
   details: () => [...parcelKeys.all, "detail"] as const,
@@ -37,11 +42,12 @@ export function useParcelsForRouteCreation() {
   });
 }
 
-export function usePreLoadParcels() {
+export function usePreLoadParcels(search?: string) {
   const { status } = useSession();
   return useQuery({
-    queryKey: parcelKeys.preLoad(),
-    queryFn: () => parcelsService.getPreLoadParcels(),
+    queryKey: parcelKeys.preLoad(search),
+    queryFn: () => parcelsService.getPreLoadParcels(search),
+    placeholderData: keepPreviousData,
     enabled: status === "authenticated",
   });
 }

@@ -43,6 +43,11 @@ public static partial class ParcelMappings
     [MapProperty(nameof(Parcel.DimensionUnit), nameof(ParcelDto.DimensionUnit))]
     [MapProperty(nameof(Parcel.TrackingNumber), nameof(ParcelDto.Barcode))]
     [MapProperty(nameof(Parcel.ActualDeliveryDate), nameof(ParcelDto.ActualDeliveryDate))]
+    [MapProperty(nameof(Parcel.RecipientAddress.ContactName), nameof(ParcelDto.RecipientContactName))]
+    [MapProperty(nameof(Parcel.RecipientAddress.CompanyName), nameof(ParcelDto.RecipientCompanyName))]
+    [MapProperty(nameof(Parcel.RecipientAddress.Street1), nameof(ParcelDto.RecipientStreet1))]
+    [MapProperty(nameof(Parcel.RecipientAddress.City), nameof(ParcelDto.RecipientCity))]
+    [MapProperty(nameof(Parcel.RecipientAddress.PostalCode), nameof(ParcelDto.RecipientPostalCode))]
     public static partial ParcelDto ToDto(this Parcel parcel);
 
     [MapProperty(nameof(Address.ContactName), nameof(ParcelDetailAddressDto.ContactName))]

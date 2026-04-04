@@ -6,8 +6,8 @@ namespace LastMile.TMS.Application.Parcels.Reads;
 public interface IParcelReadService
 {
     IQueryable<Parcel> GetParcelsForRouteCreation();
-    IQueryable<ParcelDto> GetRegisteredParcels();
-    IQueryable<ParcelDto> GetPreLoadParcels();
+    IQueryable<ParcelDto> GetRegisteredParcels(string? search = null);
+    IQueryable<ParcelDto> GetPreLoadParcels(string? search = null);
     Task<ParcelDetailDto?> GetParcelByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ParcelLabelDataDto>> GetParcelLabelDataAsync(
         IReadOnlyCollection<Guid> parcelIds,

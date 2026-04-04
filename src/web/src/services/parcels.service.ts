@@ -118,12 +118,14 @@ async function triggerDownload(
 }
 
 export const parcelsService = {
-  getPreLoadParcels: async (): Promise<GetPreLoadParcelsQuery["preLoadParcels"]> => {
+  getPreLoadParcels: async (search?: string): Promise<GetPreLoadParcelsQuery["preLoadParcels"]> => {
     if (USE_MOCK) {
       return mockParcels;
     }
 
-    const data = await graphqlRequest<GetPreLoadParcelsQuery>(PRELOAD_PARCELS);
+    const data = await graphqlRequest<GetPreLoadParcelsQuery>(PRELOAD_PARCELS, {
+      search: search || undefined,
+    });
     return data.preLoadParcels;
   },
 
