@@ -606,7 +606,7 @@ export function ParcelEditorForm({
 
             <div>
               <Label htmlFor="recipientContactName" className="mb-1.5 block">
-                Recipient Name
+                Recipient Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="recipientContactName"
@@ -615,7 +615,13 @@ export function ParcelEditorForm({
                   setField("recipientContactName", event.target.value)
                 }
                 placeholder="John Doe"
+                aria-invalid={!!errors.recipientContactName}
               />
+              {errors.recipientContactName ? (
+                <p className="mt-1 text-sm text-destructive">
+                  {errors.recipientContactName}
+                </p>
+              ) : null}
             </div>
 
             <div>

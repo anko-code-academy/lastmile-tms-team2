@@ -214,6 +214,9 @@ describe("ParcelRegistrationForm", () => {
     fireEvent.change(screen.getByPlaceholderText("123 Main St"), {
       target: { value: "123 Main St" },
     });
+    fireEvent.change(screen.getByLabelText(/recipient name/i), {
+      target: { value: "John Doe" },
+    });
     fireEvent.change(screen.getByLabelText(/^city/i), {
       target: { value: "Springfield" },
     });
@@ -269,6 +272,9 @@ describe("ParcelRegistrationForm", () => {
     const user = userEvent.setup();
     await user.selectOptions(screen.getByTestId("shipperAddressId"), "address-1");
     await user.click(screen.getByRole("button", { name: /use mapbox suggestion/i }));
+    fireEvent.change(screen.getByLabelText(/recipient name/i), {
+      target: { value: "John Doe" },
+    });
     fireEvent.change(screen.getByLabelText(/est\. delivery date/i), {
       target: { value: "2026-04-08" },
     });

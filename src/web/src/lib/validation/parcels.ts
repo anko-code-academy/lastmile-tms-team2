@@ -13,7 +13,7 @@ export const parcelFormSchema = z.object({
     .min(1, "Required.")
     .max(3, "Country code must be 2-3 characters."),
   recipientIsResidential: z.boolean(),
-  recipientContactName: z.string(),
+  recipientContactName: z.string().trim().min(1, "Required."),
   recipientCompanyName: z.string(),
   recipientPhone: z.string(),
   recipientEmail: z.string(),
