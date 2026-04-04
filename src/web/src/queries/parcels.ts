@@ -7,6 +7,7 @@ import {
 import { useSession } from "next-auth/react";
 
 import { parcelsService } from "@/services/parcels.service";
+import type { ParcelStatus } from "@/graphql/generated";
 import type { MutationToastMeta } from "@/lib/query/mutation-toast-meta";
 import type {
   CancelParcelRequest,
@@ -24,7 +25,15 @@ const parcelImportPollingStatuses = new Set(["Queued", "Processing"]);
 
 export const parcelKeys = {
   all: ["parcels"] as const,
-  preLoad: (search?: string) => [...parcelKeys.all, "preLoad", search ?? ""] as const,
+  preLoad: (
+    search?: string,
+    status?: ParcelStatus[],
+    zoneId?: string,
+    parcelType?: string,
+    estimatedDeliveryDateFrom?: string,
+    estimatedDeliveryDateTo?: string,
+  ) => [...parcelKeys.all, "preLoad", search ?? "", status, zoneId, parcelType, estimatedDeliveryDateFrom, estimatedDeliveryDateTo] as const,
+  preLoadAll: () => [...parcelKeys.all, "preLoadAll"] as const,
   forRoute: () => [...parcelKeys.all, "forRoute"] as const,
   registered: () => [...parcelKeys.all, "registered"] as const,
   details: () => [...parcelKeys.all, "detail"] as const,
@@ -42,13 +51,30 @@ export function useParcelsForRouteCreation() {
   });
 }
 
-export function usePreLoadParcels(search?: string) {
-  const { status } = useSession();
+export function usePreLoadParcels(
+  search?: string,
+  status?: ParcelStatus[],
+  zoneId?: string,
+  parcelType?: string,
+  estimatedDeliveryDateFrom?: string,
+  estimatedDeliveryDateTo?: string,
+) {
+  const { status: sessionStatus } = useSession();
   return useQuery({
-    queryKey: parcelKeys.preLoad(search),
-    queryFn: () => parcelsService.getPreLoadParcels(search),
+    queryKey: parcelKeys.preLoad(search, status, zoneId, parcelType, estimatedDeliveryDateFrom, estimatedDeliveryDateTo),
+    queryFn: () => parcelsService.getPreLoadParcels(search, status, zoneId, parcelType, estimatedDeliveryDateFrom, estimatedDeliveryDateTo),
     placeholderData: keepPreviousData,
-    enabled: status === "authenticated",
+    enabled: sessionStatus === "authenticated",
+  });
+}
+
+export function useAvailableParcelTypes() {
+  const { status: sessionStatus } = useSession();
+  return useQuery({
+    queryKey: parcelKeys.preLoadAll(),
+    queryFn: () => parcelsService.getPreLoadParcels(),
+    staleTime: 5 * 60 * 1000,
+    enabled: sessionStatus === "authenticated",
   });
 }
 

@@ -17,14 +17,8 @@ vi.mock("next-auth/react", () => ({
   }),
 }));
 
-vi.mock("radix-ui", () => ({
-  Tooltip: {
-    Root: ({ children }: { children: ReactNode }) => <>{children}</>,
-    Trigger: ({ children }: { children: ReactNode }) => <>{children}</>,
-    Portal: ({ children }: { children: ReactNode }) => <>{children}</>,
-    Content: ({ children }: { children: ReactNode }) => <>{children}</>,
-    Arrow: () => null,
-  },
+vi.mock("@/components/ui/label", () => ({
+  Label: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 vi.mock("@/queries/parcels", () => ({
@@ -56,6 +50,14 @@ vi.mock("@/queries/parcels", () => ({
     isLoading: false,
     error: null,
   }),
+  useAvailableParcelTypes: () => ({
+    data: [
+      { id: "parcel-1", parcelType: "Box" },
+      { id: "parcel-2", parcelType: "Envelope" },
+    ],
+    isLoading: false,
+    error: null,
+  }),
   useCancelParcel: () => ({
     mutateAsync: mockCancelParcel,
     isPending: false,
@@ -66,6 +68,10 @@ vi.mock("@/services/parcels.service", () => ({
   parcelsService: {
     downloadBulkLabels: mockDownloadBulkLabels,
   },
+}));
+
+vi.mock("@/queries/zones", () => ({
+  useZones: () => ({ data: [] }),
 }));
 
 vi.mock("@/components/parcels/parcel-import-panel", () => ({

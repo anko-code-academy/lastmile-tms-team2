@@ -11,6 +11,7 @@ import {
   REGISTERED_PARCELS,
   UPDATE_PARCEL,
 } from "@/graphql/parcels";
+import type { ParcelStatus } from "@/graphql/generated";
 import type {
   CancelParcelMutation,
   GetParcelImportQuery,
@@ -118,13 +119,25 @@ async function triggerDownload(
 }
 
 export const parcelsService = {
-  getPreLoadParcels: async (search?: string): Promise<GetPreLoadParcelsQuery["preLoadParcels"]> => {
+  getPreLoadParcels: async (
+    search?: string,
+    status?: ParcelStatus[],
+    zoneId?: string,
+    parcelType?: string,
+    estimatedDeliveryDateFrom?: string,
+    estimatedDeliveryDateTo?: string,
+  ): Promise<GetPreLoadParcelsQuery["preLoadParcels"]> => {
     if (USE_MOCK) {
       return mockParcels;
     }
 
     const data = await graphqlRequest<GetPreLoadParcelsQuery>(PRELOAD_PARCELS, {
       search: search || undefined,
+      status: status || undefined,
+      zoneId: zoneId || undefined,
+      parcelType: parcelType || undefined,
+      estimatedDeliveryDateFrom: estimatedDeliveryDateFrom || undefined,
+      estimatedDeliveryDateTo: estimatedDeliveryDateTo || undefined,
     });
     return data.preLoadParcels;
   },

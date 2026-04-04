@@ -89,6 +89,7 @@ public sealed class ParcelFilterInputType : FilterInputType<Parcel>
         descriptor.BindFieldsExplicitly();
         descriptor.Field(p => p.Id);
         descriptor.Field(p => p.TrackingNumber);
+        descriptor.Field(p => p.ZoneId);
         descriptor.Field(p => p.Status);
         descriptor.Field(p => p.ServiceType);
         descriptor.Field(p => p.Weight);

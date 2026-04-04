@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FileText, Package, PackagePlus, Printer, Search } from "lucide-react";
+import { FileText, Package, PackagePlus, Printer, Search, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import { QueryErrorAlert } from "@/components/feedback/query-error-alert";
@@ -19,8 +19,12 @@ import {
 import { OverflowTooltipCell } from "@/components/list/overflow-tooltip-cell";
 import { CancelParcelDialog } from "@/components/parcels/cancel-parcel-dialog";
 import { ParcelRowActions } from "@/components/parcels/parcel-row-actions";
+import { ParcelStatusFilter } from "@/components/parcels/status-filter";
+import { ParcelTypeFilter } from "@/components/parcels/type-filter";
+import { ParcelZoneFilter } from "@/components/parcels/zone-filter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   formatParcelServiceType,
   formatParcelStatus,
@@ -30,7 +34,9 @@ import { getErrorMessage } from "@/lib/network/error-message";
 import { appToast } from "@/lib/toast/app-toast";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
-import { useCancelParcel, usePreLoadParcels } from "@/queries/parcels";
+import type { ParcelStatus } from "@/graphql/generated";
+import { useAvailableParcelTypes, useCancelParcel, usePreLoadParcels } from "@/queries/parcels";
+import { useZones } from "@/queries/zones";
 import { parcelsService } from "@/services/parcels.service";
 import { ParcelImportHistoryTable } from "./parcel-import-history-table";
 import { ParcelImportPanel } from "./parcel-import-panel";
@@ -44,11 +50,40 @@ type PendingCancellation = {
 export default function ParcelsPage() {
   const { status: sessionStatus } = useSession();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ParcelStatus | undefined>();
+  const [zoneFilter, setZoneFilter] = useState<string | undefined>();
+  const [typeFilter, setTypeFilter] = useState<string | undefined>();
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
   const debouncedSearch = useDebounce(search, 300);
+  const { data: zones = [] } = useZones();
+  const { data: allParcelsForTypes = [] } = useAvailableParcelTypes();
+
   const { data = [], isLoading, error } = usePreLoadParcels(
     debouncedSearch || undefined,
+    statusFilter !== undefined ? [statusFilter] : undefined,
+    zoneFilter,
+    typeFilter,
+    dateFrom !== "" ? new Date(`${dateFrom}T00:00:00Z`).toISOString() : undefined,
+    dateTo !== "" ? new Date(`${dateTo}T23:59:59Z`).toISOString() : undefined,
   );
   const cancelParcel = useCancelParcel();
+
+  const hasActiveFilters =
+    statusFilter !== undefined ||
+    zoneFilter !== undefined ||
+    typeFilter !== undefined ||
+    dateFrom !== "" ||
+    dateTo !== "";
+
+  function clearFilters() {
+    setStatusFilter(undefined);
+    setZoneFilter(undefined);
+    setTypeFilter(undefined);
+    setDateFrom("");
+    setDateTo("");
+  }
 
   const [showForm, setShowForm] = useState(false);
   const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
@@ -189,8 +224,8 @@ export default function ParcelsPage() {
           showHistory={false}
         />
 
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm sm:flex-row sm:items-end">
+          <div className="relative flex-1 min-w-0">
             <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" />
             <Input
               value={search}
@@ -199,14 +234,63 @@ export default function ParcelsPage() {
               className="pl-9"
             />
           </div>
+          <div className="flex flex-wrap items-end gap-2 sm:shrink-0">
+            <ParcelStatusFilter
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v)}
+            />
+            <ParcelZoneFilter
+              value={zoneFilter}
+              onChange={setZoneFilter}
+              zones={zones.map((z) => ({ id: z.id, name: z.name ?? "" }))}
+            />
+            <ParcelTypeFilter
+              value={typeFilter}
+              onChange={setTypeFilter}
+              parcelTypes={allParcelsForTypes.map((p) => p.parcelType).filter(Boolean) as string[]}
+            />
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+              <Label className="text-xs text-muted-foreground">Delivery Date</Label>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-[148px]"
+                />
+                <span className="text-muted-foreground text-xs">–</span>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-[148px]"
+                />
+              </div>
+            </div>
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearFilters}
+                className="h-9 shrink-0 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5 mr-1" aria-hidden />
+                Clear filters
+              </Button>
+            )}
+          </div>
         </div>
 
         {data.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-12 text-center">
-            <p className="font-medium">No parcels are waiting before load</p>
+            <p className="font-medium">
+              {hasActiveFilters || debouncedSearch
+                ? "No parcels match your filters"
+                : "No parcels are waiting before load"}
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {debouncedSearch
-                ? "No parcels match your search."
+              {hasActiveFilters || debouncedSearch
+                ? "Try adjusting your search or filters."
                 : "Registered, received, sorted, or staged parcels will appear here until they are loaded for delivery."}
             </p>
           </div>

@@ -7,6 +7,7 @@ using LastMile.TMS.Application.Parcels.DTOs;
 using LastMile.TMS.Application.Parcels.Queries;
 using LastMile.TMS.Application.Parcels.Reads;
 using LastMile.TMS.Domain.Entities;
+using LastMile.TMS.Domain.Enums;
 using MediatR;
 
 namespace LastMile.TMS.Api.GraphQL.Parcels;
@@ -28,20 +29,52 @@ public sealed class ParcelQueries
         readService.GetParcelsForRouteCreation();
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
-    [UseFiltering(typeof(ParcelFilterInputType))]
-    [UseSorting(typeof(ParcelSortInputType))]
     public IQueryable<ParcelDto> GetRegisteredParcels(
         string? search = null,
-        [Service] IParcelReadService readService = null!) =>
-        readService.GetRegisteredParcels(search);
+        ParcelStatus[]? status = null,
+        Guid? zoneId = null,
+        string? parcelType = null,
+        DateTimeOffset? estimatedDeliveryDateFrom = null,
+        DateTimeOffset? estimatedDeliveryDateTo = null,
+        [Service] IParcelReadService readService = null!)
+    {
+        var filter = status is not null || zoneId is not null || !string.IsNullOrWhiteSpace(parcelType)
+            || estimatedDeliveryDateFrom.HasValue || estimatedDeliveryDateTo.HasValue
+            ? new ParcelFilter
+            {
+                Status = status,
+                ZoneId = zoneId,
+                ParcelType = parcelType,
+                EstimatedDeliveryDateFrom = estimatedDeliveryDateFrom,
+                EstimatedDeliveryDateTo = estimatedDeliveryDateTo,
+            }
+            : null;
+        return readService.GetRegisteredParcels(search, filter);
+    }
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
-    [UseFiltering(typeof(ParcelFilterInputType))]
-    [UseSorting(typeof(ParcelSortInputType))]
     public IQueryable<ParcelDto> GetPreLoadParcels(
         string? search = null,
-        [Service] IParcelReadService readService = null!) =>
-        readService.GetPreLoadParcels(search);
+        ParcelStatus[]? status = null,
+        Guid? zoneId = null,
+        string? parcelType = null,
+        DateTimeOffset? estimatedDeliveryDateFrom = null,
+        DateTimeOffset? estimatedDeliveryDateTo = null,
+        [Service] IParcelReadService readService = null!)
+    {
+        var filter = status is not null || zoneId is not null || !string.IsNullOrWhiteSpace(parcelType)
+            || estimatedDeliveryDateFrom.HasValue || estimatedDeliveryDateTo.HasValue
+            ? new ParcelFilter
+            {
+                Status = status,
+                ZoneId = zoneId,
+                ParcelType = parcelType,
+                EstimatedDeliveryDateFrom = estimatedDeliveryDateFrom,
+                EstimatedDeliveryDateTo = estimatedDeliveryDateTo,
+            }
+            : null;
+        return readService.GetPreLoadParcels(search, filter);
+    }
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
     public Task<IReadOnlyList<ParcelImportHistoryDto>> GetParcelImports(
