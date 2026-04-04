@@ -224,8 +224,8 @@ export default function ParcelsPage() {
           showHistory={false}
         />
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm sm:flex-row sm:items-end">
-          <div className="relative flex-1 min-w-0">
+        <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm">
+          <div className="relative min-w-0">
             <Search className="pointer-events-none absolute left-3 top-2.5 size-4 text-muted-foreground" />
             <Input
               value={search}
@@ -234,7 +234,7 @@ export default function ParcelsPage() {
               className="pl-9"
             />
           </div>
-          <div className="flex flex-wrap items-end gap-2 sm:shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             <ParcelStatusFilter
               value={statusFilter}
               onChange={(v) => setStatusFilter(v)}
@@ -249,30 +249,28 @@ export default function ParcelsPage() {
               onChange={setTypeFilter}
               parcelTypes={allParcelsForTypes.map((p) => p.parcelType).filter(Boolean) as string[]}
             />
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
-              <Label className="text-xs text-muted-foreground">Delivery Date</Label>
-              <div className="flex items-center gap-1.5">
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-[148px]"
-                />
-                <span className="text-muted-foreground text-xs">–</span>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-[148px]"
-                />
-              </div>
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">Delivery Date</Label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-[148px]"
+              />
+              <span className="text-muted-foreground text-xs">–</span>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-[148px]"
+              />
             </div>
             {hasActiveFilters && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={clearFilters}
-                className="h-9 shrink-0 text-muted-foreground hover:text-foreground"
+                className="shrink-0 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-3.5 w-3.5 mr-1" aria-hidden />
                 Clear filters
