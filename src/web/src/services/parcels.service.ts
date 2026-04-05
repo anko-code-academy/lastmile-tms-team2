@@ -4,11 +4,13 @@ import {
   CANCEL_PARCEL,
   GET_PARCEL_IMPORT,
   GET_PARCEL_IMPORTS,
+  GET_PARCEL_TRACKING_EVENTS,
   PARCEL,
   PRELOAD_PARCELS,
   PARCELS_FOR_ROUTE,
   REGISTER_PARCEL,
   REGISTERED_PARCELS,
+  TRANSITION_PARCEL_STATUS,
   UPDATE_PARCEL,
 } from "@/graphql/parcels";
 import type {
@@ -16,8 +18,10 @@ import type {
   GetParcelImportQuery,
   GetParcelImportsQuery,
   GetParcelQuery,
+  GetParcelTrackingEventsQuery,
   GetPreLoadParcelsQuery,
   GetRegisteredParcelsQuery,
+  TransitionParcelStatusMutation,
   UpdateParcelMutation,
 } from "@/graphql/parcels";
 import { apiBaseUrl, parseApiErrorMessage } from "@/lib/network/api";
@@ -34,6 +38,8 @@ import type {
   ParcelImportTemplateFormat,
   ParcelOption,
   RegisteredParcelResult,
+  TrackingEvent,
+  TransitionParcelStatusRequest,
   UpdateParcelRequest,
   UploadParcelImportRequest,
   UploadParcelImportResult,
@@ -143,7 +149,9 @@ export const parcelsService = {
     return data.parcelsForRouteCreation;
   },
 
-  getRegisteredParcels: async (): Promise<GetRegisteredParcelsQuery["registeredParcels"]> => {
+  getRegisteredParcels: async (
+    _statusFilter?: string | null,
+  ): Promise<GetRegisteredParcelsQuery["registeredParcels"]> => {
     if (USE_MOCK) {
       return mockParcels;
     }
@@ -335,6 +343,7 @@ export const parcelsService = {
         cancellationReason: reason,
         canEdit: false,
         canCancel: false,
+        allowedNextStatuses: [],
         lastModifiedAt: new Date().toISOString(),
         changeHistory: [
           {
@@ -510,5 +519,60 @@ export const parcelsService = {
     );
 
     await triggerDownload(response, "parcel-import-errors.csv");
+  },
+
+  getTrackingEvents: async (parcelId: string): Promise<TrackingEvent[]> => {
+    if (USE_MOCK) {
+      return [];
+    }
+
+    const data = await graphqlRequest<{
+      parcelTrackingEvents: GetParcelTrackingEventsQuery["parcelTrackingEvents"];
+    }>(GET_PARCEL_TRACKING_EVENTS, { parcelId });
+
+    return data.parcelTrackingEvents as TrackingEvent[];
+  },
+
+  transitionStatus: async (
+    request: TransitionParcelStatusRequest,
+  ): Promise<RegisteredParcelResult> => {
+    if (USE_MOCK) {
+      return {
+        id: request.parcelId,
+        trackingNumber: "MOCK001",
+        barcode: "MOCK001",
+        status: request.newStatus,
+        serviceType: "STANDARD",
+        weight: 0,
+        weightUnit: "KG",
+        length: 0,
+        width: 0,
+        height: 0,
+        dimensionUnit: "CM",
+        declaredValue: 0,
+        currency: "USD",
+        description: null,
+        parcelType: null,
+        estimatedDeliveryDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        zoneId: "00000000-0000-0000-0000-000000000000",
+        zoneName: null,
+        depotId: "00000000-0000-0000-0000-000000000000",
+        depotName: null,
+      };
+    }
+
+    const data = await graphqlRequest<{
+      transitionParcelStatus: TransitionParcelStatusMutation["transitionParcelStatus"];
+    }>(TRANSITION_PARCEL_STATUS, {
+      input: {
+        parcelId: request.parcelId,
+        newStatus: request.newStatus,
+        location: request.location ?? null,
+        description: request.description ?? null,
+      },
+    });
+
+    return data.transitionParcelStatus as RegisteredParcelResult;
   },
 };

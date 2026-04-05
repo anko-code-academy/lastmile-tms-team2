@@ -138,10 +138,17 @@ public class ParcelRegistrationServiceTests
 
         var parcel = await db.Parcels
             .Include(x => x.RecipientAddress)
+            .Include(x => x.TrackingEvents)
             .SingleAsync();
 
         parcel.ParcelImportId.Should().BeNull();
         parcel.RecipientAddress.GeoLocation.Should().NotBeNull();
         parcel.CreatedBy.Should().Be("ops.manager");
+        parcel.TrackingEvents.Should().ContainSingle();
+        var ev = parcel.TrackingEvents.Single();
+        ev.EventType.Should().Be(EventType.LabelCreated);
+        ev.Operator.Should().Be("ops.manager");
+        ev.Location.Should().Be("Sydney Central");
+        ev.Description.Should().Be("Parcel registered");
     }
 }

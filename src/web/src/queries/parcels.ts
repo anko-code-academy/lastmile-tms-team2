@@ -5,11 +5,14 @@ import { parcelsService } from "@/services/parcels.service";
 import type { MutationToastMeta } from "@/lib/query/mutation-toast-meta";
 import type {
   CancelParcelRequest,
+  GraphQLParcelStatus,
   ParcelDetail,
   ParcelFormData,
   ParcelImportDetail,
   ParcelImportTemplateFormat,
   RegisteredParcelResult,
+  TrackingEvent,
+  TransitionParcelStatusRequest,
   UpdateParcelRequest,
   UploadParcelImportRequest,
   UploadParcelImportResult,
@@ -26,6 +29,7 @@ export const parcelKeys = {
   detail: (id: string) => [...parcelKeys.details(), id] as const,
   imports: () => [...parcelKeys.all, "imports"] as const,
   importDetail: (id: string) => [...parcelKeys.imports(), "detail", id] as const,
+  trackingEvents: (parcelId: string) => [...parcelKeys.detail(parcelId), "trackingEvents"] as const,
 };
 
 export function useParcelsForRouteCreation() {
@@ -46,11 +50,11 @@ export function usePreLoadParcels() {
   });
 }
 
-export function useRegisteredParcels() {
+export function useRegisteredParcels(statusFilter?: GraphQLParcelStatus | null) {
   const { status } = useSession();
   return useQuery({
-    queryKey: parcelKeys.registered(),
-    queryFn: () => parcelsService.getRegisteredParcels(),
+    queryKey: [...parcelKeys.registered(), statusFilter ?? "all"] as const,
+    queryFn: () => parcelsService.getRegisteredParcels(statusFilter),
     enabled: status === "authenticated",
   });
 }
@@ -101,6 +105,7 @@ export function useCancelParcel() {
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: parcelKeys.all });
       qc.invalidateQueries({ queryKey: parcelKeys.detail(variables.id) });
+      qc.invalidateQueries({ queryKey: parcelKeys.trackingEvents(variables.id) });
     },
   });
 }
@@ -161,5 +166,32 @@ export function useDownloadParcelImportTemplate() {
 export function useDownloadParcelImportErrors() {
   return useMutation<void, Error, string>({
     mutationFn: (importId) => parcelsService.downloadParcelImportErrors(importId),
+  });
+}
+
+export function useParcelTrackingEvents(parcelId: string) {
+  const { status } = useSession();
+  return useQuery<TrackingEvent[]>({
+    queryKey: parcelKeys.trackingEvents(parcelId),
+    queryFn: () => parcelsService.getTrackingEvents(parcelId),
+    enabled: status === "authenticated" && Boolean(parcelId),
+  });
+}
+
+export function useTransitionParcelStatus() {
+  const qc = useQueryClient();
+  return useMutation<RegisteredParcelResult, Error, TransitionParcelStatusRequest>({
+    mutationFn: (request) => parcelsService.transitionStatus(request),
+    meta: {
+      successToast: {
+        title: "Status updated",
+        describe: () => "The parcel status was saved and the timeline was updated.",
+      },
+    } satisfies MutationToastMeta,
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: parcelKeys.all });
+      qc.invalidateQueries({ queryKey: parcelKeys.detail(variables.parcelId) });
+      qc.invalidateQueries({ queryKey: parcelKeys.trackingEvents(variables.parcelId) });
+    },
   });
 }

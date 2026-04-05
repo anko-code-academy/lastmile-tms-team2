@@ -48,6 +48,11 @@ public sealed record ParcelDetailDto
     public ParcelDetailAddressDto RecipientAddress { get; init; } = new();
     public IReadOnlyList<ParcelChangeHistoryDto> ChangeHistory { get; init; } = [];
 
+    /// <summary>
+    /// GraphQL <c>ParcelStatus</c> enum names (e.g. RECEIVED_AT_DEPOT) valid from the current status.
+    /// </summary>
+    public IReadOnlyList<string> AllowedNextStatuses { get; init; } = [];
+
     public ParcelDetailDto() { }
 }
 

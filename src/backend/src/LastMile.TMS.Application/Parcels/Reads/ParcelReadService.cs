@@ -71,4 +71,18 @@ public sealed class ParcelReadService(IAppDbContext dbContext) : IParcelReadServ
             .Select(parcel => parcel.ToLabelDataDto())
             .ToArray();
     }
+
+    public async Task<IReadOnlyList<TrackingEventDto>> GetTrackingEventsAsync(
+        Guid parcelId,
+        CancellationToken cancellationToken = default)
+    {
+        var events = await dbContext.Parcels
+            .AsNoTracking()
+            .Where(p => p.Id == parcelId)
+            .SelectMany(p => p.TrackingEvents)
+            .OrderByDescending(e => e.Timestamp)
+            .ToListAsync(cancellationToken);
+
+        return events.Select(e => e.ToDto()).ToList();
+    }
 }

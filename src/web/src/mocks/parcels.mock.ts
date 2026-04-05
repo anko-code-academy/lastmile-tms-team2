@@ -4,6 +4,31 @@ type MockParcel = RegisteredParcelResult & {
   detail: ParcelDetail;
 };
 
+/**
+ * Tracking events for mock parcels. Kept as a constant for reference;
+ * note `getById` returns `ParcelDetail` which intentionally does not
+ * include trackingEvents (those are fetched separately via
+ * `getTrackingEvents`, which the mock returns as an empty array).
+ */
+const MOCK_TRACKING_EVENTS = [
+  {
+    id: "evt-0001",
+    timestamp: "2026-04-01T09:15:00Z",
+    eventType: "LabelCreated",
+    description: "Parcel registered",
+    location: "Online Portal",
+    operator: "System",
+  },
+  {
+    id: "evt-0002",
+    timestamp: "2026-04-01T11:30:00Z",
+    eventType: "ArrivedAtFacility",
+    description: "Received at depot intake",
+    location: "North Depot",
+    operator: "admin",
+  },
+];
+
 function makeMockParcel(
   id: string,
   trackingNumber: string,
@@ -51,6 +76,7 @@ function makeMockParcel(
       email: "jamie@example.com",
     },
     changeHistory: [],
+    allowedNextStatuses: ["RECEIVED_AT_DEPOT", "CANCELLED"],
     ...overrides,
   };
 

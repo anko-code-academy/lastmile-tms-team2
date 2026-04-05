@@ -12,4 +12,5 @@ public interface IParcelReadService
     Task<IReadOnlyList<ParcelLabelDataDto>> GetParcelLabelDataAsync(
         IReadOnlyCollection<Guid> parcelIds,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<TrackingEventDto>> GetTrackingEventsAsync(Guid parcelId, CancellationToken cancellationToken = default);
 }

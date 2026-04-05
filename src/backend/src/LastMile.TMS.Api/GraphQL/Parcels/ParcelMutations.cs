@@ -29,4 +29,11 @@ public sealed class ParcelMutations
         [Service] ISender mediator = null!,
         CancellationToken cancellationToken = default) =>
         mediator.Send(new CancelParcelCommand(input.Id, input.Reason), cancellationToken);
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
+    public Task<ParcelDto> TransitionParcelStatus(
+        TransitionParcelStatusInput input,
+        [Service] ISender mediator = null!,
+        CancellationToken cancellationToken = default) =>
+        mediator.Send(input.ToDto(), cancellationToken);
 }

@@ -4,10 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ParcelDetailPage from "@/components/parcels/parcel-detail-page";
 
-const { mockDownloadLabel, mockCancelParcel } = vi.hoisted(() => ({
-  mockDownloadLabel: vi.fn(),
-  mockCancelParcel: vi.fn(),
-}));
+const { mockDownloadLabel, mockCancelParcel, mockTransitionParcelStatus } = vi.hoisted(
+  () => ({
+    mockDownloadLabel: vi.fn(),
+    mockCancelParcel: vi.fn(),
+    mockTransitionParcelStatus: vi.fn(),
+  }),
+);
 
 vi.mock("next-auth/react", () => ({
   useSession: () => ({
@@ -73,6 +76,7 @@ vi.mock("@/queries/parcels", () => ({
           changedBy: "Warehouse User",
         },
       ],
+      allowedNextStatuses: ["RECEIVED_AT_DEPOT", "CANCELLED"],
     },
     isLoading: false,
     error: null,
@@ -80,6 +84,15 @@ vi.mock("@/queries/parcels", () => ({
   useCancelParcel: () => ({
     mutateAsync: mockCancelParcel,
     isPending: false,
+  }),
+  useTransitionParcelStatus: () => ({
+    mutateAsync: mockTransitionParcelStatus,
+    isPending: false,
+  }),
+  useParcelTrackingEvents: () => ({
+    data: [],
+    isLoading: false,
+    error: null,
   }),
 }));
 

@@ -201,6 +201,7 @@ export function DetailHero({
   icon,
   eyebrow,
   section = "vehicle",
+  actionsLayout = "row",
 }: {
   title: string;
   subtitle?: ReactNode;
@@ -212,6 +213,8 @@ export function DetailHero({
   eyebrow?: string;
   /** Visual accent: fleet (teal) vs dispatch (violet). */
   section?: "vehicle" | "route" | "driver";
+  /** Stack primary actions in a column (e.g. parcel detail downloads). */
+  actionsLayout?: "row" | "column";
 }) {
   const hi = heroIconTile[section];
   return (
@@ -280,7 +283,14 @@ export function DetailHero({
           </div>
         </div>
         {actions && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:pt-1">
+          <div
+            className={cn(
+              "flex shrink-0 gap-2 sm:pt-1",
+              actionsLayout === "column"
+                ? "w-full flex-col items-stretch sm:ml-auto sm:w-auto sm:min-w-48 sm:items-end [&>a]:w-full [&>button]:w-full [&>a]:justify-center [&>button]:justify-center sm:[&>a]:w-auto sm:[&>button]:w-auto"
+                : "flex-wrap items-center",
+            )}
+          >
             {actions}
           </div>
         )}

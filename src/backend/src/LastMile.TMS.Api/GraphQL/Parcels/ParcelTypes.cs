@@ -81,6 +81,21 @@ public sealed class ParcelRouteOptionType : EntityObjectType<Parcel>
     }
 }
 
+public sealed class TrackingEventType : ObjectType<TrackingEventDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<TrackingEventDto> descriptor)
+    {
+        descriptor.Name("TrackingEvent");
+        descriptor.BindFieldsExplicitly();
+        descriptor.Field(e => e.Id);
+        descriptor.Field(e => e.Timestamp);
+        descriptor.Field(e => e.EventType);
+        descriptor.Field(e => e.Description);
+        descriptor.Field(e => e.Location);
+        descriptor.Field(e => e.Operator);
+    }
+}
+
 public sealed class ParcelFilterInputType : FilterInputType<Parcel>
 {
     protected override void Configure(IFilterInputTypeDescriptor<Parcel> descriptor)
