@@ -130,4 +130,16 @@ public class ParcelTests
 
         parcel.Status.Should().Be(ParcelStatus.Delivered);
     }
+
+    [Fact]
+    public void GetValidNextStatuses_ShouldMatchTransitionRules()
+    {
+        var registered = new Parcel { Status = ParcelStatus.Registered };
+        registered.GetValidNextStatuses().Should().BeEquivalentTo(
+            [ParcelStatus.ReceivedAtDepot, ParcelStatus.Cancelled],
+            options => options.WithStrictOrdering());
+
+        var delivered = new Parcel { Status = ParcelStatus.Delivered };
+        delivered.GetValidNextStatuses().Should().Equal(ParcelStatus.ReturnedToDepot);
+    }
 }

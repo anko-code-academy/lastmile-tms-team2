@@ -52,18 +52,36 @@ export function parcelStatusBadgeClass(status: string): string {
   }
 }
 
+/**
+ * Normalizes parcel status from the API (PascalCase or UPPER_SNAKE) for comparison
+ * with GraphQLParcelStatus filter values (always UPPER_SNAKE).
+ */
+export function normalizeParcelStatusForFilter(status: string): string {
+  const s = status.trim();
+  if (!s) return "";
+  if (s.includes("_")) return s.toUpperCase();
+  return s
+    .replace(/([a-z])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1_$2")
+    .toUpperCase();
+}
+
 export function formatParcelStatus(status: string): string {
   if (!status) return "-";
 
-  if (!status.includes("_")) {
-    return status;
+  // Underscore-separated: OUT_FOR_DELIVERY -> Out For Delivery
+  if (status.includes("_")) {
+    return status
+      .split("_")
+      .filter(Boolean)
+      .map((segment) => segment[0] + segment.slice(1).toLowerCase())
+      .join(" ");
   }
 
+  // CamelCase: ArrivedAtFacility -> Arrived At Facility
   return status
-    .split("_")
-    .filter(Boolean)
-    .map((segment) => segment[0] + segment.slice(1).toLowerCase())
-    .join(" ");
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (str) => str.toUpperCase());
 }
 
 export function formatParcelServiceType(serviceType: string): string {

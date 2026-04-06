@@ -131,6 +131,7 @@ query GetParcel($id: UUID!) {
       changedAt
       changedBy
     }
+    allowedNextStatuses
   }
 }
 
@@ -209,6 +210,44 @@ mutation UpdateParcel($input: UpdateParcelInput!) {
       changedAt
       changedBy
     }
+    allowedNextStatuses
+  }
+}
+
+query GetParcelTrackingEvents($parcelId: UUID!) {
+  parcelTrackingEvents(parcelId: $parcelId) {
+    id
+    timestamp
+    eventType
+    description
+    location
+    operator
+  }
+}
+
+mutation TransitionParcelStatus($input: TransitionParcelStatusInput!) {
+  transitionParcelStatus(input: $input) {
+    id
+    trackingNumber
+    status
+    serviceType
+    weight
+    weightUnit
+    length
+    width
+    height
+    dimensionUnit
+    declaredValue
+    currency
+    description
+    parcelType
+    estimatedDeliveryDate
+    createdAt
+    zoneId
+    zoneName
+    depotId
+    depotName
+    barcode
   }
 }
 

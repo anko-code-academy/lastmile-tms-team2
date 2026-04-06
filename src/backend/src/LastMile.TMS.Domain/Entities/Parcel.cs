@@ -67,6 +67,16 @@ public class Parcel : BaseAuditableEntity
         return false;
     }
 
+    /// <summary>
+    /// Statuses allowed by the lifecycle rules from the current <see cref="Status"/>.
+    /// </summary>
+    public IReadOnlyList<ParcelStatus> GetValidNextStatuses()
+    {
+        return ValidTransitions.TryGetValue(Status, out var next)
+            ? next
+            : Array.Empty<ParcelStatus>();
+    }
+
     public void TransitionTo(ParcelStatus newStatus)
     {
         if (!CanTransitionTo(newStatus))

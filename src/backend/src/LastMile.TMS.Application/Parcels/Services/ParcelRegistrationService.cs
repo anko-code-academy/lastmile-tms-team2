@@ -1,6 +1,7 @@
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Parcels.DTOs;
 using LastMile.TMS.Application.Parcels.Mappings;
+using LastMile.TMS.Application.Parcels.Support;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -60,6 +61,7 @@ public sealed class ParcelRegistrationService(
 
         var parcel = new Parcel
         {
+            Id = Guid.NewGuid(),
             TrackingNumber = Parcel.GenerateTrackingNumber(),
             Description = dto.Description,
             ServiceType = dto.ServiceType,
@@ -80,6 +82,17 @@ public sealed class ParcelRegistrationService(
             ParcelImportId = parcelImportId,
             CreatedBy = actor,
         };
+
+        var locationLabel = zone.Depot?.Name ?? zone.Name;
+        var now = DateTimeOffset.UtcNow;
+        parcel.TrackingEvents.Add(
+            ParcelTrackingEventFactory.CreateForParcelStatus(
+                parcel.Id,
+                ParcelStatus.Registered,
+                now,
+                locationLabel,
+                "Parcel registered",
+                actor));
 
         db.Parcels.Add(parcel);
         await db.SaveChangesAsync(cancellationToken);

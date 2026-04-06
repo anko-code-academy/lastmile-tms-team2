@@ -121,6 +121,9 @@ public static partial class ParcelMappings
             CanCancel = parcel.CanCancelBeforeLoad(),
             RecipientAddress = parcel.RecipientAddress.ToDetailDto(),
             ChangeHistory = history,
+            AllowedNextStatuses = parcel.GetValidNextStatuses()
+                .Select(ParcelStatusGraphQl.ToGraphQlName)
+                .ToArray(),
         };
     }
 
@@ -162,6 +165,15 @@ public static partial class ParcelMappings
     [MapProperty("RecipientAddress.CountryCode", nameof(ParcelLabelDataDto.CountryCode))]
     [MapProperty("Zone.Name", nameof(ParcelLabelDataDto.SortZone))]
     public static partial ParcelLabelDataDto ToLabelDataDto(this Parcel parcel);
+
+    [MapperIgnoreSource(nameof(TrackingEvent.Parcel))]
+    [MapperIgnoreSource(nameof(TrackingEvent.ParcelId))]
+    [MapperIgnoreSource(nameof(TrackingEvent.DelayReason))]
+    [MapperIgnoreSource(nameof(TrackingEvent.CreatedAt))]
+    [MapperIgnoreSource(nameof(TrackingEvent.CreatedBy))]
+    [MapperIgnoreSource(nameof(TrackingEvent.LastModifiedAt))]
+    [MapperIgnoreSource(nameof(TrackingEvent.LastModifiedBy))]
+    public static partial TrackingEventDto ToDto(this TrackingEvent trackingEvent);
 
     private static string MapToString(Enum value) => value.ToString();
 }

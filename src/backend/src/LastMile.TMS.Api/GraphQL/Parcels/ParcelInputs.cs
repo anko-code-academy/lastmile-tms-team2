@@ -59,3 +59,11 @@ public sealed class CancelParcelInput
     public Guid Id { get; set; }
     public string Reason { get; set; } = string.Empty;
 }
+
+public sealed class TransitionParcelStatusInput
+{
+    public Guid ParcelId { get; set; }
+    public ParcelStatus NewStatus { get; set; }
+    public string? Location { get; set; }
+    public string? Description { get; set; }
+}

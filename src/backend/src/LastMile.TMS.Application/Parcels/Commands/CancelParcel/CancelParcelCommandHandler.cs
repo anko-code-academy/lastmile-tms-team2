@@ -18,6 +18,7 @@ public sealed class CancelParcelCommandHandler(
         var parcel = await dbContext.Parcels
             .Include(p => p.RecipientAddress)
             .Include(p => p.ChangeHistory)
+            .Include(p => p.TrackingEvents)
             .Include(p => p.Zone)
             .ThenInclude(z => z!.Depot)
             .FirstOrDefaultAsync(p => p.Id == request.ParcelId, cancellationToken);
@@ -77,6 +78,22 @@ public sealed class CancelParcelCommandHandler(
         parcel.ChangeHistory.Add(reasonEntry);
         dbContext.ParcelChangeHistoryEntries.Add(statusEntry);
         dbContext.ParcelChangeHistoryEntries.Add(reasonEntry);
+
+        var locationLabel = parcel.Zone.Depot?.Name ?? parcel.Zone.Name;
+        var cancelDescription = $"Parcel cancelled: {reason}";
+        if (cancelDescription.Length > 1000)
+        {
+            cancelDescription = cancelDescription[..1000];
+        }
+
+        parcel.TrackingEvents.Add(
+            ParcelTrackingEventFactory.CreateForParcelStatus(
+                parcel.Id,
+                ParcelStatus.Cancelled,
+                now,
+                locationLabel,
+                cancelDescription,
+                actor));
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

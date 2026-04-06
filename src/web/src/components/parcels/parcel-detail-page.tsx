@@ -39,6 +39,8 @@ import { appToast } from "@/lib/toast/app-toast";
 import { cn } from "@/lib/utils";
 import { useCancelParcel, useParcel } from "@/queries/parcels";
 import { parcelsService } from "@/services/parcels.service";
+import { ParcelStatusTransition } from "./parcel-status-transition";
+import { ParcelTimeline } from "./parcel-timeline";
 
 function formatAddressLineTwo(
   city: string,
@@ -149,48 +151,60 @@ export default function ParcelDetailPage() {
             </span>
           }
           actions={
-            <>
-              {parcel.canEdit ? (
+            <div className="flex w-full flex-col gap-3 sm:ml-auto sm:w-auto sm:items-end">
+              <div className="flex w-full flex-wrap items-center justify-end gap-2">
+                {parcel.canEdit ? (
+                  <Link
+                    href={`/parcels/${parcel.id}/edit`}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                  >
+                    <Pencil className="mr-2 size-4" aria-hidden />
+                    Edit parcel
+                  </Link>
+                ) : null}
+                {parcel.canCancel ? (
+                  <button
+                    type="button"
+                    className={cn(
+                      buttonVariants({ variant: "destructive", size: "sm" }),
+                    )}
+                    onClick={() => setIsCancelDialogOpen(true)}
+                  >
+                    Cancel parcel
+                  </button>
+                ) : null}
                 <Link
-                  href={`/parcels/${parcel.id}/edit`}
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                  href="/parcels"
+                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
                 >
-                  <Pencil className="mr-2 size-4" aria-hidden />
-                  Edit parcel
+                  <ArrowLeft className="mr-2 size-4" aria-hidden />
+                  Back to queue
                 </Link>
-              ) : null}
-              {parcel.canCancel ? (
+              </div>
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
                 <button
                   type="button"
-                  className={cn(buttonVariants({ variant: "destructive", size: "sm" }))}
-                  onClick={() => setIsCancelDialogOpen(true)}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "w-full justify-center sm:w-auto",
+                  )}
+                  onClick={() => void handleDownload("zpl")}
                 >
-                  Cancel parcel
+                  <Printer className="mr-2 size-4" aria-hidden />
+                  Download 4x6 ZPL
                 </button>
-              ) : null}
-              <button
-                type="button"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                onClick={() => void handleDownload("zpl")}
-              >
-                <Printer className="mr-2 size-4" aria-hidden />
-                Download 4x6 ZPL
-              </button>
-              <button
-                type="button"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                onClick={() => void handleDownload("pdf")}
-              >
-                Download A4 PDF
-              </button>
-              <Link
-                href="/parcels"
-                className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-              >
-                <ArrowLeft className="mr-2 size-4" aria-hidden />
-                Back to queue
-              </Link>
-            </>
+                <button
+                  type="button"
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "w-full justify-center sm:w-auto",
+                  )}
+                  onClick={() => void handleDownload("pdf")}
+                >
+                  Download A4 PDF
+                </button>
+              </div>
+            </div>
           }
         />
 
@@ -346,6 +360,10 @@ export default function ParcelDetailPage() {
             </div>
           )}
         </DetailPanel>
+
+        <ParcelStatusTransition parcel={parcel} />
+
+        <ParcelTimeline parcelId={parcel.id} />
       </DetailContainer>
 
       <CancelParcelDialog

@@ -157,6 +157,8 @@ export interface ParcelDetail extends RegisteredParcelResult {
   canCancel: boolean;
   recipientAddress: ParcelDetailAddress;
   changeHistory: ParcelChangeHistoryEntry[];
+  /** GraphQL ParcelStatus enum names, e.g. RECEIVED_AT_DEPOT */
+  allowedNextStatuses?: GraphQLParcelStatus[];
 }
 
 export interface ParcelChangeHistoryEntry {
@@ -214,3 +216,19 @@ export interface UploadParcelImportResult {
 }
 
 export type ParcelImportTemplateFormat = "csv" | "xlsx";
+
+export interface TrackingEvent {
+  id: string;
+  timestamp: string;
+  eventType: string;
+  description: string;
+  location: string | null;
+  operator: string | null;
+}
+
+export interface TransitionParcelStatusRequest {
+  parcelId: string;
+  newStatus: GraphQLParcelStatus;
+  location?: string;
+  description?: string;
+}

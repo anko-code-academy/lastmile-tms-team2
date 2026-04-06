@@ -3,10 +3,12 @@ export {
   GetParcelImportDocument as GET_PARCEL_IMPORT,
   GetParcelImportsDocument as GET_PARCEL_IMPORTS,
   GetParcelDocument as PARCEL,
+  GetParcelTrackingEventsDocument as GET_PARCEL_TRACKING_EVENTS,
   GetPreLoadParcelsDocument as PRELOAD_PARCELS,
   GetParcelsForRouteCreationDocument as PARCELS_FOR_ROUTE,
   RegisterParcelDocument as REGISTER_PARCEL,
   GetRegisteredParcelsDocument as REGISTERED_PARCELS,
+  TransitionParcelStatusDocument as TRANSITION_PARCEL_STATUS,
   UpdateParcelDocument as UPDATE_PARCEL,
 } from "./generated";
 export type {
@@ -18,6 +20,8 @@ export type {
   GetParcelImportsQueryVariables,
   GetParcelQuery,
   GetParcelQueryVariables,
+  GetParcelTrackingEventsQuery,
+  GetParcelTrackingEventsQueryVariables,
   GetPreLoadParcelsQuery,
   GetPreLoadParcelsQueryVariables,
   GetParcelsForRouteCreationQuery,
@@ -28,6 +32,8 @@ export type {
   ParcelSortInput,
   RegisterParcelMutation,
   RegisterParcelMutationVariables,
+  TransitionParcelStatusMutation,
+  TransitionParcelStatusMutationVariables,
   UpdateParcelMutation,
   UpdateParcelMutationVariables,
 } from "./generated";
