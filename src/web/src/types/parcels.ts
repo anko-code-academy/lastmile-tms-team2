@@ -163,6 +163,25 @@ export interface ParcelDetailAddress {
   email: string | null;
 }
 
+export interface ParcelRouteAssignment {
+  routeId: string;
+  routeStatus: string;
+  startDate: string;
+  endDate: string | null;
+  driverId: string;
+  driverName: string;
+  vehicleId: string;
+  vehiclePlate: string;
+}
+
+export interface ParcelProofOfDelivery {
+  receivedBy: string | null;
+  deliveryLocation: string | null;
+  deliveredAt: string;
+  hasSignatureImage: boolean;
+  hasPhoto: boolean;
+}
+
 export interface ParcelDetail extends RegisteredParcelResult {
   shipperAddressId: string;
   cancellationReason: string | null;
@@ -170,8 +189,12 @@ export interface ParcelDetail extends RegisteredParcelResult {
   lastModifiedAt: string | null;
   canEdit: boolean;
   canCancel: boolean;
+  senderAddress: ParcelDetailAddress;
   recipientAddress: ParcelDetailAddress;
+  statusTimeline: TrackingEvent[];
   changeHistory: ParcelChangeHistoryEntry[];
+  routeAssignment: ParcelRouteAssignment | null;
+  proofOfDelivery: ParcelProofOfDelivery | null;
   /** GraphQL ParcelStatus enum names, e.g. RECEIVED_AT_DEPOT */
   allowedNextStatuses?: GraphQLParcelStatus[];
 }

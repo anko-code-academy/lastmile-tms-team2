@@ -1,16 +1,15 @@
-import type { ParcelDetail, RegisteredParcelResult } from "@/types/parcels";
+import type {
+  ParcelDetail,
+  ParcelDetailAddress,
+  RegisteredParcelResult,
+  TrackingEvent,
+} from "@/types/parcels";
 
 type MockParcel = RegisteredParcelResult & {
   detail: ParcelDetail;
 };
 
-/**
- * Tracking events for mock parcels. Kept as a constant for reference;
- * note `getById` returns `ParcelDetail` which intentionally does not
- * include trackingEvents (those are fetched separately via
- * `getTrackingEvents`, which the mock returns as an empty array).
- */
-const MOCK_TRACKING_EVENTS = [
+const MOCK_TRACKING_EVENTS: TrackingEvent[] = [
   {
     id: "evt-0001",
     timestamp: "2026-04-01T09:15:00Z",
@@ -28,6 +27,20 @@ const MOCK_TRACKING_EVENTS = [
     operator: "admin",
   },
 ];
+
+const MOCK_SENDER_ADDRESS: ParcelDetailAddress = {
+  street1: "10 Shipper Lane",
+  street2: "Dock Office",
+  city: "Chicago",
+  state: "IL",
+  postalCode: "60601",
+  countryCode: "US",
+  isResidential: false,
+  contactName: "Sender Contact",
+  companyName: "Warehouse Sender",
+  phone: "+1 555 0199",
+  email: "sender@example.com",
+};
 
 function makeMockParcel(
   id: string,
@@ -62,6 +75,7 @@ function makeMockParcel(
     canEdit: true,
     canCancel: true,
     lastModifiedAt: "2026-04-01T09:15:00Z",
+    senderAddress: MOCK_SENDER_ADDRESS,
     recipientAddress: {
       street1: "123 Main St",
       street2: null,
@@ -75,7 +89,25 @@ function makeMockParcel(
       phone: "+1 555 0100",
       email: "jamie@example.com",
     },
+    statusTimeline: MOCK_TRACKING_EVENTS,
     changeHistory: [],
+    routeAssignment: {
+      routeId: "route-1",
+      routeStatus: "InProgress",
+      startDate: "2026-04-01T10:15:00Z",
+      endDate: null,
+      driverId: "driver-1",
+      driverName: "Jamie Driver",
+      vehicleId: "vehicle-1",
+      vehiclePlate: "TST-100",
+    },
+    proofOfDelivery: {
+      receivedBy: "Front Desk",
+      deliveryLocation: "Building A",
+      deliveredAt: "2026-04-01T12:30:00Z",
+      hasSignatureImage: true,
+      hasPhoto: true,
+    },
     allowedNextStatuses: ["RECEIVED_AT_DEPOT", "CANCELLED"],
     ...overrides,
   };

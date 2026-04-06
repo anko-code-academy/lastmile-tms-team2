@@ -1,17 +1,25 @@
+import { useEffect } from "react";
 import {
   keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import {
+  HubConnectionBuilder,
+  HubConnectionState,
+} from "@microsoft/signalr";
 import { useSession } from "next-auth/react";
 
 import { parcelsService } from "@/services/parcels.service";
 import type { ParcelFilterInput, ParcelSortInput } from "@/graphql/generated";
+import { normalizeParcelStatusForFilter } from "@/lib/labels/parcels";
+import { apiBaseUrl } from "@/lib/network/api";
 import type { MutationToastMeta } from "@/lib/query/mutation-toast-meta";
 import type {
   CancelParcelRequest,
   GraphQLParcelStatus,
+  LabelDownloadFormat,
   ParcelDetail,
   ParcelFormData,
   ParcelImportDetail,
@@ -25,6 +33,13 @@ import type {
 } from "@/types/parcels";
 
 const parcelImportPollingStatuses = new Set(["Queued", "Processing"]);
+const parcelStatusLiveUpdateStatus = "OUT_FOR_DELIVERY";
+
+type ParcelUpdatedEvent = {
+  trackingNumber?: string | null;
+  status?: string | null;
+  lastModifiedAt?: string | null;
+};
 
 export const parcelKeys = {
   all: ["parcels"] as const,
@@ -147,9 +162,9 @@ export function useUpdateParcel() {
         describe: () => "Parcel changes were saved successfully.",
       },
     } satisfies MutationToastMeta,
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: parcelKeys.all });
-      qc.invalidateQueries({ queryKey: parcelKeys.detail(variables.id) });
+      qc.invalidateQueries({ queryKey: parcelKeys.details() });
     },
   });
 }
@@ -165,21 +180,20 @@ export function useCancelParcel() {
         describe: () => "The parcel was removed from the pre-load queue.",
       },
     } satisfies MutationToastMeta,
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: parcelKeys.all });
-      qc.invalidateQueries({ queryKey: parcelKeys.detail(variables.id) });
-      qc.invalidateQueries({ queryKey: parcelKeys.trackingEvents(variables.id) });
+      qc.invalidateQueries({ queryKey: parcelKeys.details() });
     },
   });
 }
 
-export function useParcel(id: string) {
+export function useParcel(parcelKey: string) {
   const { status } = useSession();
 
   return useQuery<ParcelDetail>({
-    queryKey: parcelKeys.detail(id),
-    queryFn: () => parcelsService.getById(id),
-    enabled: status === "authenticated" && Boolean(id),
+    queryKey: parcelKeys.detail(parcelKey),
+    queryFn: () => parcelsService.getByKey(parcelKey),
+    enabled: status === "authenticated" && Boolean(parcelKey),
   });
 }
 
@@ -232,6 +246,13 @@ export function useDownloadParcelImportErrors() {
   });
 }
 
+export function useDownloadParcelLabel() {
+  return useMutation<string, Error, { parcelId: string; format: LabelDownloadFormat }>({
+    mutationFn: ({ parcelId, format }) =>
+      parcelsService.downloadLabel(parcelId, format),
+  });
+}
+
 export function useParcelTrackingEvents(parcelId: string) {
   const { status } = useSession();
   return useQuery<TrackingEvent[]>({
@@ -251,10 +272,80 @@ export function useTransitionParcelStatus() {
         describe: () => "The parcel status was saved and the timeline was updated.",
       },
     } satisfies MutationToastMeta,
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: parcelKeys.all });
-      qc.invalidateQueries({ queryKey: parcelKeys.detail(variables.parcelId) });
-      qc.invalidateQueries({ queryKey: parcelKeys.trackingEvents(variables.parcelId) });
+      qc.invalidateQueries({ queryKey: parcelKeys.details() });
     },
   });
+}
+
+export function useParcelRealtimeUpdates(parcel: ParcelDetail | null | undefined) {
+  const queryClient = useQueryClient();
+  const { data: session, status } = useSession();
+  const trackingNumber = parcel?.trackingNumber ?? "";
+  const normalizedStatus = normalizeParcelStatusForFilter(parcel?.status ?? "");
+
+  useEffect(() => {
+    if (
+      status !== "authenticated" ||
+      normalizedStatus !== parcelStatusLiveUpdateStatus ||
+      !trackingNumber
+    ) {
+      return;
+    }
+
+    const connection = new HubConnectionBuilder()
+      .withUrl(`${apiBaseUrl().replace(/\/$/, "")}/hubs/parcels`, {
+        accessTokenFactory: () => session?.accessToken ?? "",
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    const handleParcelUpdated = (event: ParcelUpdatedEvent) => {
+      if (event.trackingNumber !== trackingNumber) {
+        return;
+      }
+
+      void queryClient.invalidateQueries({ queryKey: parcelKeys.details() });
+    };
+
+    connection.on("ParcelUpdated", handleParcelUpdated);
+
+    let isDisposed = false;
+
+    void (async () => {
+      try {
+        await connection.start();
+
+        if (isDisposed) {
+          return;
+        }
+
+        await connection.invoke("SubscribeToParcel", trackingNumber);
+      } catch (error) {
+        console.warn("Failed to subscribe to parcel updates", error);
+      }
+    })();
+
+    return () => {
+      isDisposed = true;
+      connection.off("ParcelUpdated", handleParcelUpdated);
+
+      void (async () => {
+        try {
+          if (connection.state === HubConnectionState.Connected) {
+            await connection.invoke("UnsubscribeFromParcel", trackingNumber);
+          }
+        } catch (error) {
+          console.warn("Failed to unsubscribe from parcel updates", error);
+        } finally {
+          try {
+            await connection.stop();
+          } catch (error) {
+            console.warn("Failed to stop parcel updates connection", error);
+          }
+        }
+      })();
+    };
+  }, [normalizedStatus, queryClient, session?.accessToken, status, trackingNumber]);
 }

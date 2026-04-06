@@ -145,8 +145,12 @@ type ParcelDetail {
   lastModifiedAt: DateTime
   canEdit: Boolean!
   canCancel: Boolean!
+  senderAddress: ParcelDetailAddress!
   recipientAddress: ParcelDetailAddress!
+  statusTimeline: [TrackingEventDto!]!
   changeHistory: [ParcelChangeHistory!]!
+  routeAssignment: ParcelRouteAssignment
+  proofOfDelivery: ParcelProofOfDelivery
   allowedNextStatuses: [String!]!
 }
 
@@ -235,13 +239,31 @@ type ParcelImportRowFailurePreview {
   originalRowValues: String!
 }
 
+type ParcelProofOfDelivery {
+  receivedBy: String
+  deliveryLocation: String
+  deliveredAt: DateTime!
+  hasSignatureImage: Boolean!
+  hasPhoto: Boolean!
+}
+
+type ParcelRouteAssignment {
+  routeId: UUID!
+  routeStatus: String!
+  startDate: DateTime!
+  endDate: DateTime
+  driverId: UUID!
+  driverName: String!
+  vehicleId: UUID!
+  vehiclePlate: String!
+}
+
 type ParcelRouteOption {
   id: UUID!
   trackingNumber: String!
   weight: Decimal!
   weightUnit: String
   zoneId: UUID!
-  zone: Zone @cost(weight: "10")
   zoneName: String @cost(weight: "10")
 }
 
@@ -271,6 +293,7 @@ type Query @authorize(roles: [ "Admin" ]) {
   drivers(order: [DriverSortInput!] @cost(weight: "10") where: DriverFilterInput @cost(weight: "10")): [Driver!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   driver(id: UUID!): Driver @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   parcel(id: UUID!): ParcelDetail @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
+  parcelByTrackingNumber(trackingNumber: String!): ParcelDetail @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   parcelsForRouteCreation(vehicleId: UUID! driverId: UUID!): [RegisteredParcel!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   registeredParcels(search: String where: ParcelFilterInput @cost(weight: "10") order: [ParcelSortInput!] @cost(weight: "10")): [RegisteredParcel!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   preLoadParcels(search: String where: ParcelFilterInput @cost(weight: "10") order: [ParcelSortInput!] @cost(weight: "10")): [RegisteredParcel!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
@@ -306,11 +329,9 @@ type RegisteredParcel {
   deliveryAttempts: Int!
   description: String
   zoneId: UUID!
-  zone: Zone @cost(weight: "10")
   zoneName: String @cost(weight: "10")
   depotId: UUID @cost(weight: "10")
   depotName: String @cost(weight: "10")
-  recipientAddress: Address!
   recipientContactName: String @cost(weight: "10")
   recipientCompanyName: String @cost(weight: "10")
   recipientStreet1: String @cost(weight: "10")

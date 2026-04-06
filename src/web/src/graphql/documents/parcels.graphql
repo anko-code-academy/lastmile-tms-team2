@@ -153,6 +153,19 @@ query GetParcel($id: UUID!) {
     lastModifiedAt
     canEdit
     canCancel
+    senderAddress {
+      street1
+      street2
+      city
+      state
+      postalCode
+      countryCode
+      isResidential
+      contactName
+      companyName
+      phone
+      email
+    }
     recipientAddress {
       street1
       street2
@@ -173,6 +186,122 @@ query GetParcel($id: UUID!) {
       afterValue
       changedAt
       changedBy
+    }
+    statusTimeline {
+      id
+      timestamp
+      eventType
+      description
+      location
+      operator
+    }
+    routeAssignment {
+      routeId
+      routeStatus
+      startDate
+      endDate
+      driverId
+      driverName
+      vehicleId
+      vehiclePlate
+    }
+    proofOfDelivery {
+      receivedBy
+      deliveryLocation
+      deliveredAt
+      hasSignatureImage
+      hasPhoto
+    }
+    allowedNextStatuses
+  }
+}
+
+query GetParcelByTrackingNumber($trackingNumber: String!) {
+  parcelByTrackingNumber(trackingNumber: $trackingNumber) {
+    id
+    trackingNumber
+    status
+    shipperAddressId
+    serviceType
+    weight
+    weightUnit
+    length
+    width
+    height
+    dimensionUnit
+    declaredValue
+    currency
+    description
+    parcelType
+    cancellationReason
+    estimatedDeliveryDate
+    deliveryAttempts
+    zoneId
+    zoneName
+    depotId
+    depotName
+    createdAt
+    lastModifiedAt
+    canEdit
+    canCancel
+    senderAddress {
+      street1
+      street2
+      city
+      state
+      postalCode
+      countryCode
+      isResidential
+      contactName
+      companyName
+      phone
+      email
+    }
+    recipientAddress {
+      street1
+      street2
+      city
+      state
+      postalCode
+      countryCode
+      isResidential
+      contactName
+      companyName
+      phone
+      email
+    }
+    changeHistory {
+      action
+      fieldName
+      beforeValue
+      afterValue
+      changedAt
+      changedBy
+    }
+    statusTimeline {
+      id
+      timestamp
+      eventType
+      description
+      location
+      operator
+    }
+    routeAssignment {
+      routeId
+      routeStatus
+      startDate
+      endDate
+      driverId
+      driverName
+      vehicleId
+      vehiclePlate
+    }
+    proofOfDelivery {
+      receivedBy
+      deliveryLocation
+      deliveredAt
+      hasSignatureImage
+      hasPhoto
     }
     allowedNextStatuses
   }
@@ -232,6 +361,19 @@ mutation UpdateParcel($input: UpdateParcelInput!) {
     lastModifiedAt
     canEdit
     canCancel
+    senderAddress {
+      street1
+      street2
+      city
+      state
+      postalCode
+      countryCode
+      isResidential
+      contactName
+      companyName
+      phone
+      email
+    }
     recipientAddress {
       street1
       street2
@@ -252,6 +394,31 @@ mutation UpdateParcel($input: UpdateParcelInput!) {
       afterValue
       changedAt
       changedBy
+    }
+    statusTimeline {
+      id
+      timestamp
+      eventType
+      description
+      location
+      operator
+    }
+    routeAssignment {
+      routeId
+      routeStatus
+      startDate
+      endDate
+      driverId
+      driverName
+      vehicleId
+      vehiclePlate
+    }
+    proofOfDelivery {
+      receivedBy
+      deliveryLocation
+      deliveredAt
+      hasSignatureImage
+      hasPhoto
     }
     allowedNextStatuses
   }
@@ -322,6 +489,19 @@ mutation CancelParcel($input: CancelParcelInput!) {
     canEdit
     canCancel
     lastModifiedAt
+    senderAddress {
+      street1
+      street2
+      city
+      state
+      postalCode
+      countryCode
+      isResidential
+      contactName
+      companyName
+      phone
+      email
+    }
     recipientAddress {
       street1
       street2
@@ -342,6 +522,31 @@ mutation CancelParcel($input: CancelParcelInput!) {
       afterValue
       changedAt
       changedBy
+    }
+    statusTimeline {
+      id
+      timestamp
+      eventType
+      description
+      location
+      operator
+    }
+    routeAssignment {
+      routeId
+      routeStatus
+      startDate
+      endDate
+      driverId
+      driverName
+      vehicleId
+      vehiclePlate
+    }
+    proofOfDelivery {
+      receivedBy
+      deliveryLocation
+      deliveredAt
+      hasSignatureImage
+      hasPhoto
     }
   }
 }

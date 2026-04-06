@@ -11,3 +11,7 @@ const GUID_HEX =
 export function guidString(message: string) {
   return z.string().min(1, message).regex(GUID_HEX, message);
 }
+
+export function isGuidString(value: string | null | undefined): boolean {
+  return typeof value === "string" && GUID_HEX.test(value.trim());
+}

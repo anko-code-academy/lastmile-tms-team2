@@ -6,6 +6,7 @@ import {
   GET_PARCEL_IMPORTS,
   GET_PARCEL_TRACKING_EVENTS,
   PARCEL,
+  PARCEL_BY_TRACKING_NUMBER,
   PRELOAD_PARCELS,
   PRELOAD_PARCELS_CONNECTION,
   PARCELS_FOR_ROUTE,
@@ -17,6 +18,7 @@ import {
 import type { ParcelFilterInput, ParcelSortInput } from "@/graphql/generated";
 import type {
   CancelParcelMutation,
+  GetParcelByTrackingNumberQuery,
   GetParcelImportQuery,
   GetParcelImportsQuery,
   GetParcelQuery,
@@ -31,6 +33,7 @@ import type {
 import { apiBaseUrl, parseApiErrorMessage } from "@/lib/network/api";
 import { graphqlRequest } from "@/lib/network/graphql-client";
 import { downloadAuthenticatedFile, saveBlobAsFile } from "@/lib/network/download";
+import { isGuidString } from "@/lib/validation/guid-string";
 import { mockParcels } from "@/mocks/parcels.mock";
 import { ParcelWeightUnit } from "@/types/parcels";
 import type {
@@ -87,6 +90,13 @@ function toLocalParcelWeightUnit(weightUnit: string | null | undefined): number 
   return weightUnit?.toUpperCase() === "LB"
     ? ParcelWeightUnit.Lb
     : ParcelWeightUnit.Kg;
+}
+
+function findMockParcel(parcelKey: string) {
+  return mockParcels.find(
+    (candidate) =>
+      candidate.id === parcelKey || candidate.trackingNumber === parcelKey,
+  );
 }
 
 async function authenticatedRequest(
@@ -271,7 +281,7 @@ export const parcelsService = {
 
   getById: async (id: string): Promise<ParcelDetail> => {
     if (USE_MOCK) {
-      const parcel = mockParcels.find((candidate) => candidate.id === id)?.detail;
+      const parcel = findMockParcel(id)?.detail;
       if (!parcel) {
         throw new Error("Parcel not found.");
       }
@@ -286,6 +296,34 @@ export const parcelsService = {
     }
 
     return data.parcel as ParcelDetail;
+  },
+
+  getByTrackingNumber: async (trackingNumber: string): Promise<ParcelDetail> => {
+    if (USE_MOCK) {
+      const parcel = findMockParcel(trackingNumber)?.detail;
+      if (!parcel) {
+        throw new Error("Parcel not found.");
+      }
+
+      return parcel;
+    }
+
+    const data = await graphqlRequest<GetParcelByTrackingNumberQuery>(
+      PARCEL_BY_TRACKING_NUMBER,
+      { trackingNumber },
+    );
+
+    if (!data.parcelByTrackingNumber) {
+      throw new Error("Parcel not found.");
+    }
+
+    return data.parcelByTrackingNumber as ParcelDetail;
+  },
+
+  getByKey: async (parcelKey: string): Promise<ParcelDetail> => {
+    return isGuidString(parcelKey)
+      ? parcelsService.getById(parcelKey)
+      : parcelsService.getByTrackingNumber(parcelKey);
   },
 
   register: async (form: ParcelFormData): Promise<RegisteredParcelResult> => {
@@ -632,7 +670,7 @@ export const parcelsService = {
 
   getTrackingEvents: async (parcelId: string): Promise<TrackingEvent[]> => {
     if (USE_MOCK) {
-      return [];
+      return findMockParcel(parcelId)?.detail.statusTimeline ?? [];
     }
 
     const data = await graphqlRequest<{
