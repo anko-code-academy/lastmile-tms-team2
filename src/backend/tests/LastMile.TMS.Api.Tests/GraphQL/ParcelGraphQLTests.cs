@@ -1,5 +1,7 @@
 using System.Net;
 using FluentAssertions;
+using LastMile.TMS.Domain.Entities;
+using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -479,6 +481,116 @@ public class ParcelGraphQLTests(CustomWebApplicationFactory factory)
             parcel.GetProperty("trackingNumber").GetString() == registeredTracking
             && parcel.GetProperty("status").GetString() == "Registered");
         parcels.Should().Contain(parcel => parcel.GetProperty("status").GetString() == "Sorted");
+    }
+
+    [Fact]
+    public async Task GetPreLoadParcels_WhenSelectingZoneName_ReturnsProjectedZone()
+    {
+        var token = await GetAdminAccessTokenAsync();
+
+        using var queryDoc = await PostGraphQLAsync(
+            """
+            query GetPreLoadParcels {
+              preLoadParcels(order: [{ trackingNumber: ASC }]) {
+                trackingNumber
+                zoneName
+              }
+            }
+            """,
+            accessToken: token);
+
+        queryDoc.RootElement.TryGetProperty("errors", out var errors)
+            .Should().BeFalse("preLoadParcels should not return errors: {0}", errors.ToString());
+
+        var seededParcel = queryDoc.RootElement
+            .GetProperty("data")
+            .GetProperty("preLoadParcels")
+            .EnumerateArray()
+            .First(parcel => parcel.GetProperty("trackingNumber").GetString() == "LMTESTSEED0001");
+
+        seededParcel.GetProperty("zoneName").GetString().Should().Be("Test Zone");
+    }
+
+    [Fact]
+    public async Task GetPreLoadParcelsConnection_FirstPage_ReturnsNodesPageInfoAndTotalCount()
+    {
+        var token = await GetAdminAccessTokenAsync();
+
+        using var queryDoc = await PostGraphQLAsync(
+            """
+            query GetPreLoadParcelsConnection($first: Int!) {
+              preLoadParcelsConnection(first: $first, order: [{ trackingNumber: ASC }]) {
+                totalCount
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+                nodes {
+                  trackingNumber
+                  zoneName
+                }
+              }
+            }
+            """,
+            variables: new
+            {
+                first = 2
+            },
+            accessToken: token);
+
+        queryDoc.RootElement.TryGetProperty("errors", out var errors)
+            .Should().BeFalse("preLoadParcelsConnection should not return errors: {0}", errors.ToString());
+
+        var connection = queryDoc.RootElement
+            .GetProperty("data")
+            .GetProperty("preLoadParcelsConnection");
+
+        connection.GetProperty("totalCount").GetInt32().Should().BeGreaterThanOrEqualTo(2);
+        connection.GetProperty("pageInfo").GetProperty("hasNextPage").GetBoolean().Should().BeTrue();
+        connection.GetProperty("pageInfo").GetProperty("endCursor").GetString().Should().NotBeNullOrWhiteSpace();
+
+        var nodes = connection.GetProperty("nodes").EnumerateArray().ToList();
+        nodes.Should().HaveCount(2);
+        nodes.Should().OnlyContain(node => !string.IsNullOrWhiteSpace(node.GetProperty("zoneName").GetString()));
+        nodes.Select(node => node.GetProperty("trackingNumber").GetString()).Should().BeInAscendingOrder();
+    }
+
+    [Fact]
+    public async Task GetParcelsForRouteCreation_WithVehicleAndDriverFilters_ReturnsMatchingZoneParcelsOnly()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var otherZoneId = await SeedZoneAsync("Alternate Test Zone");
+        var otherZoneParcelTrackingNumber = $"LM-ALT-{Guid.NewGuid():N}"[..18].ToUpperInvariant();
+        await SeedParcelAsync(otherZoneId, otherZoneParcelTrackingNumber, ParcelStatus.Sorted);
+
+        using var queryDoc = await PostGraphQLAsync(
+            """
+            query GetParcelsForRouteCreation($vehicleId: UUID!, $driverId: UUID!) {
+              parcelsForRouteCreation(vehicleId: $vehicleId, driverId: $driverId) {
+                trackingNumber
+                zoneName
+              }
+            }
+            """,
+            variables: new
+            {
+                vehicleId = DbSeeder.TestVehicleId,
+                driverId = DbSeeder.TestDriverId
+            },
+            accessToken: token);
+
+        queryDoc.RootElement.TryGetProperty("errors", out var errors)
+            .Should().BeFalse("parcelsForRouteCreation should not return errors: {0}", errors.ToString());
+
+        var parcels = queryDoc.RootElement
+            .GetProperty("data")
+            .GetProperty("parcelsForRouteCreation")
+            .EnumerateArray()
+            .ToList();
+
+        parcels.Should().Contain(parcel => parcel.GetProperty("trackingNumber").GetString() == "LMTESTSEED0001");
+        parcels.Should().NotContain(parcel => parcel.GetProperty("trackingNumber").GetString() == otherZoneParcelTrackingNumber);
+        parcels.Should().OnlyContain(parcel => parcel.GetProperty("zoneName").GetString() == "Test Zone");
     }
 
     [Fact]
@@ -1239,4 +1351,61 @@ public class ParcelGraphQLTests(CustomWebApplicationFactory factory)
     public Task InitializeAsync() => Factory.ResetDatabaseAsync();
 
     public Task DisposeAsync() => Task.CompletedTask;
+
+    private async Task<Guid> SeedZoneAsync(string name)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var templateZone = await dbContext.Zones
+            .AsNoTracking()
+            .SingleAsync(zone => zone.Id == DbSeeder.TestZoneId);
+
+        var zone = new Zone
+        {
+            Name = name,
+            Boundary = (NetTopologySuite.Geometries.Polygon)templateZone.Boundary.Copy(),
+            DepotId = DbSeeder.TestDepotId,
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = "tests"
+        };
+
+        dbContext.Zones.Add(zone);
+        await dbContext.SaveChangesAsync();
+        return zone.Id;
+    }
+
+    private async Task<Guid> SeedParcelAsync(Guid zoneId, string trackingNumber, ParcelStatus status)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var parcel = new Parcel
+        {
+            TrackingNumber = trackingNumber,
+            Description = "Seeded test parcel for route option filtering",
+            ServiceType = ServiceType.Standard,
+            Status = status,
+            ShipperAddressId = DbSeeder.TestParcelShipperAddressId,
+            RecipientAddressId = DbSeeder.TestParcelRecipientAddressId,
+            Weight = 2.5m,
+            WeightUnit = WeightUnit.Kg,
+            Length = 30m,
+            Width = 20m,
+            Height = 10m,
+            DimensionUnit = DimensionUnit.Cm,
+            DeclaredValue = 100m,
+            Currency = "USD",
+            EstimatedDeliveryDate = DateTimeOffset.UtcNow.AddDays(2),
+            DeliveryAttempts = 0,
+            ZoneId = zoneId,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = "tests"
+        };
+
+        dbContext.Parcels.Add(parcel);
+        await dbContext.SaveChangesAsync();
+        return parcel.Id;
+    }
 }

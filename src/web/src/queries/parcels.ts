@@ -33,8 +33,25 @@ export const parcelKeys = {
     where?: ParcelFilterInput,
     order?: ParcelSortInput[],
   ) => [...parcelKeys.all, "preLoad", search ?? "", JSON.stringify(where ?? {}), JSON.stringify(order ?? [])] as const,
+  preLoadPage: (
+    search: string | undefined,
+    where: ParcelFilterInput | undefined,
+    order: ParcelSortInput[] | undefined,
+    first: number,
+    after?: string | null,
+  ) =>
+    [
+      ...parcelKeys.all,
+      "preLoadPage",
+      search ?? "",
+      JSON.stringify(where ?? {}),
+      JSON.stringify(order ?? []),
+      first,
+      after ?? "",
+    ] as const,
   preLoadAll: () => [...parcelKeys.all, "preLoadAll"] as const,
-  forRoute: () => [...parcelKeys.all, "forRoute"] as const,
+  forRoute: (vehicleId?: string, driverId?: string) =>
+    [...parcelKeys.all, "forRoute", vehicleId ?? "", driverId ?? ""] as const,
   registered: () => [...parcelKeys.all, "registered"] as const,
   details: () => [...parcelKeys.all, "detail"] as const,
   detail: (id: string) => [...parcelKeys.details(), id] as const,
@@ -43,12 +60,32 @@ export const parcelKeys = {
   trackingEvents: (parcelId: string) => [...parcelKeys.detail(parcelId), "trackingEvents"] as const,
 };
 
-export function useParcelsForRouteCreation() {
+export function useParcelsForRouteCreation(
+  vehicleId?: string,
+  driverId?: string,
+) {
   const { status } = useSession();
   return useQuery({
-    queryKey: parcelKeys.forRoute(),
-    queryFn: () => parcelsService.getForRouteCreation(),
-    enabled: status === "authenticated",
+    queryKey: parcelKeys.forRoute(vehicleId, driverId),
+    queryFn: () => parcelsService.getForRouteCreation(vehicleId!, driverId!),
+    enabled: status === "authenticated" && !!vehicleId && !!driverId,
+  });
+}
+
+export function usePreLoadParcelsPage(
+  search: string | undefined,
+  where: ParcelFilterInput | undefined,
+  order: ParcelSortInput[] | undefined,
+  first: number,
+  after?: string | null,
+) {
+  const { status: sessionStatus } = useSession();
+  return useQuery({
+    queryKey: parcelKeys.preLoadPage(search, where, order, first, after),
+    queryFn: () =>
+      parcelsService.getPreLoadParcelsPage(search, where, order, first, after),
+    placeholderData: keepPreviousData,
+    enabled: sessionStatus === "authenticated",
   });
 }
 

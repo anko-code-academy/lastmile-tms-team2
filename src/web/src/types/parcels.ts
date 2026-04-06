@@ -67,6 +67,21 @@ export interface ParcelOption {
   trackingNumber: string;
   weight: number;
   weightUnit: number;
+  zoneId: string;
+  zoneName: string | null;
+}
+
+export interface ParcelConnectionPageInfo {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  startCursor: string | null;
+  endCursor: string | null;
+}
+
+export interface ParcelConnectionPage<TNode> {
+  totalCount: number;
+  pageInfo: ParcelConnectionPageInfo;
+  nodes: TNode[];
 }
 
 export type LabelDownloadFormat = "zpl" | "pdf";

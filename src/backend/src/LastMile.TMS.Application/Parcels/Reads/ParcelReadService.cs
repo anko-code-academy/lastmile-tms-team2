@@ -13,11 +13,16 @@ public sealed class ParcelReadService(IAppDbContext dbContext) : IParcelReadServ
     private static readonly ParcelStatus[] PreLoadStatuses =
         [ParcelStatus.Registered, ParcelStatus.ReceivedAtDepot, ParcelStatus.Sorted, ParcelStatus.Staged];
 
-    public IQueryable<Parcel> GetParcelsForRouteCreation() =>
-        dbContext.Parcels
-            .AsNoTracking()
-            .Where(p => RouteCreationStatuses.Contains(p.Status))
-            .OrderBy(p => p.TrackingNumber);
+    public IQueryable<Parcel> GetParcelsForRouteCreation(Guid vehicleId, Guid driverId) =>
+        from parcel in dbContext.Parcels.AsNoTracking()
+        from driver in dbContext.Drivers.AsNoTracking().Where(d => d.Id == driverId)
+        from vehicle in dbContext.Vehicles.AsNoTracking().Where(v => v.Id == vehicleId)
+        where RouteCreationStatuses.Contains(parcel.Status)
+              && driver.DepotId == vehicle.DepotId
+              && parcel.ZoneId == driver.ZoneId
+              && parcel.Zone.DepotId == vehicle.DepotId
+        orderby parcel.TrackingNumber
+        select parcel;
 
     public IQueryable<Parcel> GetRegisteredParcels() =>
         dbContext.Parcels

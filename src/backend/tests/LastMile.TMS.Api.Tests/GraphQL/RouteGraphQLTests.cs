@@ -158,6 +158,38 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
     }
 
     [Fact]
+    public async Task CreateRoute_WithParcelOutsideDriverZone_ReturnsInvalidOperationError()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var alternateZoneId = await SeedZoneAsync("Route Alternate Zone");
+        var alternateParcelId = await SeedParcelAsync(alternateZoneId, $"LMROUTE{Guid.NewGuid():N}"[..15].ToUpperInvariant());
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation CreateRoute($input: CreateRouteInput!) {
+              createRoute(input: $input) {
+                id
+              }
+            }
+            """,
+            new
+            {
+                input = new
+                {
+                    vehicleId = DbSeeder.TestVehicleId,
+                    driverId = DbSeeder.TestDriverId,
+                    startDate = DateTimeOffset.UtcNow.AddHours(1),
+                    startMileage = 100,
+                    parcelIds = new[] { alternateParcelId }
+                }
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out var errors).Should().BeTrue();
+        errors[0].GetProperty("message").GetString().Should().Contain("zone");
+    }
+
+    [Fact]
     public async Task GetRoutes_WithStatusFilter_ReturnsOnlyMatchingRoutes()
     {
         var token = await GetAdminAccessTokenAsync();
@@ -247,6 +279,63 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         dbContext.Vehicles.Add(vehicle);
         await dbContext.SaveChangesAsync();
         return vehicle.Id;
+    }
+
+    private async Task<Guid> SeedZoneAsync(string name)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var templateZone = await dbContext.Zones
+            .AsNoTracking()
+            .SingleAsync(zone => zone.Id == DbSeeder.TestZoneId);
+
+        var zone = new Zone
+        {
+            Name = name,
+            Boundary = (NetTopologySuite.Geometries.Polygon)templateZone.Boundary.Copy(),
+            DepotId = DbSeeder.TestDepotId,
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = "tests"
+        };
+
+        dbContext.Zones.Add(zone);
+        await dbContext.SaveChangesAsync();
+        return zone.Id;
+    }
+
+    private async Task<Guid> SeedParcelAsync(Guid zoneId, string trackingNumber)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var parcel = new Parcel
+        {
+            TrackingNumber = trackingNumber,
+            Description = "Seeded route validation parcel",
+            ServiceType = ServiceType.Standard,
+            Status = ParcelStatus.Sorted,
+            ShipperAddressId = DbSeeder.TestParcelShipperAddressId,
+            RecipientAddressId = DbSeeder.TestParcelRecipientAddressId,
+            Weight = 2.5m,
+            WeightUnit = WeightUnit.Kg,
+            Length = 30m,
+            Width = 20m,
+            Height = 10m,
+            DimensionUnit = DimensionUnit.Cm,
+            DeclaredValue = 100m,
+            Currency = "USD",
+            EstimatedDeliveryDate = DateTimeOffset.UtcNow.AddDays(2),
+            DeliveryAttempts = 0,
+            ZoneId = zoneId,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = "tests"
+        };
+
+        dbContext.Parcels.Add(parcel);
+        await dbContext.SaveChangesAsync();
+        return parcel.Id;
     }
 
     private async Task<Guid> SeedRouteAsync(Guid vehicleId, RouteStatus status, int startMileage, int endMileage = 0)

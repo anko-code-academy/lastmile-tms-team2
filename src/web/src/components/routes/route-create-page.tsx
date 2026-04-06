@@ -58,8 +58,6 @@ export default function NewRoutePage() {
   const { data: vehiclesData = [] } = useVehicles({
     status: "AVAILABLE",
   });
-  const { data: parcels = [], isLoading: parcelsLoading, error: parcelsError } =
-    useParcelsForRouteCreation();
 
   const selectedVehicle = useMemo(
     () => vehiclesData.find((v) => v.id === formData.vehicleId),
@@ -68,6 +66,15 @@ export default function NewRoutePage() {
 
   const { data: drivers = [], isLoading: driversLoading, error: driversError } =
     useDrivers(selectedVehicle?.depotId);
+  const selectedDriver = useMemo(
+    () => drivers.find((driver) => driver.id === formData.driverId),
+    [drivers, formData.driverId],
+  );
+  const {
+    data: parcels = [],
+    isLoading: parcelsLoading,
+    error: parcelsError,
+  } = useParcelsForRouteCreation(selectedVehicle?.id, selectedDriver?.id);
 
   const vehicleOptions = useMemo(
     () => vehicleSelectOptionsForRoute(vehiclesData),
@@ -186,7 +193,12 @@ export default function NewRoutePage() {
                 invalid={!!errors.vehicleId}
                 onChange={(v) => {
                   clearError("vehicleId");
-                  setFormData({ ...formData, vehicleId: v, driverId: "" });
+                  setFormData({
+                    ...formData,
+                    vehicleId: v,
+                    driverId: "",
+                    parcelIds: [],
+                  });
                 }}
                 placeholder="Select vehicle"
               />
@@ -210,7 +222,7 @@ export default function NewRoutePage() {
                 invalid={!!errors.driverId}
                 onChange={(v) => {
                   clearError("driverId");
-                  setFormData({ ...formData, driverId: v });
+                  setFormData({ ...formData, driverId: v, parcelIds: [] });
                 }}
                 disabled={!formData.vehicleId || driversLoading}
                 placeholder={
@@ -275,6 +287,16 @@ export default function NewRoutePage() {
               role="group"
               aria-label="Available parcels"
             >
+              {!formData.vehicleId && (
+                <p className="text-sm text-muted-foreground">
+                  Select a vehicle first, then choose a driver to load matching parcels.
+                </p>
+              )}
+              {formData.vehicleId && !formData.driverId && (
+                <p className="text-sm text-muted-foreground">
+                  Choose a driver to load parcels from that driver&apos;s zone.
+                </p>
+              )}
               {parcelsLoading && (
                 <p className="text-sm text-muted-foreground">Loading parcels</p>
               )}
@@ -283,9 +305,13 @@ export default function NewRoutePage() {
                   Could not load parcels. {API_RESOURCE_LOAD_ERROR}
                 </p>
               )}
-              {!parcelsLoading && !parcelsError && parcels.length === 0 && (
+              {!parcelsLoading &&
+                !parcelsError &&
+                formData.vehicleId &&
+                formData.driverId &&
+                parcels.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  No parcels ready for a route (status Sorted or Staged).
+                  No parcels ready for this driver&apos;s zone (status Sorted or Staged).
                 </p>
               )}
               {!parcelsLoading &&
@@ -304,6 +330,7 @@ export default function NewRoutePage() {
                     <span className="flex-1 text-sm">
                       {p.trackingNumber} ({p.weight}{" "}
                       {formatParcelWeightUnitLabel(p.weightUnit)})
+                      {p.zoneName ? ` - ${p.zoneName}` : ""}
                     </span>
                   </label>
                 ))}

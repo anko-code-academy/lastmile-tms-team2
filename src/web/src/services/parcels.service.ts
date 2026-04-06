@@ -7,6 +7,7 @@ import {
   GET_PARCEL_TRACKING_EVENTS,
   PARCEL,
   PRELOAD_PARCELS,
+  PRELOAD_PARCELS_CONNECTION,
   PARCELS_FOR_ROUTE,
   REGISTER_PARCEL,
   REGISTERED_PARCELS,
@@ -19,7 +20,9 @@ import type {
   GetParcelImportQuery,
   GetParcelImportsQuery,
   GetParcelQuery,
+  GetParcelsForRouteCreationQuery,
   GetParcelTrackingEventsQuery,
+  GetPreLoadParcelsConnectionQuery,
   GetPreLoadParcelsQuery,
   GetRegisteredParcelsQuery,
   TransitionParcelStatusMutation,
@@ -29,9 +32,11 @@ import { apiBaseUrl, parseApiErrorMessage } from "@/lib/network/api";
 import { graphqlRequest } from "@/lib/network/graphql-client";
 import { downloadAuthenticatedFile, saveBlobAsFile } from "@/lib/network/download";
 import { mockParcels } from "@/mocks/parcels.mock";
+import { ParcelWeightUnit } from "@/types/parcels";
 import type {
   CancelParcelRequest,
   LabelDownloadFormat,
+  ParcelConnectionPage,
   ParcelDetail,
   ParcelFormData,
   ParcelImportDetail,
@@ -76,6 +81,12 @@ function extractFileName(
   }
 
   return fallbackFileName;
+}
+
+function toLocalParcelWeightUnit(weightUnit: string | null | undefined): number {
+  return weightUnit?.toUpperCase() === "LB"
+    ? ParcelWeightUnit.Lb
+    : ParcelWeightUnit.Kg;
 }
 
 async function authenticatedRequest(
@@ -142,20 +153,109 @@ export const parcelsService = {
     return data.preLoadParcels;
   },
 
-  getForRouteCreation: async (): Promise<ParcelOption[]> => {
+  getPreLoadParcelsPage: async (
+    search: string | undefined,
+    where: ParcelFilterInput | undefined,
+    order: ParcelSortInput[] | undefined,
+    first: number,
+    after?: string | null,
+  ): Promise<
+    ParcelConnectionPage<
+      NonNullable<
+        NonNullable<
+          NonNullable<GetPreLoadParcelsConnectionQuery["preLoadParcelsConnection"]>["nodes"]
+        >[number]
+      >
+    >
+  > => {
+    if (USE_MOCK) {
+      const startIndex = after ? Number.parseInt(after, 10) || 0 : 0;
+      const nodes = mockParcels.slice(startIndex, startIndex + first);
+      const nextIndex = startIndex + nodes.length;
+      return {
+        totalCount: mockParcels.length,
+        pageInfo: {
+          hasNextPage: nextIndex < mockParcels.length,
+          hasPreviousPage: startIndex > 0,
+          startCursor: nodes.length > 0 ? String(startIndex) : null,
+          endCursor: nodes.length > 0 ? String(nextIndex) : null,
+        },
+        nodes,
+      };
+    }
+
+    const data = await graphqlRequest<GetPreLoadParcelsConnectionQuery>(
+      PRELOAD_PARCELS_CONNECTION,
+      {
+        search: search || undefined,
+        where: where || undefined,
+        order: order || undefined,
+        first,
+        after: after || undefined,
+      },
+    );
+
+    const connection = data.preLoadParcelsConnection;
+    if (!connection) {
+      return {
+        totalCount: 0,
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+        nodes: [],
+      };
+    }
+
+    return {
+      totalCount: connection.totalCount ?? 0,
+      pageInfo: {
+        hasNextPage: connection.pageInfo.hasNextPage,
+        hasPreviousPage: connection.pageInfo.hasPreviousPage,
+        startCursor: connection.pageInfo.startCursor ?? null,
+        endCursor: connection.pageInfo.endCursor ?? null,
+      },
+      nodes: (connection.nodes ?? []).filter(Boolean) as NonNullable<
+        NonNullable<
+          NonNullable<GetPreLoadParcelsConnectionQuery["preLoadParcelsConnection"]>["nodes"]
+        >[number]
+      >[],
+    };
+  },
+
+  getForRouteCreation: async (
+    vehicleId: string,
+    driverId: string,
+  ): Promise<ParcelOption[]> => {
     if (USE_MOCK) {
       return mockParcels.map((parcel) => ({
         id: parcel.id,
         trackingNumber: parcel.trackingNumber,
         weight: parcel.weight,
-        weightUnit: (parcel.weightUnit as string) === "Lb" ? 0 : 1,
+        weightUnit: toLocalParcelWeightUnit(parcel.weightUnit),
+        zoneId: parcel.zoneId,
+        zoneName: parcel.zoneName,
       }));
     }
 
-    const data = await graphqlRequest<{
-      parcelsForRouteCreation: ParcelOption[];
-    }>(PARCELS_FOR_ROUTE);
-    return data.parcelsForRouteCreation;
+    const data = await graphqlRequest<GetParcelsForRouteCreationQuery>(
+      PARCELS_FOR_ROUTE,
+      {
+        vehicleId,
+        driverId,
+      },
+    );
+
+    return data.parcelsForRouteCreation.map((parcel) => ({
+      id: parcel.id,
+      trackingNumber: parcel.trackingNumber,
+      weight: parcel.weight,
+      weightUnit: toLocalParcelWeightUnit(parcel.weightUnit),
+      zoneId: parcel.zoneId,
+      zoneName: parcel.zoneName ?? null,
+    }));
   },
 
   getRegisteredParcels: async (

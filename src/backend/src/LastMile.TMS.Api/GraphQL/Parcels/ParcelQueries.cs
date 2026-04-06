@@ -22,52 +22,38 @@ public sealed class ParcelQueries
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
     [UseProjection]
     public IQueryable<Parcel> GetParcelsForRouteCreation(
+        Guid vehicleId,
+        Guid driverId,
         [Service] IParcelReadService readService = null!) =>
-        readService.GetParcelsForRouteCreation();
+        readService.GetParcelsForRouteCreation(vehicleId, driverId);
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
-    [UseFiltering]
-    [UseSorting]
+    [UseProjection]
+    [UseFiltering(typeof(ParcelFilterInputType))]
+    [UseSorting(typeof(ParcelSortInputType))]
     public IQueryable<Parcel> GetRegisteredParcels(
         string? search,
         [Service] IParcelReadService readService = null!)
-    {
-        var query = readService.GetRegisteredParcels();
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var pattern = search.Trim().ToUpperInvariant();
-            query = query.Where(p =>
-                p.TrackingNumber.ToUpper().Contains(pattern) ||
-                (p.RecipientAddress.ContactName ?? string.Empty).ToUpper().Contains(pattern) ||
-                (p.RecipientAddress.CompanyName ?? string.Empty).ToUpper().Contains(pattern) ||
-                (p.RecipientAddress.Street1 ?? string.Empty).ToUpper().Contains(pattern) ||
-                (p.RecipientAddress.City ?? string.Empty).ToUpper().Contains(pattern) ||
-                (p.RecipientAddress.PostalCode ?? string.Empty).ToUpper().Contains(pattern));
-        }
-        return query;
-    }
+        => ApplyParcelSearch(readService.GetRegisteredParcels(), search);
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
-    [UseFiltering]
-    [UseSorting]
+    [UseProjection]
+    [UseFiltering(typeof(ParcelFilterInputType))]
+    [UseSorting(typeof(ParcelSortInputType))]
     public IQueryable<Parcel> GetPreLoadParcels(
         string? search,
         [Service] IParcelReadService readService = null!)
-    {
-        var query = readService.GetPreLoadParcels();
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var pattern = search.Trim().ToUpperInvariant();
-            query = query.Where(p =>
-                p.TrackingNumber.ToUpper().Contains(pattern) ||
-                (p.RecipientAddress.ContactName ?? string.Empty).ToUpper().Contains(pattern) ||
-                (p.RecipientAddress.CompanyName ?? string.Empty).ToUpper().Contains(pattern) ||
-                (p.RecipientAddress.Street1 ?? string.Empty).ToUpper().Contains(pattern) ||
-                (p.RecipientAddress.City ?? string.Empty).ToUpper().Contains(pattern) ||
-                (p.RecipientAddress.PostalCode ?? string.Empty).ToUpper().Contains(pattern));
-        }
-        return query;
-    }
+        => ApplyParcelSearch(readService.GetPreLoadParcels(), search);
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
+    [UsePaging(IncludeTotalCount = true, DefaultPageSize = 20, MaxPageSize = 100)]
+    [UseProjection]
+    [UseFiltering(typeof(ParcelFilterInputType))]
+    [UseSorting(typeof(ParcelSortInputType))]
+    public IQueryable<Parcel> GetPreLoadParcelsConnection(
+        string? search,
+        [Service] IParcelReadService readService = null!)
+        => ApplyParcelSearch(readService.GetPreLoadParcels(), search);
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
     public Task<IReadOnlyList<ParcelImportHistoryDto>> GetParcelImports(
@@ -88,4 +74,21 @@ public sealed class ParcelQueries
         [Service] IParcelReadService readService,
         CancellationToken cancellationToken) =>
         readService.GetTrackingEventsAsync(parcelId, cancellationToken);
+
+    private static IQueryable<Parcel> ApplyParcelSearch(IQueryable<Parcel> query, string? search)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return query;
+        }
+
+        var pattern = search.Trim().ToUpperInvariant();
+        return query.Where(p =>
+            p.TrackingNumber.ToUpper().Contains(pattern) ||
+            (p.RecipientAddress.ContactName ?? string.Empty).ToUpper().Contains(pattern) ||
+            (p.RecipientAddress.CompanyName ?? string.Empty).ToUpper().Contains(pattern) ||
+            (p.RecipientAddress.Street1 ?? string.Empty).ToUpper().Contains(pattern) ||
+            (p.RecipientAddress.City ?? string.Empty).ToUpper().Contains(pattern) ||
+            (p.RecipientAddress.PostalCode ?? string.Empty).ToUpper().Contains(pattern));
+    }
 }

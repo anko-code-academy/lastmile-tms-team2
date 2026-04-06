@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpDown, ArrowUp, ArrowDown, FileText, Package, PackagePlus, Printer, Search, X } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -37,7 +37,11 @@ import { appToast } from "@/lib/toast/app-toast";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import type { ParcelStatus } from "@/graphql/generated";
-import { useAvailableParcelTypes, useCancelParcel, usePreLoadParcels } from "@/queries/parcels";
+import {
+  useAvailableParcelTypes,
+  useCancelParcel,
+  usePreLoadParcelsPage,
+} from "@/queries/parcels";
 import { useZones } from "@/queries/zones";
 import { parcelsService } from "@/services/parcels.service";
 import { ParcelImportHistoryTable } from "./parcel-import-history-table";
@@ -61,12 +65,16 @@ export default function ParcelsPage() {
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("ASC");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [pageCursors, setPageCursors] = useState<Record<number, string | null>>({
+    1: null,
+  });
 
   const debouncedSearch = useDebounce(search, 300);
   const { data: zones = [] } = useZones();
   const { data: allParcelsForTypes = [] } = useAvailableParcelTypes();
+  const currentPageCursor = pageCursors[page] ?? null;
 
-  const { data = [], isLoading, error } = usePreLoadParcels(
+  const { data, isLoading, error } = usePreLoadParcelsPage(
     debouncedSearch || undefined,
     (statusFilter !== undefined || zoneFilter !== undefined || typeFilter !== undefined || dateFrom !== "" || dateTo !== "")
       ? {
@@ -97,25 +105,51 @@ export default function ParcelsPage() {
           },
         ]
       : undefined,
+    pageSize,
+    currentPageCursor,
   );
 
-  const total = data.length;
+  const parcels = data?.nodes ?? [];
+  const total = data?.totalCount ?? 0;
+  const pageInfo = data?.pageInfo ?? {
+    hasNextPage: false,
+    hasPreviousPage: false,
+    startCursor: null,
+    endCursor: null,
+  };
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = total === 0 ? 0 : Math.min(page * pageSize, total);
-  const pagedData = useMemo(
-    () => data.slice((page - 1) * pageSize, page * pageSize),
-    [data, page, pageSize],
-  );
+  const to = total === 0 ? 0 : Math.min((page - 1) * pageSize + parcels.length, total);
 
-  // Reset to page 1 when data set changes
-  const prevTotal = useRef<number | undefined>(undefined);
   useEffect(() => {
-    if (prevTotal.current !== undefined && prevTotal.current !== total) {
-      setPage(1);
+    setPage(1);
+    setPageCursors({ 1: null });
+  }, [
+    debouncedSearch,
+    statusFilter,
+    zoneFilter,
+    typeFilter,
+    dateFrom,
+    dateTo,
+    sortField,
+    sortDirection,
+    pageSize,
+  ]);
+
+  useEffect(() => {
+    if (!pageInfo.hasNextPage || !pageInfo.endCursor) {
+      return;
     }
-    prevTotal.current = total;
-  }, [total]);
+
+    setPageCursors((current) =>
+      current[page + 1] === pageInfo.endCursor
+        ? current
+        : {
+            ...current,
+            [page + 1]: pageInfo.endCursor,
+          },
+    );
+  }, [page, pageInfo.endCursor, pageInfo.hasNextPage]);
 
   function handleSort(field: string) {
     if (sortField === field) {
@@ -176,15 +210,15 @@ export default function ParcelsPage() {
     useState<PendingCancellation>(null);
 
   const allVisibleSelected =
-    data.length > 0 &&
-    data.every((parcel) => selectedParcelIds.includes(parcel.id));
+    parcels.length > 0 &&
+    parcels.every((parcel) => selectedParcelIds.includes(parcel.id));
 
   const selectedTrackingNumbers = useMemo(
     () =>
-      data
+      parcels
         .filter((parcel) => selectedParcelIds.includes(parcel.id))
         .map((parcel) => parcel.trackingNumber),
-    [data, selectedParcelIds],
+    [parcels, selectedParcelIds],
   );
 
   function toggleParcelSelection(parcelId: string) {
@@ -196,7 +230,7 @@ export default function ParcelsPage() {
   }
 
   function toggleSelectAllVisible(checked: boolean) {
-    setSelectedParcelIds(checked ? data.map((parcel) => parcel.id) : []);
+    setSelectedParcelIds(checked ? parcels.map((parcel) => parcel.id) : []);
   }
 
   async function handleBulkDownload(format: "zpl" | "pdf") {
@@ -360,7 +394,7 @@ export default function ParcelsPage() {
           </div>
         </div>
 
-        {data.length === 0 ? (
+        {parcels.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-12 text-center">
             <p className="font-medium">
               {hasActiveFilters || debouncedSearch
@@ -444,7 +478,7 @@ export default function ParcelsPage() {
                 </tr>
               </thead>
               <tbody>
-                {pagedData.map((parcel) => (
+                {parcels.map((parcel) => (
                   <tr key={parcel.id} className={listDataTableBodyRowClass}>
                     <td className={cn(listDataTableTdClass, "w-14 align-middle")}>
                       <input

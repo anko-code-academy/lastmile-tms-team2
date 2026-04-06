@@ -32,6 +32,47 @@ query GetPreLoadParcels($search: String, $where: ParcelFilterInput, $order: [Par
   }
 }
 
+query GetPreLoadParcelsConnection(
+  $search: String
+  $where: ParcelFilterInput
+  $order: [ParcelSortInput!]
+  $first: Int!
+  $after: String
+) {
+  preLoadParcelsConnection(
+    search: $search
+    where: $where
+    order: $order
+    first: $first
+    after: $after
+  ) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    nodes {
+      id
+      trackingNumber
+      status
+      serviceType
+      weight
+      weightUnit
+      parcelType
+      createdAt
+      zoneName
+      estimatedDeliveryDate
+      recipientContactName
+      recipientCompanyName
+      recipientStreet1
+      recipientCity
+      recipientPostalCode
+    }
+  }
+}
+
 query GetParcelImports {
   parcelImports {
     id
@@ -73,12 +114,14 @@ query GetParcelImport($id: UUID!) {
   }
 }
 
-query GetParcelsForRouteCreation {
-  parcelsForRouteCreation {
+query GetParcelsForRouteCreation($vehicleId: UUID!, $driverId: UUID!) {
+  parcelsForRouteCreation(vehicleId: $vehicleId, driverId: $driverId) {
     id
     trackingNumber
     weight
     weightUnit
+    zoneId
+    zoneName
   }
 }
 

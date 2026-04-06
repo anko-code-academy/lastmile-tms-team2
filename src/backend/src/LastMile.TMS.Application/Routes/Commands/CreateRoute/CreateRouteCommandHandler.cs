@@ -11,6 +11,8 @@ public sealed class CreateRouteCommandHandler(
     IAppDbContext dbContext,
     ICurrentUserService currentUser) : IRequestHandler<CreateRouteCommand, Route>
 {
+    private static readonly ParcelStatus[] RouteCreationStatuses = [ParcelStatus.Sorted, ParcelStatus.Staged];
+
     public async Task<Route> Handle(CreateRouteCommand request, CancellationToken cancellationToken)
     {
         var vehicle = await dbContext.Vehicles
@@ -50,6 +52,15 @@ public sealed class CreateRouteCommandHandler(
 
         if (driver is null)
             throw new InvalidOperationException("Driver not found");
+
+        if (driver.DepotId != vehicle.DepotId)
+            throw new InvalidOperationException("Driver and vehicle must belong to the same depot.");
+
+        if (parcels.Any(parcel => !RouteCreationStatuses.Contains(parcel.Status)))
+            throw new InvalidOperationException("Only parcels with status Sorted or Staged can be assigned to a route.");
+
+        if (parcels.Any(parcel => parcel.ZoneId != driver.ZoneId))
+            throw new InvalidOperationException("All route parcels must belong to the driver's zone.");
 
         var requestedStart = request.Dto.StartDate;
         var requestedEndExclusive = DateTimeOffset.MaxValue;
