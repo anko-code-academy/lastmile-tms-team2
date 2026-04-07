@@ -28,6 +28,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     private readonly SemaphoreSlim _resetLock = new(1, 1);
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
+    private int _disposeState;
     private IReadOnlyList<string>? _resetTableNames;
     private bool _databaseInitialized;
 
@@ -266,4 +267,120 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing)
+        {
+            base.Dispose(false);
+            return;
+        }
+
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0)
+        {
+            return;
+        }
+
+        Exception? disposeException = null;
+        Exception? dropException = null;
+
+        try
+        {
+            base.Dispose(true);
+        }
+        catch (Exception ex)
+        {
+            disposeException = ex;
+        }
+
+        try
+        {
+            DropDatabaseWithForceAsync(TestConnection).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            dropException = ex;
+        }
+        finally
+        {
+            _resetLock.Dispose();
+            _initializationLock.Dispose();
+        }
+
+        if (disposeException is not null)
+        {
+            throw disposeException;
+        }
+
+        if (dropException is not null)
+        {
+            throw new InvalidOperationException(
+                "Failed to drop the PostgreSQL integration test database during fixture teardown.",
+                dropException);
+        }
+    }
+
+    private static async Task DropDatabaseWithForceAsync(
+        string connectionString,
+        CancellationToken cancellationToken = default)
+    {
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        var databaseName = builder.Database;
+
+        if (string.IsNullOrWhiteSpace(databaseName))
+        {
+            return;
+        }
+
+        NpgsqlConnection.ClearAllPools();
+
+        var adminBuilder = new NpgsqlConnectionStringBuilder(connectionString)
+        {
+            Database = "postgres",
+            Pooling = false
+        };
+
+        await using var connection = new NpgsqlConnection(adminBuilder.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        var quotedDatabaseName = QuoteIdentifier(databaseName);
+
+        try
+        {
+            await using var dropCommand = new NpgsqlCommand(
+                $"DROP DATABASE IF EXISTS {quotedDatabaseName} WITH (FORCE);",
+                connection);
+            await dropCommand.ExecuteNonQueryAsync(cancellationToken);
+        }
+        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.SyntaxError or PostgresErrorCodes.FeatureNotSupported)
+        {
+            await ForceTerminateConnectionsAsync(connection, databaseName, cancellationToken);
+
+            await using var dropCommand = new NpgsqlCommand(
+                $"DROP DATABASE IF EXISTS {quotedDatabaseName};",
+                connection);
+            await dropCommand.ExecuteNonQueryAsync(cancellationToken);
+        }
+    }
+
+    private static async Task ForceTerminateConnectionsAsync(
+        NpgsqlConnection connection,
+        string databaseName,
+        CancellationToken cancellationToken)
+    {
+        await using var terminateCommand = new NpgsqlCommand(
+            """
+            SELECT pg_terminate_backend(pid)
+            FROM pg_stat_activity
+            WHERE datname = @databaseName
+              AND pid <> pg_backend_pid()
+            """,
+            connection);
+
+        terminateCommand.Parameters.AddWithValue("databaseName", databaseName);
+        await terminateCommand.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static string QuoteIdentifier(string identifier) =>
+        $"\"{identifier.Replace("\"", "\"\"")}\"";
 }
