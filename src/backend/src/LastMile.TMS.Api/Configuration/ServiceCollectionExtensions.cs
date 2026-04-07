@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Hangfire;
 using Hangfire.PostgreSql;
 using LastMile.TMS.Api.Diagnostics;
+using LastMile.TMS.Api.GraphQL.BinLocations;
 using LastMile.TMS.Api.GraphQL.Common;
 using LastMile.TMS.Api.GraphQL.Depots;
 using LastMile.TMS.Api.GraphQL.Drivers;
@@ -52,6 +53,7 @@ public static class ServiceCollectionExtensions
             .AddMutationType<Mutation>()
             .ModifyCostOptions(o => o.MaxFieldCost = 1000000)
             .AddTypeExtension<DepotQueries>()
+            .AddTypeExtension<BinLocationQueries>()
             .AddTypeExtension<DriverQueries>()
             .AddTypeExtension<ParcelQueries>()
             .AddTypeExtension<RouteQueries>()
@@ -59,6 +61,7 @@ public static class ServiceCollectionExtensions
             .AddTypeExtension<VehicleQueries>()
             .AddTypeExtension<ZoneQueries>()
             .AddTypeExtension<DepotMutations>()
+            .AddTypeExtension<BinLocationMutations>()
             .AddTypeExtension<DriverMutations>()
             .AddTypeExtension<ParcelMutations>()
             .AddTypeExtension<RouteMutations>()
@@ -77,6 +80,10 @@ public static class ServiceCollectionExtensions
             .AddType<GeoLocationType>()
             .AddType<OperatingHoursType>()
             .AddType<DepotType>()
+            .AddType<DepotStorageLayoutType>()
+            .AddType<StorageZoneType>()
+            .AddType<StorageAisleType>()
+            .AddType<BinLocationType>()
             .AddType<AddressFilterInputType>()
             .AddType<AddressSortInputType>()
             .AddType<OperatingHoursFilterInputType>()

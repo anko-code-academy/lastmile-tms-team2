@@ -18,6 +18,13 @@ type Address {
   geoLocation: GeoLocation @cost(weight: "10")
 }
 
+type BinLocation {
+  id: UUID!
+  name: String!
+  isActive: Boolean!
+  storageAisleId: UUID!
+}
+
 type Depot {
   id: UUID!
   name: String!
@@ -27,6 +34,12 @@ type Depot {
   isActive: Boolean!
   createdAt: DateTime!
   updatedAt: DateTime
+}
+
+type DepotStorageLayout {
+  depotId: UUID!
+  depotName: String!
+  storageZones: [StorageZone!]!
 }
 
 type Driver {
@@ -140,6 +153,15 @@ type Mutation {
   createDepot(input: CreateDepotInput!): Depot! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
   updateDepot(id: UUID! input: UpdateDepotInput!): Depot @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
   deleteDepot(id: UUID!): Boolean! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  createStorageZone(input: CreateStorageZoneInput!): StorageZone! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  updateStorageZone(id: UUID! input: UpdateStorageZoneInput!): StorageZone @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  deleteStorageZone(id: UUID!): Boolean! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  createStorageAisle(input: CreateStorageAisleInput!): StorageAisle! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  updateStorageAisle(id: UUID! input: UpdateStorageAisleInput!): StorageAisle @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  deleteStorageAisle(id: UUID!): Boolean! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  createBinLocation(input: CreateBinLocationInput!): BinLocation! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  updateBinLocation(id: UUID! input: UpdateBinLocationInput!): BinLocation @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
+  deleteBinLocation(id: UUID!): Boolean! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
   createDriver(input: CreateDriverInput!): Driver! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
   updateDriver(id: UUID! input: UpdateDriverInput!): Driver! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
   deleteDriver(id: UUID!): Boolean! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
@@ -365,6 +387,7 @@ type PreLoadParcelsConnectionEdge {
 type Query {
   depots(where: DepotFilterInput @cost(weight: "10") order: [DepotSortInput!] @cost(weight: "10")): [Depot!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   depot(id: UUID!): Depot @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  depotStorageLayout(depotId: UUID!): DepotStorageLayout @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
   drivers(order: [DriverSortInput!] @cost(weight: "10") where: DriverFilterInput @cost(weight: "10")): [Driver!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   driver(id: UUID!): Driver @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   parcel(id: UUID!): ParcelDetail @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
@@ -433,6 +456,20 @@ type Route {
   parcelCount: Int! @cost(weight: "10")
   parcelsDelivered: Int! @cost(weight: "10")
   createdAt: DateTime!
+}
+
+type StorageAisle {
+  id: UUID!
+  name: String!
+  storageZoneId: UUID!
+  binLocations: [BinLocation!]!
+}
+
+type StorageZone {
+  id: UUID!
+  name: String!
+  depotId: UUID!
+  storageAisles: [StorageAisle!]!
 }
 
 type TrackingEventDto {
@@ -581,6 +618,12 @@ input ConfirmInboundReceivingSessionInput {
   sessionId: UUID!
 }
 
+input CreateBinLocationInput {
+  name: String!
+  storageAisleId: UUID!
+  isActive: Boolean!
+}
+
 input CreateDepotInput {
   name: String!
   address: AddressInput!
@@ -616,6 +659,16 @@ input CreateRouteInput {
   startDate: DateTime!
   startMileage: Int!
   parcelIds: [UUID!]!
+}
+
+input CreateStorageAisleInput {
+  name: String!
+  storageZoneId: UUID!
+}
+
+input CreateStorageZoneInput {
+  name: String!
+  depotId: UUID!
 }
 
 input CreateUserInput {
@@ -952,6 +1005,12 @@ input TransitionParcelStatusInput {
   description: String
 }
 
+input UpdateBinLocationInput {
+  name: String!
+  storageAisleId: UUID!
+  isActive: Boolean!
+}
+
 input UpdateDepotInput {
   name: String!
   address: AddressInput
@@ -998,6 +1057,16 @@ input UpdateParcelInput {
   currency: String!
   estimatedDeliveryDate: DateTime!
   parcelType: String
+}
+
+input UpdateStorageAisleInput {
+  name: String!
+  storageZoneId: UUID!
+}
+
+input UpdateStorageZoneInput {
+  name: String!
+  depotId: UUID!
 }
 
 input UpdateUserInput {
