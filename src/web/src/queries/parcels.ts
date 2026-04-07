@@ -282,6 +282,7 @@ export function useTransitionParcelStatus() {
 export function useParcelRealtimeUpdates(parcel: ParcelDetail | null | undefined) {
   const queryClient = useQueryClient();
   const { data: session, status } = useSession();
+  const accessToken = session?.accessToken ?? "";
   const trackingNumber = parcel?.trackingNumber ?? "";
   const normalizedStatus = normalizeParcelStatusForFilter(parcel?.status ?? "");
 
@@ -296,7 +297,8 @@ export function useParcelRealtimeUpdates(parcel: ParcelDetail | null | undefined
 
     const connection = new HubConnectionBuilder()
       .withUrl(`${apiBaseUrl().replace(/\/$/, "")}/hubs/parcels`, {
-        accessTokenFactory: () => session?.accessToken ?? "",
+        // Rebuild the connection when NextAuth rotates the token so SignalR renegotiates with fresh auth.
+        accessTokenFactory: () => accessToken,
       })
       .withAutomaticReconnect()
       .build();
@@ -347,5 +349,5 @@ export function useParcelRealtimeUpdates(parcel: ParcelDetail | null | undefined
         }
       })();
     };
-  }, [normalizedStatus, queryClient, session?.accessToken, status, trackingNumber]);
+  }, [accessToken, normalizedStatus, queryClient, status, trackingNumber]);
 }

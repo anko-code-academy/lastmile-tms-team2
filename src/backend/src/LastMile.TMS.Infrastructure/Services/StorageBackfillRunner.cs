@@ -14,6 +14,7 @@ public sealed class StorageBackfillRunner(
     IWebHostEnvironment environment,
     ILogger<StorageBackfillRunner> logger)
 {
+    private const int SaveBatchSize = 50;
     private static readonly FileExtensionContentTypeProvider ContentTypeProvider = new();
 
     public async Task<StorageBackfillResult> RunAsync(CancellationToken cancellationToken = default)
@@ -38,6 +39,7 @@ public sealed class StorageBackfillRunner(
     private async Task<int> BackfillDriverPhotosAsync(CancellationToken cancellationToken)
     {
         var migrated = 0;
+        var pendingLegacyDeletes = new List<string>();
         var drivers = await dbContext.Drivers
             .Where(x => x.PhotoUrl != null && x.PhotoUrl != "")
             .ToListAsync(cancellationToken);
@@ -72,9 +74,18 @@ public sealed class StorageBackfillRunner(
             }
 
             driver.PhotoUrl = DriverPhotoReference.BuildObjectStorageUrl(photoReference.FileName);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            TryDeleteLegacyFile(legacyPath);
             migrated++;
+            pendingLegacyDeletes.Add(legacyPath);
+
+            if (pendingLegacyDeletes.Count >= SaveBatchSize)
+            {
+                await FlushDriverPhotoBatchAsync(pendingLegacyDeletes, cancellationToken);
+            }
+        }
+
+        if (pendingLegacyDeletes.Count > 0)
+        {
+            await FlushDriverPhotoBatchAsync(pendingLegacyDeletes, cancellationToken);
         }
 
         return migrated;
@@ -83,6 +94,7 @@ public sealed class StorageBackfillRunner(
     private async Task<int> BackfillParcelImportsAsync(CancellationToken cancellationToken)
     {
         var migrated = 0;
+        var pendingSaves = 0;
         var parcelImports = await dbContext.ParcelImports
             .Where(x => (x.SourceFileKey == null || x.SourceFileKey == "") && x.SourceFile != null)
             .ToListAsync(cancellationToken);
@@ -104,8 +116,19 @@ public sealed class StorageBackfillRunner(
 
             parcelImport.SourceFileKey = sourceFileKey;
             parcelImport.SourceFile = null;
-            await dbContext.SaveChangesAsync(cancellationToken);
             migrated++;
+            pendingSaves++;
+
+            if (pendingSaves >= SaveBatchSize)
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+                pendingSaves = 0;
+            }
+        }
+
+        if (pendingSaves > 0)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         return migrated;
@@ -116,6 +139,7 @@ public sealed class StorageBackfillRunner(
     {
         var photosMigrated = 0;
         var signaturesMigrated = 0;
+        var pendingSaves = 0;
         var deliveryConfirmations = await dbContext.DeliveryConfirmations.ToListAsync(cancellationToken);
 
         foreach (var deliveryConfirmation in deliveryConfirmations)
@@ -158,11 +182,36 @@ public sealed class StorageBackfillRunner(
 
             if (updated)
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                pendingSaves++;
+
+                if (pendingSaves >= SaveBatchSize)
+                {
+                    await dbContext.SaveChangesAsync(cancellationToken);
+                    pendingSaves = 0;
+                }
             }
         }
 
+        if (pendingSaves > 0)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
         return (photosMigrated, signaturesMigrated);
+    }
+
+    private async Task FlushDriverPhotoBatchAsync(
+        List<string> pendingLegacyDeletes,
+        CancellationToken cancellationToken)
+    {
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var legacyPath in pendingLegacyDeletes)
+        {
+            TryDeleteLegacyFile(legacyPath);
+        }
+
+        pendingLegacyDeletes.Clear();
     }
 
     private string GetWebRootPath()

@@ -267,6 +267,39 @@ public class ParcelImportProcessorTests
             .RegisterAsync(default!, default, default, default);
     }
 
+    [Fact]
+    public async Task ProcessAsync_WithoutStoredSourceFile_FailsGracefully()
+    {
+        var db = MakeDbContext();
+
+        var parcelImport = new ParcelImport
+        {
+            FileName = "parcels.csv",
+            FileFormat = ParcelImportFileFormat.Csv,
+            ShipperAddressId = Guid.NewGuid(),
+            Status = ParcelImportStatus.Queued,
+            CreatedBy = "ops.manager",
+        };
+        db.ParcelImports.Add(parcelImport);
+        await db.SaveChangesAsync();
+
+        var parser = Substitute.For<IParcelImportFileParser>();
+        var registrationService = Substitute.For<IParcelRegistrationService>();
+        var processor = new ParcelImportProcessor(db, new InMemoryFileStorageService(), parser, registrationService);
+
+        var action = () => processor.ProcessAsync(parcelImport.Id, CancellationToken.None);
+
+        await action.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage($"Parcel import '{parcelImport.Id}' has no source file content.");
+
+        var persistedImport = await db.ParcelImports.SingleAsync(x => x.Id == parcelImport.Id);
+        persistedImport.Status.Should().Be(ParcelImportStatus.Failed);
+        persistedImport.FailureMessage.Should().Be($"Parcel import '{parcelImport.Id}' has no source file content.");
+        await parser.DidNotReceiveWithAnyArgs()
+            .ParseAsync(default!, default!, default);
+    }
+
     private sealed class CountingAppDbContext(DbContextOptions<AppDbContext> options)
         : AppDbContext(options)
     {

@@ -15,7 +15,7 @@ public sealed class S3CompatibleFileStorageService : IFileStorageService
     private readonly StorageOptions _options;
     private readonly ILogger<S3CompatibleFileStorageService> _logger;
     private readonly SemaphoreSlim _bucketLock = new(1, 1);
-    private volatile bool _bucketReady;
+    private int _bucketReady;
 
     public S3CompatibleFileStorageService(
         IOptions<StorageOptions> options,
@@ -132,7 +132,7 @@ public sealed class S3CompatibleFileStorageService : IFileStorageService
 
     private async Task EnsureBucketAsync(CancellationToken cancellationToken)
     {
-        if (_bucketReady || !_options.AutoCreateBucket)
+        if (IsBucketReady() || !_options.AutoCreateBucket)
         {
             return;
         }
@@ -140,7 +140,7 @@ public sealed class S3CompatibleFileStorageService : IFileStorageService
         await _bucketLock.WaitAsync(cancellationToken);
         try
         {
-            if (_bucketReady)
+            if (IsBucketReady())
             {
                 return;
             }
@@ -161,12 +161,17 @@ public sealed class S3CompatibleFileStorageService : IFileStorageService
                 _logger.LogDebug("Bucket {Bucket} already exists.", _options.BucketName);
             }
 
-            _bucketReady = true;
+            Interlocked.Exchange(ref _bucketReady, 1);
         }
         finally
         {
             _bucketLock.Release();
         }
+    }
+
+    private bool IsBucketReady()
+    {
+        return Volatile.Read(ref _bucketReady) == 1;
     }
 
     private static void ValidateKey(string key)

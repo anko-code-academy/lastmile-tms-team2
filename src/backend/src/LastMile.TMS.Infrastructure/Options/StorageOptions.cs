@@ -4,9 +4,9 @@ public sealed class StorageOptions
 {
     public string Endpoint { get; set; } = "http://localhost:9000";
 
-    public string AccessKey { get; set; } = "minioadmin";
+    public string AccessKey { get; set; } = string.Empty;
 
-    public string SecretKey { get; set; } = "minioadmin";
+    public string SecretKey { get; set; } = string.Empty;
 
     public string Region { get; set; } = "us-east-1";
 

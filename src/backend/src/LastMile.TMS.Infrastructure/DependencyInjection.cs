@@ -24,7 +24,14 @@ public static class DependencyInjection
         QuestPDF.Settings.License = LicenseType.Community;
 
         services.AddHttpContextAccessor();
-        services.Configure<StorageOptions>(configuration.GetSection("Storage"));
+        services.AddOptions<StorageOptions>()
+            .Bind(configuration.GetSection("Storage"))
+            .Validate(
+                options => disableExternalInfrastructure
+                    || (!string.IsNullOrWhiteSpace(options.AccessKey)
+                        && !string.IsNullOrWhiteSpace(options.SecretKey)),
+                "Storage access key and secret key are required when external infrastructure is enabled.")
+            .ValidateOnStart();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IDriverPhotoFileCleanup, DriverPhotoFileCleanup>();
         services.AddScoped<DriverPhotoOrphanCleanupJob>();
