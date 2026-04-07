@@ -25,7 +25,7 @@ public sealed class CreateBinLocationCommandHandler(IAppDbContext db)
         var duplicateExists = await db.BinLocations
             .AnyAsync(
                 x => x.StorageAisleId == request.Dto.StorageAisleId
-                    && (x.NormalizedName == normalizedName || x.Name.ToUpper() == normalizedName),
+                    && x.NormalizedName == normalizedName,
                 cancellationToken);
         if (duplicateExists)
         {
@@ -36,8 +36,28 @@ public sealed class CreateBinLocationCommandHandler(IAppDbContext db)
         entity.Name = name;
         entity.NormalizedName = normalizedName;
 
-        db.BinLocations.Add(entity);
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            db.BinLocations.Add(entity);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            var duplicatePersisted = await db.BinLocations
+                .AnyAsync(
+                    x => x.StorageAisleId == request.Dto.StorageAisleId
+                        && x.NormalizedName == normalizedName,
+                    cancellationToken);
+
+            if (duplicatePersisted)
+            {
+                throw new InvalidOperationException(
+                    $"A bin location named '{name}' already exists for this storage aisle.",
+                    ex);
+            }
+
+            throw;
+        }
 
         return entity.ToResultDto();
     }

@@ -25,7 +25,7 @@ public sealed class CreateStorageAisleCommandHandler(IAppDbContext db)
         var duplicateExists = await db.StorageAisles
             .AnyAsync(
                 x => x.StorageZoneId == request.Dto.StorageZoneId
-                    && (x.NormalizedName == normalizedName || x.Name.ToUpper() == normalizedName),
+                    && x.NormalizedName == normalizedName,
                 cancellationToken);
         if (duplicateExists)
         {

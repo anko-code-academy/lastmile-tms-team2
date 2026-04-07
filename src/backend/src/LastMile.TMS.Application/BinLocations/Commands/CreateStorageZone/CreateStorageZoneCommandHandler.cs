@@ -25,7 +25,7 @@ public sealed class CreateStorageZoneCommandHandler(IAppDbContext db)
         var duplicateExists = await db.StorageZones
             .AnyAsync(
                 x => x.DepotId == request.Dto.DepotId
-                    && (x.NormalizedName == normalizedName || x.Name.ToUpper() == normalizedName),
+                    && x.NormalizedName == normalizedName,
                 cancellationToken);
         if (duplicateExists)
         {
