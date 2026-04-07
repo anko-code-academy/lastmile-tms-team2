@@ -23,25 +23,17 @@ public sealed class UpdateStorageAisleCommandHandler(IAppDbContext db)
         var name = BinLocationNameNormalizer.Normalize(request.Dto.Name);
         var normalizedName = BinLocationNameNormalizer.NormalizeForUniqueness(name);
 
-        var storageZoneExists = await db.StorageZones
-            .AnyAsync(x => x.Id == request.Dto.StorageZoneId, cancellationToken);
-        if (!storageZoneExists)
-        {
-            throw new InvalidOperationException($"Storage zone '{request.Dto.StorageZoneId}' was not found.");
-        }
-
         var duplicateExists = await db.StorageAisles
             .AnyAsync(
                 x => x.Id != request.Id
-                    && x.StorageZoneId == request.Dto.StorageZoneId
-                    && (x.NormalizedName == normalizedName || x.Name.ToUpper() == normalizedName),
+                    && x.StorageZoneId == entity.StorageZoneId
+                    && x.NormalizedName == normalizedName,
                 cancellationToken);
         if (duplicateExists)
         {
             throw new InvalidOperationException($"A storage aisle named '{name}' already exists for this storage zone.");
         }
 
-        request.Dto.UpdateEntity(entity);
         entity.Name = name;
         entity.NormalizedName = normalizedName;
 

@@ -9,11 +9,15 @@ public sealed class UpdateStorageZoneCommandValidator : AbstractValidator<Update
         RuleFor(x => x.Id)
             .NotEmpty();
 
-        RuleFor(x => x.Dto.Name)
-            .NotEmpty().WithMessage("Storage zone name is required.")
-            .MaximumLength(200).WithMessage("Storage zone name must not exceed 200 characters.");
+        RuleFor(x => x.Dto)
+            .NotNull()
+            .WithMessage("Storage zone update payload is required.");
 
-        RuleFor(x => x.Dto.DepotId)
-            .NotEmpty().WithMessage("DepotId is required.");
+        When(x => x.Dto is not null, () =>
+        {
+            RuleFor(x => x.Dto.Name)
+                .NotEmpty().WithMessage("Storage zone name is required.")
+                .MaximumLength(200).WithMessage("Storage zone name must not exceed 200 characters.");
+        });
     }
 }

@@ -23,27 +23,23 @@ public sealed class UpdateBinLocationCommandHandler(IAppDbContext db)
         var name = BinLocationNameNormalizer.Normalize(request.Dto.Name);
         var normalizedName = BinLocationNameNormalizer.NormalizeForUniqueness(name);
 
-        var storageAisleExists = await db.StorageAisles
-            .AnyAsync(x => x.Id == request.Dto.StorageAisleId, cancellationToken);
-        if (!storageAisleExists)
-        {
-            throw new InvalidOperationException($"Storage aisle '{request.Dto.StorageAisleId}' was not found.");
-        }
-
         var duplicateExists = await db.BinLocations
             .AnyAsync(
                 x => x.Id != request.Id
-                    && x.StorageAisleId == request.Dto.StorageAisleId
-                    && (x.NormalizedName == normalizedName || x.Name.ToUpper() == normalizedName),
+                    && x.StorageAisleId == entity.StorageAisleId
+                    && x.NormalizedName == normalizedName,
                 cancellationToken);
         if (duplicateExists)
         {
             throw new InvalidOperationException($"A bin location named '{name}' already exists for this storage aisle.");
         }
 
-        request.Dto.UpdateEntity(entity);
         entity.Name = name;
         entity.NormalizedName = normalizedName;
+        if (request.Dto.IsActive.HasValue)
+        {
+            entity.IsActive = request.Dto.IsActive.Value;
+        }
 
         await db.SaveChangesAsync(cancellationToken);
 

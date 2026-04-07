@@ -9,7 +9,6 @@ public sealed class CreateStorageZoneInput
 public sealed class UpdateStorageZoneInput
 {
     public string Name { get; set; } = string.Empty;
-    public Guid DepotId { get; set; }
 }
 
 public sealed class CreateStorageAisleInput
@@ -21,7 +20,6 @@ public sealed class CreateStorageAisleInput
 public sealed class UpdateStorageAisleInput
 {
     public string Name { get; set; } = string.Empty;
-    public Guid StorageZoneId { get; set; }
 }
 
 public sealed class CreateBinLocationInput
@@ -34,6 +32,5 @@ public sealed class CreateBinLocationInput
 public sealed class UpdateBinLocationInput
 {
     public string Name { get; set; } = string.Empty;
-    public Guid StorageAisleId { get; set; }
-    public bool IsActive { get; set; }
+    public bool? IsActive { get; set; }
 }

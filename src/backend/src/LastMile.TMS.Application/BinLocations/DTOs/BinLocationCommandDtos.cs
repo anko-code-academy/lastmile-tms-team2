@@ -9,7 +9,6 @@ public sealed record CreateStorageZoneDto
 public sealed record UpdateStorageZoneDto
 {
     public string Name { get; init; } = string.Empty;
-    public Guid DepotId { get; init; }
 }
 
 public sealed record CreateStorageAisleDto
@@ -21,7 +20,6 @@ public sealed record CreateStorageAisleDto
 public sealed record UpdateStorageAisleDto
 {
     public string Name { get; init; } = string.Empty;
-    public Guid StorageZoneId { get; init; }
 }
 
 public sealed record CreateBinLocationDto
@@ -34,6 +32,5 @@ public sealed record CreateBinLocationDto
 public sealed record UpdateBinLocationDto
 {
     public string Name { get; init; } = string.Empty;
-    public Guid StorageAisleId { get; init; }
-    public bool IsActive { get; init; }
+    public bool? IsActive { get; init; }
 }
