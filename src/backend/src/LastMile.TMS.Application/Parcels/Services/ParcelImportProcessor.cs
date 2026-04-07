@@ -10,6 +10,7 @@ namespace LastMile.TMS.Application.Parcels.Services;
 
 public sealed class ParcelImportProcessor(
     IAppDbContext db,
+    IFileStorageService fileStorageService,
     IParcelImportFileParser parser,
     IParcelRegistrationService registrationService)
 {
@@ -34,9 +35,10 @@ public sealed class ParcelImportProcessor(
 
         try
         {
+            await using var sourceStream = await OpenSourceFileStreamAsync(parcelImport, cancellationToken);
             var parsedFile = await parser.ParseAsync(
                 parcelImport.FileName,
-                parcelImport.SourceFile,
+                sourceStream,
                 cancellationToken);
 
             parcelImport.TotalRows = parsedFile.TotalRows;
@@ -136,5 +138,23 @@ public sealed class ParcelImportProcessor(
     {
         return processedRows == totalRows
             || processedRows % ProgressSaveBatchSize == 0;
+    }
+
+    private async Task<Stream> OpenSourceFileStreamAsync(
+        ParcelImport parcelImport,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(parcelImport.SourceFileKey))
+        {
+            var storedObject = await fileStorageService.OpenReadAsync(parcelImport.SourceFileKey, cancellationToken);
+            return storedObject.Content;
+        }
+
+        if (parcelImport.SourceFile is { Length: > 0 })
+        {
+            return new MemoryStream(parcelImport.SourceFile, writable: false);
+        }
+
+        throw new InvalidOperationException($"Parcel import '{parcelImport.Id}' has no source file content.");
     }
 }

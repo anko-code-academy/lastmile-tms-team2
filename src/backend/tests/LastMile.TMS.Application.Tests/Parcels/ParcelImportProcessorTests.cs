@@ -1,6 +1,7 @@
 using FluentAssertions;
 using LastMile.TMS.Application.Parcels.DTOs;
 using LastMile.TMS.Application.Parcels.Services;
+using LastMile.TMS.Infrastructure.Services;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Persistence;
@@ -106,7 +107,7 @@ public class ParcelImportProcessorTests
         var parser = Substitute.For<IParcelImportFileParser>();
         parser.ParseAsync(
                 Arg.Any<string>(),
-                Arg.Any<byte[]>(),
+                Arg.Any<Stream>(),
                 Arg.Any<CancellationToken>())
             .Returns(new ParcelImportParsedFile(
                 3,
@@ -140,7 +141,7 @@ public class ParcelImportProcessorTests
         currentUser.UserName.Returns("ops.manager");
 
         var registrationService = new ParcelRegistrationService(db, geocoding, zoneMatching, currentUser);
-        var processor = new ParcelImportProcessor(db, parser, registrationService);
+        var processor = new ParcelImportProcessor(db, new InMemoryFileStorageService(), parser, registrationService);
 
         await processor.ProcessAsync(parcelImport.Id, CancellationToken.None);
 
@@ -186,7 +187,7 @@ public class ParcelImportProcessorTests
         var parser = Substitute.For<IParcelImportFileParser>();
         parser.ParseAsync(
                 Arg.Any<string>(),
-                Arg.Any<byte[]>(),
+                Arg.Any<Stream>(),
                 Arg.Any<CancellationToken>())
             .Returns(new ParcelImportParsedFile(
                 1,
@@ -211,7 +212,7 @@ public class ParcelImportProcessorTests
         currentUser.UserId.Returns((string?)null);
 
         var registrationService = new ParcelRegistrationService(db, geocoding, zoneMatching, currentUser);
-        var processor = new ParcelImportProcessor(db, parser, registrationService);
+        var processor = new ParcelImportProcessor(db, new InMemoryFileStorageService(), parser, registrationService);
 
         await processor.ProcessAsync(parcelImport.Id, CancellationToken.None);
 
@@ -244,7 +245,7 @@ public class ParcelImportProcessorTests
         var parser = Substitute.For<IParcelImportFileParser>();
         parser.ParseAsync(
                 Arg.Any<string>(),
-                Arg.Any<byte[]>(),
+                Arg.Any<Stream>(),
                 Arg.Any<CancellationToken>())
             .Returns(new ParcelImportParsedFile(
                 100,
@@ -257,7 +258,7 @@ public class ParcelImportProcessorTests
                     .ToArray()));
 
         var registrationService = Substitute.For<IParcelRegistrationService>();
-        var processor = new ParcelImportProcessor(db, parser, registrationService);
+        var processor = new ParcelImportProcessor(db, new InMemoryFileStorageService(), parser, registrationService);
 
         await processor.ProcessAsync(parcelImport.Id, CancellationToken.None);
 

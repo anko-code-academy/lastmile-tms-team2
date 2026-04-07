@@ -3,6 +3,7 @@ using System;
 using LastMile.TMS.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LastMile.TMS.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260407003848_AddObjectStorageFields")]
+    partial class AddObjectStorageFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1409,7 +1412,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("ParcelWatcherId");
 
-                    b.ToTable("ParcelWatcherLinks", (string)null);
+                    b.ToTable("ParcelWatcherLinks");
                 });
 
             modelBuilder.Entity("RolePermissions", b =>
@@ -1424,7 +1427,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("RolesId");
 
-                    b.ToTable("RolePermissions", (string)null);
+                    b.ToTable("RolePermissions");
                 });
 
             modelBuilder.Entity("RouteParcels", b =>
@@ -1439,7 +1442,7 @@ namespace LastMile.TMS.Persistence.Migrations
 
                     b.HasIndex("RouteId");
 
-                    b.ToTable("RouteParcels", (string)null);
+                    b.ToTable("RouteParcels");
                 });
 
             modelBuilder.Entity("LastMile.TMS.Domain.Entities.ApplicationUser", b =>

@@ -18,6 +18,12 @@ public class DeliveryConfirmationConfiguration : IEntityTypeConfiguration<Delive
         builder.Property(dc => dc.DeliveryLocation)
             .HasMaxLength(500);
 
+        builder.Property(dc => dc.SignatureImageKey)
+            .HasMaxLength(512);
+
+        builder.Property(dc => dc.PhotoKey)
+            .HasMaxLength(512);
+
         builder.Property(dc => dc.SignatureImage)
             .HasColumnType("bytea");
 

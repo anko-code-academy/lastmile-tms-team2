@@ -6,6 +6,7 @@ using LastMile.TMS.Application;
 using LastMile.TMS.Infrastructure;
 using LastMile.TMS.Infrastructure.Services;
 using LastMile.TMS.Persistence;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 // Use CreateLogger - Serilog's CreateBootstrapLogger breaks WebApplicationFactory (serilog-aspnetcore#289).
@@ -69,6 +70,17 @@ try
     app.MapGraphQL("/api/graphql");
     app.MapGraphQL("/graphql");
     app.MapHub<ParcelUpdatesHub>("/hubs/parcels");
+
+    if (args.Contains("--run-storage-backfill", StringComparer.OrdinalIgnoreCase))
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        var seeder = scope.ServiceProvider.GetRequiredService<DbSeeder>();
+        await seeder.SeedAsync(runMigrations: true);
+
+        var runner = scope.ServiceProvider.GetRequiredService<StorageBackfillRunner>();
+        await runner.RunAsync();
+        return;
+    }
 
     app.Run();
 }

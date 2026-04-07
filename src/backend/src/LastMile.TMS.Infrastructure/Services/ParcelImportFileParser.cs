@@ -12,20 +12,29 @@ public sealed class ParcelImportFileParser : IParcelImportFileParser
 {
     public Task<ParcelImportParsedFile> ParseAsync(
         string fileName,
-        byte[] content,
+        Stream content,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (content.Length == 0)
+        if (content.CanSeek)
+        {
+            content.Position = 0;
+        }
+
+        using var buffer = new MemoryStream();
+        content.CopyTo(buffer);
+        var bytes = buffer.ToArray();
+
+        if (bytes.Length == 0)
         {
             throw new ParcelImportFileValidationException("The uploaded file is empty.");
         }
 
         return GetFormat(fileName) switch
         {
-            ParcelImportFileFormat.Csv => Task.FromResult(ParseCsv(content)),
-            ParcelImportFileFormat.Xlsx => Task.FromResult(ParseXlsx(content)),
+            ParcelImportFileFormat.Csv => Task.FromResult(ParseCsv(bytes)),
+            ParcelImportFileFormat.Xlsx => Task.FromResult(ParseXlsx(bytes)),
             _ => throw new ParcelImportFileValidationException("Only .csv and .xlsx files are supported."),
         };
     }

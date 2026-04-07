@@ -4,6 +4,6 @@ public interface IParcelImportFileParser
 {
     Task<ParcelImportParsedFile> ParseAsync(
         string fileName,
-        byte[] content,
+        Stream content,
         CancellationToken cancellationToken = default);
 }

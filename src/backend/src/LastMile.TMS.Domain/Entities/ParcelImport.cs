@@ -9,7 +9,8 @@ public class ParcelImport : BaseAuditableEntity
     public ParcelImportFileFormat FileFormat { get; set; }
     public Guid ShipperAddressId { get; set; }
     public ParcelImportStatus Status { get; set; }
-    public byte[] SourceFile { get; set; } = [];
+    public string? SourceFileKey { get; set; }
+    public byte[]? SourceFile { get; set; }
     public int TotalRows { get; set; }
     public int ProcessedRows { get; set; }
     public int ImportedRows { get; set; }

@@ -104,8 +104,10 @@ public static partial class ParcelMappings
                 ReceivedBy = parcel.DeliveryConfirmation.ReceivedBy,
                 DeliveryLocation = parcel.DeliveryConfirmation.DeliveryLocation,
                 DeliveredAt = parcel.DeliveryConfirmation.DeliveredAt,
-                HasSignatureImage = parcel.DeliveryConfirmation.SignatureImage is { Length: > 0 },
-                HasPhoto = parcel.DeliveryConfirmation.Photo is { Length: > 0 },
+                HasSignatureImage = !string.IsNullOrWhiteSpace(parcel.DeliveryConfirmation.SignatureImageKey)
+                    || parcel.DeliveryConfirmation.SignatureImage is { Length: > 0 },
+                HasPhoto = !string.IsNullOrWhiteSpace(parcel.DeliveryConfirmation.PhotoKey)
+                    || parcel.DeliveryConfirmation.Photo is { Length: > 0 },
             };
         }
 

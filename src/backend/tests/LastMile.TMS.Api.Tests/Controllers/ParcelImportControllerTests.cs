@@ -3,8 +3,10 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
+using LastMile.TMS.Infrastructure.Services;
 using LastMile.TMS.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LastMile.TMS.Api.Tests.Controllers;
 
@@ -114,6 +116,36 @@ public class ParcelImportControllerTests(CustomWebApplicationFactory factory)
         report.Should().Contain("row_number,error_message,recipient_street1");
         report.Should().Contain("17 Pitt Street");
         report.Should().Contain("weight must be a valid number.");
+    }
+
+    [Fact]
+    public async Task Upload_PersistsSourceFileInObjectStorage_AndKeepsOnlyStorageKeyInDatabase()
+    {
+        var request = await CreateUploadRequestAsync(
+            fileName: "parcels.csv",
+            fileContent:
+                """
+                recipient_street1,recipient_street2,recipient_city,recipient_state,recipient_postal_code,recipient_country_code,recipient_is_residential,recipient_contact_name,recipient_company_name,recipient_phone,recipient_email,description,parcel_type,service_type,weight,weight_unit,length,width,height,dimension_unit,declared_value,currency,estimated_delivery_date
+                15 George Street,,Sydney,NSW,2000,AU,true,Taylor Smith,Acme,+61000000000,taylor@example.com,Box,Package,STANDARD,2.5,KG,20,10,5,CM,100,AUD,2030-01-15
+                """);
+
+        var response = await _client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var importId = document.RootElement.GetProperty("importId").GetGuid();
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var fileStorage = scope.ServiceProvider.GetRequiredService<InMemoryFileStorageService>();
+
+        var parcelImport = await db.ParcelImports.FindAsync(importId);
+        parcelImport.Should().NotBeNull();
+        parcelImport!.SourceFileKey.Should().NotBeNullOrWhiteSpace();
+        parcelImport.SourceFile.Should().BeNull();
+
+        var keys = await fileStorage.ListKeysAsync("parcel-imports/");
+        keys.Should().Contain(parcelImport.SourceFileKey!);
     }
 
     private async Task<HttpRequestMessage> CreateUploadRequestAsync(

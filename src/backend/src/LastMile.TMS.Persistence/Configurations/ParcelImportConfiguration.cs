@@ -24,8 +24,10 @@ public class ParcelImportConfiguration : IEntityTypeConfiguration<ParcelImport>
             .HasConversion<string>()
             .IsRequired();
 
-        builder.Property(x => x.SourceFile)
-            .IsRequired();
+        builder.Property(x => x.SourceFileKey)
+            .HasMaxLength(512);
+
+        builder.Property(x => x.SourceFile);
 
         builder.Property(x => x.FailureMessage)
             .HasMaxLength(4000);
