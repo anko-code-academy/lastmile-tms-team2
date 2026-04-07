@@ -21,6 +21,7 @@ The goal is consistency inside this layout, not a broad move to `features/*` at 
 - Keep components talking to query hooks, not directly to services.
 - Keep services thin. They prepare variables, auth tokens, mock branching, and small UI-facing normalization.
 - Keep domain vocabulary aligned with the backend:
+  - `bin-locations`
   - `depots`
   - `drivers`
   - `parcels`
@@ -56,6 +57,7 @@ src/web/src/
 
   components/
     auth/
+    bin-locations/
     dashboard/
     depots/
     drivers/
@@ -73,6 +75,7 @@ src/web/src/
   graphql/
     documents/
     generated/
+    bin-locations.ts
     depots.ts
     drivers.ts
     parcels.ts

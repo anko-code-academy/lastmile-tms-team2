@@ -17,6 +17,7 @@
 
 ### 3. Conventions
 - Preserve the project vocabulary:
+  - `bin-locations`
   - `depots`
   - `drivers`
   - `parcels`

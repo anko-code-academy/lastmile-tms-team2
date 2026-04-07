@@ -13,6 +13,7 @@ The backend is a layered .NET solution with:
 - HotChocolate projection-backed reads for simple list/detail queries
 
 Primary feature vocabulary:
+- `bin-locations`
 - `depots`
 - `drivers`
 - `parcels`
@@ -63,13 +64,19 @@ Responsibilities:
 GraphQL feature structure:
 
 ```text
-LastMile.TMS.Api/GraphQL/
+  LastMile.TMS.Api/GraphQL/
   Common/
     EntityObjectType.cs
     Query.cs
     Mutation.cs
     GraphQLErrorFilter.cs
     DomainExceptionErrorFilter.cs
+  BinLocations/
+    BinLocationInputs.cs
+    BinLocationMappings.cs
+    BinLocationMutations.cs
+    BinLocationQueries.cs
+    BinLocationTypes.cs
   Depots/
     DepotInputs.cs
     DepotMappings.cs
@@ -119,10 +126,16 @@ Responsibilities:
 Canonical feature structure:
 
 ```text
-LastMile.TMS.Application/
+  LastMile.TMS.Application/
   Common/
     Behaviors/
     Interfaces/
+  BinLocations/
+    Commands/
+    Queries/
+    DTOs/
+    Mappings/
+    Support/
   Depots/
     Commands/
       CreateDepot/
@@ -401,6 +414,7 @@ Projection-backed today:
 - `zones`
 
 MediatR-backed today:
+- `bin-locations`
 - all mutations
 - workflow queries such as user management lookups
 - any future aggregate or orchestration-heavy read
