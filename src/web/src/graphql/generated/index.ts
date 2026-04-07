@@ -91,6 +91,14 @@ export type ApplyPolicy =
   /** The policy is applied in the validation step before the execution. */
   | 'VALIDATION';
 
+export type BinLocation = {
+  __typename?: 'BinLocation';
+  id: Scalars['UUID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  storageAisleId: Scalars['UUID']['output'];
+};
+
 export type BooleanOperationFilterInput = {
   eq?: InputMaybe<Scalars['Boolean']['input']>;
   neq?: InputMaybe<Scalars['Boolean']['input']>;
@@ -109,6 +117,12 @@ export type CompletePasswordResetInput = {
 
 export type ConfirmInboundReceivingSessionInput = {
   sessionId: Scalars['UUID']['input'];
+};
+
+export type CreateBinLocationInput = {
+  isActive: Scalars['Boolean']['input'];
+  name: Scalars['String']['input'];
+  storageAisleId: Scalars['UUID']['input'];
 };
 
 export type CreateDepotInput = {
@@ -146,6 +160,16 @@ export type CreateRouteInput = {
   startDate: Scalars['DateTime']['input'];
   startMileage: Scalars['Int']['input'];
   vehicleId: Scalars['UUID']['input'];
+};
+
+export type CreateStorageAisleInput = {
+  name: Scalars['String']['input'];
+  storageZoneId: Scalars['UUID']['input'];
+};
+
+export type CreateStorageZoneInput = {
+  depotId: Scalars['UUID']['input'];
+  name: Scalars['String']['input'];
 };
 
 export type CreateUserInput = {
@@ -253,6 +277,13 @@ export type DepotSortInput = {
   isActive?: InputMaybe<SortEnumType>;
   name?: InputMaybe<SortEnumType>;
   updatedAt?: InputMaybe<SortEnumType>;
+};
+
+export type DepotStorageLayout = {
+  __typename?: 'DepotStorageLayout';
+  depotId: Scalars['UUID']['output'];
+  depotName: Scalars['String']['output'];
+  storageZones: Array<StorageZone>;
 };
 
 export type DimensionUnit =
@@ -449,15 +480,21 @@ export type Mutation = {
   cancelParcel?: Maybe<ParcelDetail>;
   completePasswordReset: UserActionResultDto;
   confirmInboundReceivingSession: InboundReceivingSession;
+  createBinLocation: BinLocation;
   createDepot: Depot;
   createDriver: Driver;
   createRoute: Route;
+  createStorageAisle: StorageAisle;
+  createStorageZone: StorageZone;
   createUser: UserManagementUser;
   createVehicle: Vehicle;
   createZone: Zone;
   deactivateUser: UserManagementUser;
+  deleteBinLocation: Scalars['Boolean']['output'];
   deleteDepot: Scalars['Boolean']['output'];
   deleteDriver: Scalars['Boolean']['output'];
+  deleteStorageAisle: Scalars['Boolean']['output'];
+  deleteStorageZone: Scalars['Boolean']['output'];
   deleteVehicle: Scalars['Boolean']['output'];
   deleteZone: Scalars['Boolean']['output'];
   registerParcel: ParcelDto;
@@ -466,9 +503,12 @@ export type Mutation = {
   sendPasswordResetEmail: UserActionResultDto;
   startInboundReceivingSession: InboundReceivingSession;
   transitionParcelStatus: ParcelDto;
+  updateBinLocation?: Maybe<BinLocation>;
   updateDepot?: Maybe<Depot>;
   updateDriver: Driver;
   updateParcel?: Maybe<ParcelDetail>;
+  updateStorageAisle?: Maybe<StorageAisle>;
+  updateStorageZone?: Maybe<StorageZone>;
   updateUser: UserManagementUser;
   updateVehicle?: Maybe<Vehicle>;
   updateZone?: Maybe<Zone>;
@@ -490,6 +530,11 @@ export type MutationConfirmInboundReceivingSessionArgs = {
 };
 
 
+export type MutationCreateBinLocationArgs = {
+  input: CreateBinLocationInput;
+};
+
+
 export type MutationCreateDepotArgs = {
   input: CreateDepotInput;
 };
@@ -502,6 +547,16 @@ export type MutationCreateDriverArgs = {
 
 export type MutationCreateRouteArgs = {
   input: CreateRouteInput;
+};
+
+
+export type MutationCreateStorageAisleArgs = {
+  input: CreateStorageAisleInput;
+};
+
+
+export type MutationCreateStorageZoneArgs = {
+  input: CreateStorageZoneInput;
 };
 
 
@@ -525,12 +580,27 @@ export type MutationDeactivateUserArgs = {
 };
 
 
+export type MutationDeleteBinLocationArgs = {
+  id: Scalars['UUID']['input'];
+};
+
+
 export type MutationDeleteDepotArgs = {
   id: Scalars['UUID']['input'];
 };
 
 
 export type MutationDeleteDriverArgs = {
+  id: Scalars['UUID']['input'];
+};
+
+
+export type MutationDeleteStorageAisleArgs = {
+  id: Scalars['UUID']['input'];
+};
+
+
+export type MutationDeleteStorageZoneArgs = {
   id: Scalars['UUID']['input'];
 };
 
@@ -575,6 +645,12 @@ export type MutationTransitionParcelStatusArgs = {
 };
 
 
+export type MutationUpdateBinLocationArgs = {
+  id: Scalars['UUID']['input'];
+  input: UpdateBinLocationInput;
+};
+
+
 export type MutationUpdateDepotArgs = {
   id: Scalars['UUID']['input'];
   input: UpdateDepotInput;
@@ -589,6 +665,18 @@ export type MutationUpdateDriverArgs = {
 
 export type MutationUpdateParcelArgs = {
   input: UpdateParcelInput;
+};
+
+
+export type MutationUpdateStorageAisleArgs = {
+  id: Scalars['UUID']['input'];
+  input: UpdateStorageAisleInput;
+};
+
+
+export type MutationUpdateStorageZoneArgs = {
+  id: Scalars['UUID']['input'];
+  input: UpdateStorageZoneInput;
 };
 
 
@@ -903,6 +991,7 @@ export type PreLoadParcelsConnectionEdge = {
 export type Query = {
   __typename?: 'Query';
   depot?: Maybe<Depot>;
+  depotStorageLayout?: Maybe<DepotStorageLayout>;
   depots: Array<Depot>;
   driver?: Maybe<Driver>;
   drivers: Array<Driver>;
@@ -929,6 +1018,11 @@ export type Query = {
 
 export type QueryDepotArgs = {
   id: Scalars['UUID']['input'];
+};
+
+
+export type QueryDepotStorageLayoutArgs = {
+  depotId: Scalars['UUID']['input'];
 };
 
 
@@ -1188,6 +1282,22 @@ export type StartInboundReceivingSessionInput = {
   manifestId: Scalars['UUID']['input'];
 };
 
+export type StorageAisle = {
+  __typename?: 'StorageAisle';
+  binLocations: Array<BinLocation>;
+  id: Scalars['UUID']['output'];
+  name: Scalars['String']['output'];
+  storageZoneId: Scalars['UUID']['output'];
+};
+
+export type StorageZone = {
+  __typename?: 'StorageZone';
+  depotId: Scalars['UUID']['output'];
+  id: Scalars['UUID']['output'];
+  name: Scalars['String']['output'];
+  storageAisles: Array<StorageAisle>;
+};
+
 export type StringOperationFilterInput = {
   and?: InputMaybe<Array<StringOperationFilterInput>>;
   contains?: InputMaybe<Scalars['String']['input']>;
@@ -1233,6 +1343,12 @@ export type TransitionParcelStatusInput = {
   location?: InputMaybe<Scalars['String']['input']>;
   newStatus: ParcelStatus;
   parcelId: Scalars['UUID']['input'];
+};
+
+export type UpdateBinLocationInput = {
+  isActive: Scalars['Boolean']['input'];
+  name: Scalars['String']['input'];
+  storageAisleId: Scalars['UUID']['input'];
 };
 
 export type UpdateDepotInput = {
@@ -1281,6 +1397,16 @@ export type UpdateParcelInput = {
   weight: Scalars['Decimal']['input'];
   weightUnit: WeightUnit;
   width: Scalars['Decimal']['input'];
+};
+
+export type UpdateStorageAisleInput = {
+  name: Scalars['String']['input'];
+  storageZoneId: Scalars['UUID']['input'];
+};
+
+export type UpdateStorageZoneInput = {
+  depotId: Scalars['UUID']['input'];
+  name: Scalars['String']['input'];
 };
 
 export type UpdateUserInput = {
@@ -1525,6 +1651,79 @@ export type ZoneSortInput = {
   name?: InputMaybe<SortEnumType>;
   updatedAt?: InputMaybe<SortEnumType>;
 };
+
+export type GetDepotStorageLayoutQueryVariables = Exact<{
+  depotId: Scalars['UUID']['input'];
+}>;
+
+
+export type GetDepotStorageLayoutQuery = { __typename?: 'Query', depotStorageLayout?: { __typename?: 'DepotStorageLayout', depotId: string, depotName: string, storageZones: Array<{ __typename?: 'StorageZone', id: string, name: string, depotId: string, storageAisles: Array<{ __typename?: 'StorageAisle', id: string, name: string, storageZoneId: string, binLocations: Array<{ __typename?: 'BinLocation', id: string, name: string, isActive: boolean, storageAisleId: string }> }> }> } | null };
+
+export type CreateStorageZoneMutationVariables = Exact<{
+  input: CreateStorageZoneInput;
+}>;
+
+
+export type CreateStorageZoneMutation = { __typename?: 'Mutation', createStorageZone: { __typename?: 'StorageZone', id: string, name: string, depotId: string, storageAisles: Array<{ __typename?: 'StorageAisle', id: string, name: string, storageZoneId: string, binLocations: Array<{ __typename?: 'BinLocation', id: string, name: string, isActive: boolean, storageAisleId: string }> }> } };
+
+export type UpdateStorageZoneMutationVariables = Exact<{
+  id: Scalars['UUID']['input'];
+  input: UpdateStorageZoneInput;
+}>;
+
+
+export type UpdateStorageZoneMutation = { __typename?: 'Mutation', updateStorageZone?: { __typename?: 'StorageZone', id: string, name: string, depotId: string, storageAisles: Array<{ __typename?: 'StorageAisle', id: string, name: string, storageZoneId: string, binLocations: Array<{ __typename?: 'BinLocation', id: string, name: string, isActive: boolean, storageAisleId: string }> }> } | null };
+
+export type DeleteStorageZoneMutationVariables = Exact<{
+  id: Scalars['UUID']['input'];
+}>;
+
+
+export type DeleteStorageZoneMutation = { __typename?: 'Mutation', deleteStorageZone: boolean };
+
+export type CreateStorageAisleMutationVariables = Exact<{
+  input: CreateStorageAisleInput;
+}>;
+
+
+export type CreateStorageAisleMutation = { __typename?: 'Mutation', createStorageAisle: { __typename?: 'StorageAisle', id: string, name: string, storageZoneId: string, binLocations: Array<{ __typename?: 'BinLocation', id: string, name: string, isActive: boolean, storageAisleId: string }> } };
+
+export type UpdateStorageAisleMutationVariables = Exact<{
+  id: Scalars['UUID']['input'];
+  input: UpdateStorageAisleInput;
+}>;
+
+
+export type UpdateStorageAisleMutation = { __typename?: 'Mutation', updateStorageAisle?: { __typename?: 'StorageAisle', id: string, name: string, storageZoneId: string, binLocations: Array<{ __typename?: 'BinLocation', id: string, name: string, isActive: boolean, storageAisleId: string }> } | null };
+
+export type DeleteStorageAisleMutationVariables = Exact<{
+  id: Scalars['UUID']['input'];
+}>;
+
+
+export type DeleteStorageAisleMutation = { __typename?: 'Mutation', deleteStorageAisle: boolean };
+
+export type CreateBinLocationMutationVariables = Exact<{
+  input: CreateBinLocationInput;
+}>;
+
+
+export type CreateBinLocationMutation = { __typename?: 'Mutation', createBinLocation: { __typename?: 'BinLocation', id: string, name: string, isActive: boolean, storageAisleId: string } };
+
+export type UpdateBinLocationMutationVariables = Exact<{
+  id: Scalars['UUID']['input'];
+  input: UpdateBinLocationInput;
+}>;
+
+
+export type UpdateBinLocationMutation = { __typename?: 'Mutation', updateBinLocation?: { __typename?: 'BinLocation', id: string, name: string, isActive: boolean, storageAisleId: string } | null };
+
+export type DeleteBinLocationMutationVariables = Exact<{
+  id: Scalars['UUID']['input'];
+}>;
+
+
+export type DeleteBinLocationMutation = { __typename?: 'Mutation', deleteBinLocation: boolean };
 
 export type GetDepotsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1861,6 +2060,16 @@ export type DeleteZoneMutationVariables = Exact<{
 export type DeleteZoneMutation = { __typename?: 'Mutation', deleteZone: boolean };
 
 
+export const GetDepotStorageLayoutDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetDepotStorageLayout"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"depotId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"depotStorageLayout"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"depotId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"depotId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"depotName"}},{"kind":"Field","name":{"kind":"Name","value":"storageZones"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"storageAisles"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"storageZoneId"}},{"kind":"Field","name":{"kind":"Name","value":"binLocations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"storageAisleId"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetDepotStorageLayoutQuery, GetDepotStorageLayoutQueryVariables>;
+export const CreateStorageZoneDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateStorageZone"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateStorageZoneInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createStorageZone"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"storageAisles"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"storageZoneId"}},{"kind":"Field","name":{"kind":"Name","value":"binLocations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"storageAisleId"}}]}}]}}]}}]}}]} as unknown as DocumentNode<CreateStorageZoneMutation, CreateStorageZoneMutationVariables>;
+export const UpdateStorageZoneDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateStorageZone"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateStorageZoneInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateStorageZone"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"depotId"}},{"kind":"Field","name":{"kind":"Name","value":"storageAisles"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"storageZoneId"}},{"kind":"Field","name":{"kind":"Name","value":"binLocations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"storageAisleId"}}]}}]}}]}}]}}]} as unknown as DocumentNode<UpdateStorageZoneMutation, UpdateStorageZoneMutationVariables>;
+export const DeleteStorageZoneDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteStorageZone"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteStorageZone"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteStorageZoneMutation, DeleteStorageZoneMutationVariables>;
+export const CreateStorageAisleDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateStorageAisle"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateStorageAisleInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createStorageAisle"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"storageZoneId"}},{"kind":"Field","name":{"kind":"Name","value":"binLocations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"storageAisleId"}}]}}]}}]}}]} as unknown as DocumentNode<CreateStorageAisleMutation, CreateStorageAisleMutationVariables>;
+export const UpdateStorageAisleDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateStorageAisle"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateStorageAisleInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateStorageAisle"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"storageZoneId"}},{"kind":"Field","name":{"kind":"Name","value":"binLocations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"storageAisleId"}}]}}]}}]}}]} as unknown as DocumentNode<UpdateStorageAisleMutation, UpdateStorageAisleMutationVariables>;
+export const DeleteStorageAisleDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteStorageAisle"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteStorageAisle"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteStorageAisleMutation, DeleteStorageAisleMutationVariables>;
+export const CreateBinLocationDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateBinLocation"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateBinLocationInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createBinLocation"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"storageAisleId"}}]}}]}}]} as unknown as DocumentNode<CreateBinLocationMutation, CreateBinLocationMutationVariables>;
+export const UpdateBinLocationDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateBinLocation"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateBinLocationInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateBinLocation"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"storageAisleId"}}]}}]}}]} as unknown as DocumentNode<UpdateBinLocationMutation, UpdateBinLocationMutationVariables>;
+export const DeleteBinLocationDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteBinLocation"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deleteBinLocation"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeleteBinLocationMutation, DeleteBinLocationMutationVariables>;
 export const GetDepotsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetDepots"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"depots"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"addressId"}},{"kind":"Field","name":{"kind":"Name","value":"address"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"street1"}},{"kind":"Field","name":{"kind":"Name","value":"street2"}},{"kind":"Field","name":{"kind":"Name","value":"city"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"postalCode"}},{"kind":"Field","name":{"kind":"Name","value":"countryCode"}},{"kind":"Field","name":{"kind":"Name","value":"isResidential"}},{"kind":"Field","name":{"kind":"Name","value":"contactName"}},{"kind":"Field","name":{"kind":"Name","value":"companyName"}},{"kind":"Field","name":{"kind":"Name","value":"phone"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"geoLocation"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"latitude"}},{"kind":"Field","name":{"kind":"Name","value":"longitude"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"operatingHours"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"dayOfWeek"}},{"kind":"Field","name":{"kind":"Name","value":"openTime"}},{"kind":"Field","name":{"kind":"Name","value":"closedTime"}},{"kind":"Field","name":{"kind":"Name","value":"isClosed"}}]}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<GetDepotsQuery, GetDepotsQueryVariables>;
 export const GetDepotDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetDepot"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UUID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"depot"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"addressId"}},{"kind":"Field","name":{"kind":"Name","value":"address"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"street1"}},{"kind":"Field","name":{"kind":"Name","value":"street2"}},{"kind":"Field","name":{"kind":"Name","value":"city"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"postalCode"}},{"kind":"Field","name":{"kind":"Name","value":"countryCode"}},{"kind":"Field","name":{"kind":"Name","value":"isResidential"}},{"kind":"Field","name":{"kind":"Name","value":"contactName"}},{"kind":"Field","name":{"kind":"Name","value":"companyName"}},{"kind":"Field","name":{"kind":"Name","value":"phone"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"geoLocation"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"latitude"}},{"kind":"Field","name":{"kind":"Name","value":"longitude"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"operatingHours"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"dayOfWeek"}},{"kind":"Field","name":{"kind":"Name","value":"openTime"}},{"kind":"Field","name":{"kind":"Name","value":"closedTime"}},{"kind":"Field","name":{"kind":"Name","value":"isClosed"}}]}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<GetDepotQuery, GetDepotQueryVariables>;
 export const CreateDepotDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateDepot"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateDepotInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createDepot"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"addressId"}},{"kind":"Field","name":{"kind":"Name","value":"address"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"street1"}},{"kind":"Field","name":{"kind":"Name","value":"street2"}},{"kind":"Field","name":{"kind":"Name","value":"city"}},{"kind":"Field","name":{"kind":"Name","value":"state"}},{"kind":"Field","name":{"kind":"Name","value":"postalCode"}},{"kind":"Field","name":{"kind":"Name","value":"countryCode"}},{"kind":"Field","name":{"kind":"Name","value":"isResidential"}},{"kind":"Field","name":{"kind":"Name","value":"contactName"}},{"kind":"Field","name":{"kind":"Name","value":"companyName"}},{"kind":"Field","name":{"kind":"Name","value":"phone"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"geoLocation"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"latitude"}},{"kind":"Field","name":{"kind":"Name","value":"longitude"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"operatingHours"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"dayOfWeek"}},{"kind":"Field","name":{"kind":"Name","value":"openTime"}},{"kind":"Field","name":{"kind":"Name","value":"closedTime"}},{"kind":"Field","name":{"kind":"Name","value":"isClosed"}}]}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}}]}}]} as unknown as DocumentNode<CreateDepotMutation, CreateDepotMutationVariables>;

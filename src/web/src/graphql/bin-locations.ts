@@ -1,0 +1,25 @@
+export {
+  GetDepotStorageLayoutDocument as GET_DEPOT_STORAGE_LAYOUT,
+  CreateStorageZoneDocument as CREATE_STORAGE_ZONE,
+  UpdateStorageZoneDocument as UPDATE_STORAGE_ZONE,
+  DeleteStorageZoneDocument as DELETE_STORAGE_ZONE,
+  CreateStorageAisleDocument as CREATE_STORAGE_AISLE,
+  UpdateStorageAisleDocument as UPDATE_STORAGE_AISLE,
+  DeleteStorageAisleDocument as DELETE_STORAGE_AISLE,
+  CreateBinLocationDocument as CREATE_BIN_LOCATION,
+  UpdateBinLocationDocument as UPDATE_BIN_LOCATION,
+  DeleteBinLocationDocument as DELETE_BIN_LOCATION,
+} from "./generated";
+export type {
+  GetDepotStorageLayoutQuery,
+  GetDepotStorageLayoutQueryVariables,
+  CreateStorageZoneMutation,
+  UpdateStorageZoneMutation,
+  DeleteStorageZoneMutation,
+  CreateStorageAisleMutation,
+  UpdateStorageAisleMutation,
+  DeleteStorageAisleMutation,
+  CreateBinLocationMutation,
+  UpdateBinLocationMutation,
+  DeleteBinLocationMutation,
+} from "./generated";
