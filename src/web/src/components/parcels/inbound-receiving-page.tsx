@@ -68,7 +68,7 @@ export function InboundReceivingPage() {
       ? sessionSnapshot
       : queriedSession ?? null;
   const manifestHasSession =
-    (session?.manifestId === selectedManifest?.id && session.status === "Open") ||
+    (session?.manifestId === selectedManifest?.id && session?.status === "Open") ||
     Boolean(selectedManifest?.openSessionId);
   const unexpectedParcels =
     session?.exceptions.filter((item) => item.exceptionType === "Unexpected") ??
