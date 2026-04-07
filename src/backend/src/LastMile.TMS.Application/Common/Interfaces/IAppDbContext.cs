@@ -11,6 +11,9 @@ public interface IAppDbContext
     DbSet<IdentityUserRole<Guid>> UserRoles { get; }
     DbSet<Depot> Depots { get; }
     DbSet<Zone> Zones { get; }
+    DbSet<StorageZone> StorageZones { get; }
+    DbSet<StorageAisle> StorageAisles { get; }
+    DbSet<BinLocation> BinLocations { get; }
     DbSet<Permission> Permissions { get; }
     DbSet<Driver> Drivers { get; }
     DbSet<Vehicle> Vehicles { get; }
