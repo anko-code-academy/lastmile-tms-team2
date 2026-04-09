@@ -37,5 +37,10 @@ public class RouteConfiguration : IEntityTypeConfiguration<Route>
         builder.HasMany(x => x.Parcels)
             .WithMany()
             .UsingEntity("RouteParcels");
+
+        builder.HasMany(x => x.AssignmentAuditTrail)
+            .WithOne(x => x.Route)
+            .HasForeignKey(x => x.RouteId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

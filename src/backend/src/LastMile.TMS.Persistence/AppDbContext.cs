@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Driver> Drivers => Set<Driver>();
     public DbSet<DriverAvailability> DriverAvailabilities => Set<DriverAvailability>();
     public DbSet<Route> Routes => Set<Route>();
+    public DbSet<RouteAssignmentAuditEntry> RouteAssignmentAuditEntries => Set<RouteAssignmentAuditEntry>();
     public DbSet<Parcel> Parcels => Set<Parcel>();
     public DbSet<DeliveryConfirmation> DeliveryConfirmations => Set<DeliveryConfirmation>();
     public DbSet<ParcelChangeHistoryEntry> ParcelChangeHistoryEntries => Set<ParcelChangeHistoryEntry>();

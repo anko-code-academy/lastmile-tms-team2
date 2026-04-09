@@ -1,5 +1,6 @@
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Routes.Mappings;
+using LastMile.TMS.Application.Routes.Support;
 using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using MediatR;
@@ -22,7 +23,7 @@ public sealed class CreateRouteCommandHandler(
         if (vehicle is null)
             throw new InvalidOperationException("Vehicle not found");
 
-        if (vehicle.Status != VehicleStatus.Available)
+        if (!RouteAssignmentSupport.IsVehicleAssignableStatus(vehicle.Status))
             throw new InvalidOperationException($"Vehicle is not available. Current status: {vehicle.Status}");
 
         var parcels = await dbContext.Parcels
@@ -39,7 +40,7 @@ public sealed class CreateRouteCommandHandler(
                 $"Parcel capacity exceeded. Vehicle capacity: {vehicle.ParcelCapacity}, Requested: {totalParcelCount}");
         }
 
-        var totalWeightKg = parcels.Sum(p => p.WeightUnit == WeightUnit.Lb ? p.Weight * 0.453592m : p.Weight);
+        var totalWeightKg = RouteAssignmentSupport.GetTotalWeightKg(parcels);
         if (totalWeightKg > vehicle.WeightCapacity)
         {
             throw new InvalidOperationException(
@@ -48,13 +49,20 @@ public sealed class CreateRouteCommandHandler(
 
         var driver = await dbContext.Drivers
             .Include(d => d.User)
+            .Include(d => d.AvailabilitySchedule)
             .FirstOrDefaultAsync(d => d.Id == request.Dto.DriverId, cancellationToken);
 
         if (driver is null)
             throw new InvalidOperationException("Driver not found");
 
+        if (driver.Status != DriverStatus.Active)
+            throw new InvalidOperationException($"Driver is not available. Current status: {driver.Status}");
+
         if (driver.DepotId != vehicle.DepotId)
             throw new InvalidOperationException("Driver and vehicle must belong to the same depot.");
+
+        if (!RouteAssignmentSupport.IsDriverScheduleCompatible(driver.AvailabilitySchedule, request.Dto.StartDate))
+            throw new InvalidOperationException("Driver is not available for the route service date.");
 
         if (parcels.Any(parcel => !RouteCreationStatuses.Contains(parcel.Status)))
             throw new InvalidOperationException("Only parcels with status Sorted or Staged can be assigned to a route.");
@@ -78,36 +86,40 @@ public sealed class CreateRouteCommandHandler(
             throw new InvalidOperationException(
                 $"Parcels already assigned to an active route: {string.Join(", ", parcelsAlreadyAssigned)}");
 
-        var requestedStart = request.Dto.StartDate;
-        var requestedEndExclusive = DateTimeOffset.MaxValue;
-        var driverHasOverlappingRoute = await dbContext.Routes
+        var serviceDayStart = RouteAssignmentSupport.GetServiceDayStart(request.Dto.StartDate);
+        var serviceDayEnd = RouteAssignmentSupport.GetServiceDayEnd(request.Dto.StartDate);
+        var driverHasSameDayRoute = await dbContext.Routes
             .AsNoTracking()
             .AnyAsync(
                 r => r.DriverId == request.Dto.DriverId
-                    && (r.Status == RouteStatus.Planned || r.Status == RouteStatus.InProgress)
-                    && r.StartDate < requestedEndExclusive
-                    && requestedStart < (r.EndDate ?? DateTimeOffset.MaxValue),
+                    && RouteAssignmentSupport.ActiveAssignmentStatuses.Contains(r.Status)
+                    && r.StartDate >= serviceDayStart
+                    && r.StartDate < serviceDayEnd,
                 cancellationToken);
 
-        if (driverHasOverlappingRoute)
+        if (driverHasSameDayRoute)
             throw new InvalidOperationException(
-                "Driver is already assigned to a planned or in-progress route that overlaps the requested time.");
+                "Driver is already assigned to another planned or in-progress route on that service date.");
 
-        var vehicleHasOverlappingRoute = await dbContext.Routes
+        var vehicleHasSameDayRoute = await dbContext.Routes
             .AsNoTracking()
             .AnyAsync(
                 r => r.VehicleId == request.Dto.VehicleId
-                    && (r.Status == RouteStatus.Planned || r.Status == RouteStatus.InProgress)
-                    && r.StartDate < requestedEndExclusive
-                    && requestedStart < (r.EndDate ?? DateTimeOffset.MaxValue),
+                    && RouteAssignmentSupport.ActiveAssignmentStatuses.Contains(r.Status)
+                    && r.StartDate >= serviceDayStart
+                    && r.StartDate < serviceDayEnd,
                 cancellationToken);
 
-        if (vehicleHasOverlappingRoute)
+        if (vehicleHasSameDayRoute)
             throw new InvalidOperationException(
-                "Vehicle is already assigned to a planned or in-progress route that overlaps the requested time.");
+                "Vehicle is already assigned to another planned or in-progress route on that service date.");
 
         var now = DateTimeOffset.UtcNow;
         var route = request.Dto.ToEntity();
+        if (route.Id == Guid.Empty)
+        {
+            route.Id = Guid.NewGuid();
+        }
         route.Status = RouteStatus.Planned;
         route.CreatedAt = now;
         route.CreatedBy = currentUser.UserName ?? currentUser.UserId;
@@ -118,6 +130,14 @@ public sealed class CreateRouteCommandHandler(
         {
             route.Parcels.Add(parcel);
         }
+
+        route.AssignmentAuditTrail.Add(
+            RouteAssignmentSupport.CreateAuditEntry(
+                route.Id,
+                RouteAssignmentAuditAction.Assigned,
+                driver,
+                vehicle,
+                route.CreatedBy));
 
         vehicle.Status = VehicleStatus.InUse;
 

@@ -22,6 +22,8 @@ public class Route : BaseAuditableEntity
     public RouteStatus Status { get; set; }
 
     public ICollection<Parcel> Parcels { get; set; } = new List<Parcel>();
+    public ICollection<RouteAssignmentAuditEntry> AssignmentAuditTrail { get; set; } =
+        new List<RouteAssignmentAuditEntry>();
 
     /// <summary>
     /// Calculated total mileage for this route

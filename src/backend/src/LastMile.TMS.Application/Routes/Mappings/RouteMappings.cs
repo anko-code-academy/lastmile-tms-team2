@@ -13,6 +13,7 @@ public static partial class RouteMappings
     [MapperIgnoreTarget(nameof(Route.EndMileage))]
     [MapperIgnoreTarget(nameof(Route.Status))]
     [MapperIgnoreTarget(nameof(Route.Parcels))]
+    [MapperIgnoreTarget(nameof(Route.AssignmentAuditTrail))]
     [MapperIgnoreTarget(nameof(Route.CreatedAt))]
     [MapperIgnoreTarget(nameof(Route.CreatedBy))]
     [MapperIgnoreTarget(nameof(Route.LastModifiedAt))]
