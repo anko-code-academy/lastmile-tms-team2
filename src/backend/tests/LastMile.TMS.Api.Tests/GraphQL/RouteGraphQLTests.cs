@@ -104,7 +104,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
     public async Task CreateRoute_WithUnavailableVehicle_ReturnsInvalidOperationError()
     {
         var token = await GetAdminAccessTokenAsync();
-        await SetVehicleStatusAsync(DbSeeder.TestVehicleId, VehicleStatus.InUse);
+        await SetVehicleStatusAsync(DbSeeder.TestVehicleId, VehicleStatus.Maintenance);
 
         using var document = await PostGraphQLAsync(
             """
@@ -324,6 +324,327 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         routes.Should().OnlyContain(r => r.GetProperty("vehicleId").GetString() == vehicleAId.ToString());
     }
 
+    [Fact]
+    public async Task Route_ById_ReturnsInitialAssignmentAuditTrail()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var startDate = DateTimeOffset.UtcNow.AddHours(3);
+
+        using var createDocument = await PostGraphQLAsync(
+            """
+            mutation CreateRoute($input: CreateRouteInput!) {
+              createRoute(input: $input) {
+                id
+              }
+            }
+            """,
+            new
+            {
+                input = new
+                {
+                    vehicleId = DbSeeder.TestVehicleId,
+                    driverId = DbSeeder.TestDriverId,
+                    stagingArea = "A",
+                    startDate,
+                    startMileage = 125,
+                    parcelIds = new[] { DbSeeder.TestParcelId }
+                }
+            },
+            token);
+
+        createDocument.RootElement.TryGetProperty("errors", out _)
+            .Should()
+            .BeFalse(createDocument.RootElement.GetRawText());
+
+        var routeId = createDocument.RootElement
+            .GetProperty("data")
+            .GetProperty("createRoute")
+            .GetProperty("id")
+            .GetGuid();
+
+        using var queryDocument = await PostGraphQLAsync(
+            """
+            query RouteById($id: UUID!) {
+              route(id: $id) {
+                id
+                updatedAt
+                assignmentAuditTrail {
+                  action
+                  previousDriverName
+                  newDriverName
+                  previousVehiclePlate
+                  newVehiclePlate
+                }
+              }
+            }
+            """,
+            new { id = routeId },
+            token);
+
+        queryDocument.RootElement.TryGetProperty("errors", out _)
+            .Should()
+            .BeFalse(queryDocument.RootElement.GetRawText());
+
+        var route = queryDocument.RootElement
+            .GetProperty("data")
+            .GetProperty("route");
+
+        route.GetProperty("id").GetString().Should().Be(routeId.ToString());
+        route.GetProperty("updatedAt").ValueKind.Should().Be(JsonValueKind.Null);
+
+        var auditTrail = route.GetProperty("assignmentAuditTrail").EnumerateArray().ToList();
+        auditTrail.Should().ContainSingle();
+        auditTrail[0].GetProperty("action").GetString().Should().Be("ASSIGNED");
+        auditTrail[0].GetProperty("previousDriverName").ValueKind.Should().Be(JsonValueKind.Null);
+        auditTrail[0].GetProperty("newDriverName").GetString().Should().Be("Test Driver");
+        auditTrail[0].GetProperty("previousVehiclePlate").ValueKind.Should().Be(JsonValueKind.Null);
+        auditTrail[0].GetProperty("newVehiclePlate").GetString().Should().Be("TEST-SEED-V001");
+    }
+
+    [Fact]
+    public async Task RouteAssignmentCandidates_WhenEditing_IncludeCurrentAssignmentsAndFilterConflicts()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var serviceDate = new DateTimeOffset(DateTime.UtcNow.Date.AddHours(8), TimeSpan.Zero);
+        var currentRouteId = await SeedRouteAsync(
+            DbSeeder.TestVehicleId,
+            DbSeeder.TestDriverId,
+            RouteStatus.Planned,
+            StagingArea.A,
+            startMileage: 120,
+            startDate: serviceDate);
+        await SetVehicleStatusAsync(DbSeeder.TestVehicleId, VehicleStatus.InUse);
+
+        var conflictingVehicleId = await SeedVehicleAsync($"BUSY-{Guid.NewGuid():N}"[..20]);
+        await SeedRouteAsync(
+            conflictingVehicleId,
+            DbSeeder.TestDriver2Id,
+            RouteStatus.InProgress,
+            StagingArea.B,
+            startMileage: 80,
+            startDate: serviceDate.AddHours(1));
+        await SetVehicleStatusAsync(conflictingVehicleId, VehicleStatus.InUse);
+
+        var availableVehicleId = await SeedVehicleAsync($"OPEN-{Guid.NewGuid():N}"[..20]);
+        await SeedRouteAsync(
+            availableVehicleId,
+            DbSeeder.TestDriver3Id,
+            RouteStatus.Completed,
+            StagingArea.A,
+            startMileage: 10,
+            endMileage: 35,
+            startDate: serviceDate.AddHours(2));
+
+        var maintenanceVehicleId = await SeedVehicleAsync($"MNT-{Guid.NewGuid():N}"[..20]);
+        await SetVehicleStatusAsync(maintenanceVehicleId, VehicleStatus.Maintenance);
+        await SetDriverAvailabilityAsync(DbSeeder.TestDriver4Id, serviceDate.DayOfWeek, isAvailable: false);
+
+        using var document = await PostGraphQLAsync(
+            """
+            query Candidates($serviceDate: DateTime!, $routeId: UUID) {
+              routeAssignmentCandidates(serviceDate: $serviceDate, routeId: $routeId) {
+                vehicles {
+                  id
+                  registrationPlate
+                  isCurrentAssignment
+                }
+                drivers {
+                  id
+                  displayName
+                  workloadRoutes {
+                    routeId
+                    vehiclePlate
+                    status
+                  }
+                }
+              }
+            }
+            """,
+            new
+            {
+                serviceDate,
+                routeId = currentRouteId
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out _)
+            .Should()
+            .BeFalse(document.RootElement.GetRawText());
+
+        var candidates = document.RootElement
+            .GetProperty("data")
+            .GetProperty("routeAssignmentCandidates");
+
+        var vehicles = candidates.GetProperty("vehicles").EnumerateArray().ToList();
+        vehicles.Select(vehicle => vehicle.GetProperty("id").GetString())
+            .Should()
+            .Contain(DbSeeder.TestVehicleId.ToString());
+        vehicles.Select(vehicle => vehicle.GetProperty("id").GetString())
+            .Should()
+            .Contain(availableVehicleId.ToString());
+        vehicles.Select(vehicle => vehicle.GetProperty("id").GetString())
+            .Should()
+            .NotContain(conflictingVehicleId.ToString());
+        vehicles.Select(vehicle => vehicle.GetProperty("id").GetString())
+            .Should()
+            .NotContain(maintenanceVehicleId.ToString());
+
+        var drivers = candidates.GetProperty("drivers").EnumerateArray().ToList();
+        drivers.Select(driver => driver.GetProperty("id").GetString())
+            .Should()
+            .Contain(DbSeeder.TestDriverId.ToString());
+        drivers.Select(driver => driver.GetProperty("id").GetString())
+            .Should()
+            .Contain(DbSeeder.TestDriver3Id.ToString());
+        drivers.Select(driver => driver.GetProperty("id").GetString())
+            .Should()
+            .NotContain(DbSeeder.TestDriver2Id.ToString());
+        drivers.Select(driver => driver.GetProperty("id").GetString())
+            .Should()
+            .NotContain(DbSeeder.TestDriver4Id.ToString());
+
+        var driverWithCompletedWorkload = drivers.Single(
+            driver => driver.GetProperty("id").GetString() == DbSeeder.TestDriver3Id.ToString());
+        driverWithCompletedWorkload
+            .GetProperty("workloadRoutes")
+            .EnumerateArray()
+            .ToList()
+            .Should()
+            .Contain(route => route.GetProperty("status").GetString() == "COMPLETED");
+    }
+
+    [Fact]
+    public async Task UpdateRouteAssignment_OnPlannedRoute_ReassignsAndCreatesAuditTrail()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var replacementVehicleId = await SeedVehicleAsync($"REASSIGN-{Guid.NewGuid():N}"[..20]);
+        var startDate = DateTimeOffset.UtcNow.AddHours(4);
+
+        using var createDocument = await PostGraphQLAsync(
+            """
+            mutation CreateRoute($input: CreateRouteInput!) {
+              createRoute(input: $input) {
+                id
+              }
+            }
+            """,
+            new
+            {
+                input = new
+                {
+                    vehicleId = DbSeeder.TestVehicleId,
+                    driverId = DbSeeder.TestDriverId,
+                    stagingArea = "A",
+                    startDate,
+                    startMileage = 150,
+                    parcelIds = new[] { DbSeeder.TestParcelId }
+                }
+            },
+            token);
+
+        createDocument.RootElement.TryGetProperty("errors", out _)
+            .Should()
+            .BeFalse(createDocument.RootElement.GetRawText());
+
+        var routeId = createDocument.RootElement
+            .GetProperty("data")
+            .GetProperty("createRoute")
+            .GetProperty("id")
+            .GetGuid();
+
+        using var updateDocument = await PostGraphQLAsync(
+            """
+            mutation UpdateRouteAssignment($id: UUID!, $input: UpdateRouteAssignmentInput!) {
+              updateRouteAssignment(id: $id, input: $input) {
+                id
+                driverId
+                vehicleId
+                updatedAt
+              }
+            }
+            """,
+            new
+            {
+                id = routeId,
+                input = new
+                {
+                    vehicleId = replacementVehicleId,
+                    driverId = DbSeeder.TestDriver2Id
+                }
+            },
+            token);
+
+        updateDocument.RootElement.TryGetProperty("errors", out _)
+            .Should()
+            .BeFalse(updateDocument.RootElement.GetRawText());
+
+        var route = updateDocument.RootElement
+            .GetProperty("data")
+            .GetProperty("updateRouteAssignment");
+
+        route.GetProperty("id").GetString().Should().Be(routeId.ToString());
+        route.GetProperty("driverId").GetString().Should().Be(DbSeeder.TestDriver2Id.ToString());
+        route.GetProperty("vehicleId").GetString().Should().Be(replacementVehicleId.ToString());
+        route.GetProperty("updatedAt").GetString().Should().NotBeNullOrWhiteSpace();
+
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var persistedRoute = await dbContext.Routes
+            .Include(r => r.AssignmentAuditTrail)
+            .SingleAsync(r => r.Id == routeId);
+
+        var originalVehicle = await dbContext.Vehicles.FindAsync(DbSeeder.TestVehicleId);
+        var replacementVehicle = await dbContext.Vehicles.FindAsync(replacementVehicleId);
+        originalVehicle.Should().NotBeNull();
+        replacementVehicle.Should().NotBeNull();
+        originalVehicle!.Status.Should().Be(VehicleStatus.Available);
+        replacementVehicle!.Status.Should().Be(VehicleStatus.InUse);
+        persistedRoute.AssignmentAuditTrail.Should().HaveCount(2);
+        persistedRoute.AssignmentAuditTrail.Select(entry => entry.Action)
+            .Should()
+            .Contain([RouteAssignmentAuditAction.Assigned, RouteAssignmentAuditAction.Reassigned]);
+    }
+
+    [Fact]
+    public async Task UpdateRouteAssignment_OnNonPlannedRoute_ReturnsError()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var replacementVehicleId = await SeedVehicleAsync($"BLOCK-{Guid.NewGuid():N}"[..20]);
+        var routeId = await SeedRouteAsync(
+            DbSeeder.TestVehicleId,
+            DbSeeder.TestDriverId,
+            RouteStatus.Completed,
+            StagingArea.A,
+            startMileage: 100,
+            endMileage: 150,
+            startDate: DateTimeOffset.UtcNow.AddHours(-6));
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation UpdateRouteAssignment($id: UUID!, $input: UpdateRouteAssignmentInput!) {
+              updateRouteAssignment(id: $id, input: $input) {
+                id
+              }
+            }
+            """,
+            new
+            {
+                id = routeId,
+                input = new
+                {
+                    vehicleId = replacementVehicleId,
+                    driverId = DbSeeder.TestDriver2Id
+                }
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out var errors).Should().BeTrue();
+        errors[0].GetProperty("message").GetString()
+            .Should()
+            .Contain("Only planned routes can be reassigned before dispatch");
+    }
+
     public Task InitializeAsync() => Factory.ResetDatabaseAsync();
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -414,6 +735,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         StagingArea stagingArea,
         int startMileage,
         int endMileage = 0,
+        DateTimeOffset? startDate = null,
         params Guid[] parcelIds)
     {
         await using var scope = Factory.Services.CreateAsyncScope();
@@ -429,8 +751,10 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         {
             VehicleId = vehicleId,
             DriverId = driverId,
-            StartDate = DateTimeOffset.UtcNow.AddHours(-2),
-            EndDate = status == RouteStatus.Completed ? DateTimeOffset.UtcNow.AddHours(-1) : null,
+            StartDate = startDate ?? DateTimeOffset.UtcNow.AddHours(-2),
+            EndDate = status == RouteStatus.Completed
+                ? (startDate ?? DateTimeOffset.UtcNow.AddHours(-2)).AddHours(1)
+                : null,
             StartMileage = startMileage,
             EndMileage = endMileage,
             Status = status,
@@ -453,6 +777,33 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         var vehicle = await dbContext.Vehicles.FindAsync(vehicleId);
         vehicle.Should().NotBeNull();
         vehicle!.Status = status;
+        await dbContext.SaveChangesAsync();
+    }
+
+    private async Task SetDriverAvailabilityAsync(
+        Guid driverId,
+        DayOfWeek dayOfWeek,
+        bool isAvailable)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var existingRows = await dbContext.DriverAvailabilities
+            .Where(row => row.DriverId == driverId && row.DayOfWeek == dayOfWeek)
+            .ToListAsync();
+        dbContext.DriverAvailabilities.RemoveRange(existingRows);
+
+        dbContext.DriverAvailabilities.Add(new DriverAvailability
+        {
+            DriverId = driverId,
+            DayOfWeek = dayOfWeek,
+            ShiftStart = new TimeOnly(8, 0),
+            ShiftEnd = new TimeOnly(17, 0),
+            IsAvailable = isAvailable,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = "tests"
+        });
+
         await dbContext.SaveChangesAsync();
     }
 }

@@ -15,6 +15,72 @@ query GetRoutes($where: RouteFilterInput, $order: [RouteSortInput!]) {
     parcelCount
     parcelsDelivered
     createdAt
+    updatedAt
+  }
+}
+
+query GetRoute($id: UUID!) {
+  route(id: $id) {
+    id
+    vehicleId
+    vehiclePlate
+    driverId
+    driverName
+    stagingArea
+    startDate
+    endDate
+    startMileage
+    endMileage
+    totalMileage
+    status
+    parcelCount
+    parcelsDelivered
+    createdAt
+    updatedAt
+    assignmentAuditTrail {
+      id
+      action
+      previousDriverId
+      previousDriverName
+      newDriverId
+      newDriverName
+      previousVehicleId
+      previousVehiclePlate
+      newVehicleId
+      newVehiclePlate
+      changedAt
+      changedBy
+    }
+  }
+}
+
+query GetRouteAssignmentCandidates($serviceDate: DateTime!, $routeId: UUID) {
+  routeAssignmentCandidates(serviceDate: $serviceDate, routeId: $routeId) {
+    vehicles {
+      id
+      registrationPlate
+      depotId
+      depotName
+      parcelCapacity
+      weightCapacity
+      status
+      isCurrentAssignment
+    }
+    drivers {
+      id
+      displayName
+      depotId
+      zoneId
+      status
+      isCurrentAssignment
+      workloadRoutes {
+        routeId
+        vehicleId
+        vehiclePlate
+        startDate
+        status
+      }
+    }
   }
 }
 
@@ -35,5 +101,27 @@ mutation CreateRoute($input: CreateRouteInput!) {
     parcelCount
     parcelsDelivered
     createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateRouteAssignment($id: UUID!, $input: UpdateRouteAssignmentInput!) {
+  updateRouteAssignment(id: $id, input: $input) {
+    id
+    vehicleId
+    vehiclePlate
+    driverId
+    driverName
+    stagingArea
+    startDate
+    endDate
+    startMileage
+    endMileage
+    totalMileage
+    status
+    parcelCount
+    parcelsDelivered
+    createdAt
+    updatedAt
   }
 }

@@ -18,6 +18,27 @@ type Address {
   geoLocation: GeoLocation @cost(weight: "10")
 }
 
+type AssignableDriver {
+  id: UUID!
+  displayName: String!
+  depotId: UUID!
+  zoneId: UUID!
+  status: DriverStatus!
+  isCurrentAssignment: Boolean!
+  workloadRoutes: [DriverWorkloadRoute!]!
+}
+
+type AssignableVehicle {
+  id: UUID!
+  registrationPlate: String!
+  depotId: UUID!
+  depotName: String
+  parcelCapacity: Int!
+  weightCapacity: Decimal!
+  status: VehicleStatus!
+  isCurrentAssignment: Boolean!
+}
+
 type BinLocation {
   id: UUID!
   name: String!
@@ -78,6 +99,14 @@ type DriverAvailability {
   shiftStart: TimeSpan
   shiftEnd: TimeSpan
   isAvailable: Boolean!
+}
+
+type DriverWorkloadRoute {
+  routeId: UUID!
+  vehicleId: UUID!
+  vehiclePlate: String!
+  startDate: DateTime!
+  status: RouteStatus!
 }
 
 type GeoLocation {
@@ -182,6 +211,7 @@ type Mutation {
   confirmInboundReceivingSession(input: ConfirmInboundReceivingSessionInput!): InboundReceivingSession! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   stageParcelForRoute(input: StageParcelForRouteInput!): StageParcelForRouteResult! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   createRoute(input: CreateRouteInput!): Route! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  updateRouteAssignment(id: UUID! input: UpdateRouteAssignmentInput!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   createUser(input: CreateUserInput!): UserManagementUser! @authorize(roles: [ "Admin" ]) @cost(weight: "10")
   updateUser(input: UpdateUserInput!): UserManagementUser! @authorize(roles: [ "Admin" ]) @cost(weight: "10")
   deactivateUser(userId: UUID!): UserManagementUser! @authorize(roles: [ "Admin" ]) @cost(weight: "10")
@@ -413,6 +443,8 @@ type Query {
   stagingRoutes: [StagingRoute!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   routeStagingBoard(routeId: UUID!): RouteStagingBoard @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   routes(where: RouteFilterInput @cost(weight: "10") order: [RouteSortInput!] @cost(weight: "10")): [Route!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  route(id: UUID!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  routeAssignmentCandidates(serviceDate: DateTime! routeId: UUID): RouteAssignmentCandidates! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   users(search: String isActive: Boolean depotId: UUID zoneId: UUID where: UserManagementUserFilterInput @cost(weight: "10") order: [UserManagementUserSortInput!] @cost(weight: "10")): [UserManagementUser!]! @authorize(roles: [ "Admin" ]) @cost(weight: "10")
   user(id: UUID!): UserManagementUser @authorize(roles: [ "Admin" ]) @cost(weight: "10")
   userManagementLookups: UserManagementLookupsDto! @authorize(roles: [ "Admin" ]) @cost(weight: "10")
@@ -468,6 +500,30 @@ type Route {
   parcelCount: Int! @cost(weight: "10")
   parcelsDelivered: Int! @cost(weight: "10")
   createdAt: DateTime!
+  updatedAt: DateTime
+  assignmentAuditTrail: [RouteAssignmentAuditEntry!]! @cost(weight: "10")
+}
+
+type RouteAssignmentAuditEntry {
+  id: UUID!
+  action: RouteAssignmentAuditAction!
+  previousDriverId: UUID
+  previousDriverName: String
+  newDriverId: UUID!
+  newDriverName: String!
+  previousVehicleId: UUID
+  previousVehiclePlate: String
+  newVehicleId: UUID!
+  newVehiclePlate: String!
+  changedAt: DateTime!
+  changedBy: String
+  routeId: UUID!
+  route: Route!
+}
+
+type RouteAssignmentCandidates {
+  vehicles: [AssignableVehicle!]!
+  drivers: [AssignableDriver!]!
 }
 
 type RouteStagingBoard {
@@ -993,6 +1049,7 @@ input RouteFilterInput {
   stagingArea: StagingAreaOperationFilterInput
   status: RouteStatusOperationFilterInput
   createdAt: DateTimeOperationFilterInput
+  updatedAt: DateTimeOperationFilterInput
 }
 
 input RouteSortInput {
@@ -1006,6 +1063,7 @@ input RouteSortInput {
   stagingArea: SortEnumType @cost(weight: "10")
   status: SortEnumType @cost(weight: "10")
   createdAt: SortEnumType @cost(weight: "10")
+  updatedAt: SortEnumType @cost(weight: "10")
 }
 
 input RouteStatusOperationFilterInput {
@@ -1132,6 +1190,11 @@ input UpdateParcelInput {
   currency: String!
   estimatedDeliveryDate: DateTime!
   parcelType: String
+}
+
+input UpdateRouteAssignmentInput {
+  vehicleId: UUID!
+  driverId: UUID!
 }
 
 input UpdateStorageAisleInput {
@@ -1326,6 +1389,11 @@ enum ParcelStatus {
   RETURNED_TO_DEPOT
   CANCELLED
   EXCEPTION
+}
+
+enum RouteAssignmentAuditAction {
+  ASSIGNED
+  REASSIGNED
 }
 
 enum RouteStagingScanOutcome {

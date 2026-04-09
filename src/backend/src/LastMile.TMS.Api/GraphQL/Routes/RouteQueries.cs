@@ -1,7 +1,10 @@
 using HotChocolate;
 using HotChocolate.Authorization;
 using HotChocolate.Data;
+using LastMile.TMS.Application.Routes.DTOs;
+using LastMile.TMS.Application.Routes.Queries;
 using LastMile.TMS.Application.Routes.Reads;
+using MediatR;
 using RouteEntity = LastMile.TMS.Domain.Entities.Route;
 
 namespace LastMile.TMS.Api.GraphQL.Routes;
@@ -16,4 +19,22 @@ public sealed class RouteQueries
     public IQueryable<RouteEntity> GetRoutes(
         [Service] IRouteReadService readService = null!) =>
         readService.GetRoutes();
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
+    [UseFirstOrDefault]
+    [UseProjection]
+    public IQueryable<RouteEntity> GetRoute(
+        Guid id,
+        [Service] IRouteReadService readService = null!) =>
+        readService.GetRoutes().Where(route => route.Id == id);
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
+    public Task<RouteAssignmentCandidatesDto> GetRouteAssignmentCandidates(
+        DateTimeOffset serviceDate,
+        Guid? routeId,
+        [Service] ISender mediator,
+        CancellationToken cancellationToken) =>
+        mediator.Send(
+            new GetRouteAssignmentCandidatesQuery(serviceDate, routeId),
+            cancellationToken);
 }
