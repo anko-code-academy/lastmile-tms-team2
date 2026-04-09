@@ -1,10 +1,7 @@
 import type {
-  AssignableDriver,
-  AssignableVehicle,
-  DriverWorkloadRoute,
-  RouteAssignmentAuditEntry,
-  RouteAssignmentCandidates,
-} from "@/graphql/generated";
+  GetRouteAssignmentCandidatesQuery,
+  GetRouteQuery,
+} from "@/graphql/routes";
 
 export type {
   DriverStatus,
@@ -14,13 +11,20 @@ export type {
   VehicleStatus,
 } from "@/graphql/generated";
 
-export type {
-  AssignableDriver,
-  AssignableVehicle,
-  DriverWorkloadRoute,
-  RouteAssignmentAuditEntry,
-  RouteAssignmentCandidates,
-};
+export type RouteAssignmentAuditEntry =
+  NonNullable<NonNullable<GetRouteQuery["route"]>["assignmentAuditTrail"]>[number];
+
+export type DriverWorkloadRoute =
+  GetRouteAssignmentCandidatesQuery["routeAssignmentCandidates"]["drivers"][number]["workloadRoutes"][number];
+
+export type AssignableDriver =
+  GetRouteAssignmentCandidatesQuery["routeAssignmentCandidates"]["drivers"][number];
+
+export type AssignableVehicle =
+  GetRouteAssignmentCandidatesQuery["routeAssignmentCandidates"]["vehicles"][number];
+
+export type RouteAssignmentCandidates =
+  GetRouteAssignmentCandidatesQuery["routeAssignmentCandidates"];
 
 export type Route = {
   id: string;
