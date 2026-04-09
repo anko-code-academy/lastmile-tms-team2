@@ -20,6 +20,10 @@ import {
   GET_STAGING_ROUTES,
   START_INBOUND_RECEIVING_SESSION,
   STAGE_PARCEL_FOR_ROUTE,
+  GET_LOADOUT_ROUTES,
+  GET_ROUTE_LOADOUT_BOARD,
+  LOAD_PARCEL_FOR_ROUTE,
+  COMPLETE_LOADOUT,
   TRANSITION_PARCEL_STATUS,
   UPDATE_PARCEL,
 } from "@/graphql/parcels";
@@ -43,6 +47,10 @@ import type {
   ScanInboundParcelMutation,
   StartInboundReceivingSessionMutation,
   StageParcelForRouteMutation,
+  GetLoadOutRoutesQuery,
+  GetRouteLoadOutBoardQuery,
+  LoadParcelForRouteMutation,
+  CompleteLoadOutMutation,
   TransitionParcelStatusMutation,
   UpdateParcelMutation,
 } from "@/graphql/parcels";
@@ -78,6 +86,12 @@ import type {
   StageParcelForRouteResult,
   StagingRouteSummary,
   StartInboundReceivingSessionRequest,
+  LoadOutRouteSummary,
+  RouteLoadOutBoard,
+  LoadParcelForRouteRequest,
+  LoadParcelForRouteResult,
+  CompleteLoadOutRequest,
+  CompleteLoadOutResult,
 } from "@/types/parcels";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
@@ -179,6 +193,89 @@ function mapStageParcelForRouteResult(
     conflictingRouteId: raw.conflictingRouteId ?? null,
     conflictingStagingArea: raw.conflictingStagingArea ?? null,
     board: mapRouteStagingBoard(raw.board),
+  };
+}
+
+function mapLoadOutRoute(
+  raw: GetLoadOutRoutesQuery["loadOutRoutes"][number],
+): LoadOutRouteSummary {
+  return {
+    id: raw.id,
+    vehicleId: raw.vehicleId,
+    vehiclePlate: raw.vehiclePlate,
+    driverId: raw.driverId,
+    driverName: raw.driverName,
+    status: raw.status,
+    stagingArea: raw.stagingArea,
+    startDate: raw.startDate,
+    expectedParcelCount: raw.expectedParcelCount,
+    loadedParcelCount: raw.loadedParcelCount,
+    remainingParcelCount: raw.remainingParcelCount,
+  };
+}
+
+function mapRouteLoadOutBoard(
+  raw: NonNullable<GetRouteLoadOutBoardQuery["routeLoadOutBoard"]>,
+): RouteLoadOutBoard {
+  return {
+    id: raw.id,
+    vehicleId: raw.vehicleId,
+    vehiclePlate: raw.vehiclePlate,
+    driverId: raw.driverId,
+    driverName: raw.driverName,
+    status: raw.status,
+    stagingArea: raw.stagingArea,
+    startDate: raw.startDate,
+    expectedParcelCount: raw.expectedParcelCount,
+    loadedParcelCount: raw.loadedParcelCount,
+    remainingParcelCount: raw.remainingParcelCount,
+    expectedParcels: raw.expectedParcels.map((p) => ({
+      parcelId: p.parcelId,
+      trackingNumber: p.trackingNumber,
+      barcode: p.barcode,
+      status: p.status,
+      isLoaded: p.isLoaded,
+    })),
+  };
+}
+
+function mapLoadParcelForRouteResult(
+  raw: LoadParcelForRouteMutation["loadParcelForRoute"],
+): LoadParcelForRouteResult {
+  return {
+    outcome: raw.outcome,
+    message: raw.message,
+    trackingNumber: raw.trackingNumber ?? null,
+    parcelId: raw.parcelId ?? null,
+    conflictingRouteId: raw.conflictingRouteId ?? null,
+    conflictingStagingArea: raw.conflictingStagingArea ?? null,
+    board: mapRouteLoadOutBoard(raw.board),
+  };
+}
+
+function mapCompleteLoadOutResult(
+  raw: CompleteLoadOutMutation["completeLoadOut"],
+): CompleteLoadOutResult {
+  return {
+    success: raw.success,
+    message: raw.message,
+    loadedCount: raw.loadedCount,
+    skippedCount: raw.skippedCount,
+    totalCount: raw.totalCount,
+    board: raw.board ? mapRouteLoadOutBoard(raw.board) : {
+      id: "",
+      vehicleId: "",
+      vehiclePlate: "",
+      driverId: "",
+      driverName: "",
+      status: "PLANNED" as const,
+      stagingArea: "A" as const,
+      startDate: "",
+      expectedParcelCount: 0,
+      loadedParcelCount: 0,
+      remainingParcelCount: 0,
+      expectedParcels: [],
+    },
   };
 }
 
@@ -394,6 +491,64 @@ export const parcelsService = {
     });
 
     return mapStageParcelForRouteResult(data.stageParcelForRoute);
+  },
+
+  getLoadOutRoutes: async (): Promise<LoadOutRouteSummary[]> => {
+    if (USE_MOCK) {
+      return [];
+    }
+
+    const data = await graphqlRequest<GetLoadOutRoutesQuery>(GET_LOADOUT_ROUTES);
+    return data.loadOutRoutes.map(mapLoadOutRoute);
+  },
+
+  getRouteLoadOutBoard: async (
+    routeId: string,
+  ): Promise<RouteLoadOutBoard | null> => {
+    if (USE_MOCK) {
+      return null;
+    }
+
+    const data = await graphqlRequest<GetRouteLoadOutBoardQuery>(
+      GET_ROUTE_LOADOUT_BOARD,
+      { routeId },
+    );
+
+    return data.routeLoadOutBoard
+      ? mapRouteLoadOutBoard(data.routeLoadOutBoard)
+      : null;
+  },
+
+  loadParcelForRoute: async (
+    request: LoadParcelForRouteRequest,
+  ): Promise<LoadParcelForRouteResult> => {
+    if (USE_MOCK) {
+      throw new Error("Route load-out is not available in mock mode.");
+    }
+
+    const data = await graphqlRequest<{
+      loadParcelForRoute: LoadParcelForRouteMutation["loadParcelForRoute"];
+    }>(LOAD_PARCEL_FOR_ROUTE, {
+      input: { routeId: request.routeId, barcode: request.barcode },
+    });
+
+    return mapLoadParcelForRouteResult(data.loadParcelForRoute);
+  },
+
+  completeLoadOut: async (
+    request: CompleteLoadOutRequest,
+  ): Promise<CompleteLoadOutResult> => {
+    if (USE_MOCK) {
+      throw new Error("Route load-out is not available in mock mode.");
+    }
+
+    const data = await graphqlRequest<{
+      completeLoadOut: CompleteLoadOutMutation["completeLoadOut"];
+    }>(COMPLETE_LOADOUT, {
+      input: { routeId: request.routeId, force: request.force },
+    });
+
+    return mapCompleteLoadOutResult(data.completeLoadOut);
   },
 
   getRegisteredParcels: async (

@@ -40,6 +40,12 @@ import type {
   StageParcelForRouteResult,
   StagingRouteSummary,
   StartInboundReceivingSessionRequest,
+  LoadOutRouteSummary,
+  RouteLoadOutBoard,
+  LoadParcelForRouteRequest,
+  LoadParcelForRouteResult,
+  CompleteLoadOutRequest,
+  CompleteLoadOutResult,
 } from "@/types/parcels";
 
 const parcelImportPollingStatuses = new Set(["Queued", "Processing"]);
@@ -89,6 +95,9 @@ export const parcelKeys = {
   stagingRoutes: () => [...parcelKeys.all, "stagingRoutes"] as const,
   routeStagingBoard: (routeId?: string | null) =>
     [...parcelKeys.all, "routeStagingBoard", routeId ?? ""] as const,
+  loadOutRoutes: () => [...parcelKeys.all, "loadOutRoutes"] as const,
+  routeLoadOutBoard: (routeId?: string | null) =>
+    [...parcelKeys.all, "routeLoadOutBoard", routeId ?? ""] as const,
 };
 
 export function useParcelsForRouteCreation(
@@ -130,6 +139,54 @@ export function useStageParcelForRoute() {
       await qc.invalidateQueries({ queryKey: parcelKeys.stagingRoutes() });
       await qc.invalidateQueries({ queryKey: parcelKeys.all });
       await qc.invalidateQueries({ queryKey: parcelKeys.details() });
+    },
+  });
+}
+
+export function useLoadOutRoutes() {
+  const { status } = useSession();
+  return useQuery<LoadOutRouteSummary[]>({
+    queryKey: parcelKeys.loadOutRoutes(),
+    queryFn: () => parcelsService.getLoadOutRoutes(),
+    enabled: status === "authenticated",
+  });
+}
+
+export function useRouteLoadOutBoard(routeId?: string | null) {
+  const { status } = useSession();
+  return useQuery<RouteLoadOutBoard | null>({
+    queryKey: parcelKeys.routeLoadOutBoard(routeId),
+    queryFn: () => parcelsService.getRouteLoadOutBoard(routeId!),
+    enabled: status === "authenticated" && !!routeId,
+  });
+}
+
+export function useLoadParcelForRoute() {
+  const qc = useQueryClient();
+  return useMutation<LoadParcelForRouteResult, Error, LoadParcelForRouteRequest>({
+    mutationFn: (request) => parcelsService.loadParcelForRoute(request),
+    onSuccess: async (result, variables) => {
+      qc.setQueryData(parcelKeys.routeLoadOutBoard(variables.routeId), result.board);
+      await qc.invalidateQueries({ queryKey: parcelKeys.loadOutRoutes() });
+      await qc.invalidateQueries({ queryKey: parcelKeys.all });
+      await qc.invalidateQueries({ queryKey: parcelKeys.details() });
+    },
+  });
+}
+
+export function useCompleteLoadOut() {
+  const qc = useQueryClient();
+  return useMutation<CompleteLoadOutResult, Error, CompleteLoadOutRequest>({
+    mutationFn: (request) => parcelsService.completeLoadOut(request),
+    meta: {
+      successToast: {
+        title: "Load-out completed",
+        describe: () => "The route is now in progress.",
+      },
+    } satisfies MutationToastMeta,
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: parcelKeys.all });
+      await qc.invalidateQueries({ queryKey: parcelKeys.loadOutRoutes() });
     },
   });
 }

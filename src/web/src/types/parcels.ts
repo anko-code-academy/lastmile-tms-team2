@@ -398,3 +398,58 @@ export interface StageParcelForRouteResult {
   conflictingStagingArea: import("@/graphql/generated").StagingArea | null;
   board: RouteStagingBoard;
 }
+
+export interface LoadOutRouteSummary {
+  id: string;
+  vehicleId: string;
+  vehiclePlate: string;
+  driverId: string;
+  driverName: string;
+  status: import("@/graphql/generated").RouteStatus;
+  stagingArea: import("@/graphql/generated").StagingArea;
+  startDate: string;
+  expectedParcelCount: number;
+  loadedParcelCount: number;
+  remainingParcelCount: number;
+}
+
+export interface RouteLoadOutExpectedParcel {
+  parcelId: string;
+  trackingNumber: string;
+  barcode: string;
+  status: string;
+  isLoaded: boolean;
+}
+
+export interface RouteLoadOutBoard extends LoadOutRouteSummary {
+  expectedParcels: RouteLoadOutExpectedParcel[];
+}
+
+export interface LoadParcelForRouteRequest {
+  routeId: string;
+  barcode: string;
+}
+
+export interface LoadParcelForRouteResult {
+  outcome: import("@/graphql/generated").RouteLoadOutScanOutcome;
+  message: string;
+  trackingNumber: string | null;
+  parcelId: string | null;
+  conflictingRouteId: string | null;
+  conflictingStagingArea: import("@/graphql/generated").StagingArea | null;
+  board: RouteLoadOutBoard;
+}
+
+export interface CompleteLoadOutRequest {
+  routeId: string;
+  force: boolean;
+}
+
+export interface CompleteLoadOutResult {
+  success: boolean;
+  message: string;
+  loadedCount: number;
+  skippedCount: number;
+  totalCount: number;
+  board: RouteLoadOutBoard;
+}

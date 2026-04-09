@@ -34,5 +34,13 @@ public static partial class ParcelInputMapper
         this StageParcelForRouteInput input)
         => new(input.RouteId, input.Barcode);
 
+    public static LoadParcelForRouteCommand ToDto(
+        this LoadParcelForRouteInput input)
+        => new(input.RouteId, input.Barcode);
+
+    public static CompleteLoadOutCommand ToDto(
+        this CompleteLoadOutInput input)
+        => new(input.RouteId, input.Force);
+
     private static DateTime DateTimeOffsetToUtc(DateTimeOffset value) => value.UtcDateTime;
 }

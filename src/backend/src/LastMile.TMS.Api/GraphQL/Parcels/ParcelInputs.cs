@@ -89,3 +89,15 @@ public sealed class StageParcelForRouteInput
     public Guid RouteId { get; set; }
     public string Barcode { get; set; } = string.Empty;
 }
+
+public sealed class LoadParcelForRouteInput
+{
+    public Guid RouteId { get; set; }
+    public string Barcode { get; set; } = string.Empty;
+}
+
+public sealed class CompleteLoadOutInput
+{
+    public Guid RouteId { get; set; }
+    public bool Force { get; set; }
+}
