@@ -3,7 +3,14 @@ import type { Vehicle } from "@/types/vehicles";
 
 /** Vehicle picker on route creation (shows capacity in the label). */
 export function vehicleSelectOptionsForRoute(
-  vehicles: Vehicle[] | undefined,
+  vehicles:
+    | Array<
+        Pick<
+          Vehicle,
+          "id" | "registrationPlate" | "parcelCapacity" | "weightCapacity"
+        >
+      >
+    | undefined,
 ): SelectOption<string>[] {
   if (!vehicles?.length) return [];
   return vehicles.map((v) => ({

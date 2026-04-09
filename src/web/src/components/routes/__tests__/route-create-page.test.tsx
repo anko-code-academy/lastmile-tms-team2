@@ -4,9 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import NewRoutePage from "@/components/routes/route-create-page";
 
-const { mockPush, mockCreateRoute } = vi.hoisted(() => ({
+const { mockPush, mockCreateRoute, mockCandidates } = vi.hoisted(() => ({
   mockPush: vi.fn(),
   mockCreateRoute: vi.fn(),
+  mockCandidates: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -20,41 +21,7 @@ vi.mock("@/queries/routes", () => ({
     mutateAsync: mockCreateRoute,
     isPending: false,
   }),
-}));
-
-vi.mock("@/queries/vehicles", () => ({
-  useVehicles: () => ({
-    data: [
-      {
-        id: "vehicle-1",
-        registrationPlate: "TRUCK-101",
-        type: "VAN",
-        parcelCapacity: 12,
-        weightCapacity: 180,
-        status: "AVAILABLE",
-        depotId: "depot-1",
-        depotName: "Test Depot",
-        totalRoutes: 0,
-        routesCompleted: 0,
-        totalMileage: 0,
-        createdAt: "2026-04-07T08:00:00Z",
-        updatedAt: null,
-      },
-    ],
-  }),
-}));
-
-vi.mock("@/queries/drivers", () => ({
-  useDrivers: () => ({
-    data: [
-      {
-        id: "driver-1",
-        displayName: "Jamie Parker",
-      },
-    ],
-    isLoading: false,
-    error: null,
-  }),
+  useRouteAssignmentCandidates: () => mockCandidates(),
 }));
 
 vi.mock("@/queries/parcels", () => ({
@@ -64,7 +31,7 @@ vi.mock("@/queries/parcels", () => ({
         id: "parcel-1",
         trackingNumber: "LMSTAGEWEB0001",
         weight: 2.5,
-        weightUnit: 1,
+        weightUnit: "KG",
         zoneId: "zone-1",
         zoneName: "Zone A",
       },
@@ -78,6 +45,43 @@ describe("route-create-page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCreateRoute.mockResolvedValue({ id: "route-1" });
+    mockCandidates.mockReturnValue({
+      data: {
+        vehicles: [
+          {
+            id: "vehicle-1",
+            registrationPlate: "TRUCK-101",
+            parcelCapacity: 12,
+            weightCapacity: 180,
+            status: "AVAILABLE",
+            depotId: "depot-1",
+            depotName: "Test Depot",
+            isCurrentAssignment: false,
+          },
+        ],
+        drivers: [
+          {
+            id: "driver-1",
+            displayName: "Jamie Parker",
+            depotId: "depot-1",
+            zoneId: "zone-1",
+            status: "ACTIVE",
+            isCurrentAssignment: false,
+            workloadRoutes: [
+              {
+                routeId: "route-2-abcdef",
+                vehicleId: "vehicle-2",
+                vehiclePlate: "TRUCK-202",
+                startDate: "2026-04-09T09:00:00Z",
+                status: "COMPLETED",
+              },
+            ],
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
   });
 
   it("submits the selected staging area with the create route request", async () => {
@@ -86,18 +90,12 @@ describe("route-create-page", () => {
     const user = userEvent.setup();
 
     await user.click(screen.getByRole("button", { name: /select vehicle/i }));
-    await user.click(
-      screen.getByRole("option", { name: /truck-101/i }),
-    );
+    await user.click(screen.getByRole("option", { name: /truck-101/i }));
 
     await user.click(screen.getByRole("button", { name: /select driver/i }));
-    await user.click(
-      screen.getByRole("option", { name: /jamie parker/i }),
-    );
+    await user.click(screen.getByRole("option", { name: /jamie parker/i }));
 
-    await user.click(
-      screen.getByRole("button", { name: /select staging area/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /select staging area/i }));
     await user.click(screen.getByRole("option", { name: /area b/i }));
 
     await user.click(screen.getByLabelText(/lmstageweb0001/i));
@@ -119,5 +117,22 @@ describe("route-create-page", () => {
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith("/routes");
     });
+  });
+
+  it("shows workload details for the selected driver", async () => {
+    render(<NewRoutePage />);
+
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: /select vehicle/i }));
+    await user.click(screen.getByRole("option", { name: /truck-101/i }));
+
+    await user.click(screen.getByRole("button", { name: /select driver/i }));
+    await user.click(screen.getByRole("option", { name: /jamie parker/i }));
+
+    expect(screen.getByText(/driver workload/i)).toBeInTheDocument();
+    expect(screen.getByText(/other routes already assigned/i)).toBeInTheDocument();
+    expect(screen.getByText(/truck-202/i)).toBeInTheDocument();
+    expect(screen.getByText(/completed/i)).toBeInTheDocument();
   });
 });

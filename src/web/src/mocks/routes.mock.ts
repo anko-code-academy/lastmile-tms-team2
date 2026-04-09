@@ -20,6 +20,8 @@ export const mockRoutes: Route[] = [
     parcelCount: 15,
     parcelsDelivered: 15,
     createdAt: "2024-03-15T07:45:00Z",
+    updatedAt: null,
+    assignmentAuditTrail: [],
   },
   {
     id: "20000000-0000-0000-0000-000000000002",
@@ -37,6 +39,8 @@ export const mockRoutes: Route[] = [
     parcelCount: 12,
     parcelsDelivered: 3,
     createdAt: "2024-03-18T08:50:00Z",
+    updatedAt: null,
+    assignmentAuditTrail: [],
   },
   {
     id: "20000000-0000-0000-0000-000000000003",
@@ -54,6 +58,8 @@ export const mockRoutes: Route[] = [
     parcelCount: 8,
     parcelsDelivered: 8,
     createdAt: "2024-03-14T09:30:00Z",
+    updatedAt: null,
+    assignmentAuditTrail: [],
   },
 ];
 

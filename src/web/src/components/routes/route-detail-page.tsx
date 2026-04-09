@@ -8,6 +8,7 @@ import {
   Gauge,
   MapPin,
   Package,
+  PencilLine,
   Route as RouteIcon,
   User,
 } from "lucide-react";
@@ -38,13 +39,16 @@ import {
 } from "@/lib/labels/routes";
 import { useRoute } from "@/queries/routes";
 
-/** Backend default DateTimeOffset was not set on create for older routes year 0001 */
 function formatCreatedAt(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime()) || d.getUTCFullYear() < 2000) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime()) || date.getUTCFullYear() < 2000) {
     return "";
   }
-  return d.toLocaleString();
+  return date.toLocaleString();
+}
+
+function formatAuditActionLabel(action: "ASSIGNED" | "REASSIGNED") {
+  return action === "ASSIGNED" ? "Initial assignment" : "Reassignment";
 }
 
 export default function RouteDetailPage({
@@ -56,9 +60,11 @@ export default function RouteDetailPage({
   const { status: sessionStatus } = useSession();
   const { data: route, isLoading, error } = useRoute(id);
 
-  if (sessionStatus === "loading" || isLoading)
+  if (sessionStatus === "loading" || isLoading) {
     return <DetailPageSkeleton variant="route" />;
-  if (error)
+  }
+
+  if (error) {
     return (
       <DetailShell variant="route">
         <DetailContainer className={DETAIL_PAGE_CONTENT_PADDING}>
@@ -69,7 +75,9 @@ export default function RouteDetailPage({
         </DetailContainer>
       </DetailShell>
     );
-  if (!route)
+  }
+
+  if (!route) {
     return (
       <DetailShell variant="route">
         <DetailContainer className={DETAIL_PAGE_CONTENT_PADDING}>
@@ -84,8 +92,13 @@ export default function RouteDetailPage({
         </DetailContainer>
       </DetailShell>
     );
+  }
 
   const shortId = id.slice(0, 8);
+  const assignmentAuditTrail = [...route.assignmentAuditTrail].sort(
+    (left, right) =>
+      new Date(right.changedAt).getTime() - new Date(left.changedAt).getTime(),
+  );
 
   return (
     <DetailShell variant="route">
@@ -107,7 +120,7 @@ export default function RouteDetailPage({
             subtitle={
               <>
                 Route <span className="font-mono text-foreground/80">{id}</span>
-                {" · "}
+                {" | "}
                 {route.driverName}
               </>
             }
@@ -118,6 +131,15 @@ export default function RouteDetailPage({
             }
             actions={
               <>
+                {route.status === "PLANNED" && (
+                  <Link
+                    href={`/routes/${id}/edit`}
+                    className={cn(buttonVariants({ variant: "default", size: "sm" }))}
+                  >
+                    <PencilLine className="mr-2 size-4" aria-hidden />
+                    Edit assignment
+                  </Link>
+                )}
                 <Link
                   href={`/vehicles/${route.vehicleId}`}
                   className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
@@ -136,83 +158,147 @@ export default function RouteDetailPage({
             }
           />
 
-        <DetailMetricStrip
-          items={[
-            {
-              label: "Start",
-              value: new Date(route.startDate).toLocaleString(undefined, {
-                dateStyle: "medium",
-                timeStyle: "short",
-              }),
-              icon: <CalendarClock className="size-5" aria-hidden />,
-            },
-            {
-              label: "Total distance",
-              value: `${route.totalMileage.toLocaleString()} km`,
-              icon: <Gauge className="size-5" aria-hidden />,
-            },
-            {
-              label: "Parcels",
-              value: `${route.parcelsDelivered} / ${route.parcelCount}`,
-              hint: "Delivered / assigned",
-              icon: <Package className="size-5" aria-hidden />,
-            },
-            {
-              label: "Driver",
-              value: route.driverName,
-              icon: <User className="size-5" aria-hidden />,
-            },
-            {
-              label: "Staging area",
-              value: STAGING_AREA_LABELS[route.stagingArea],
-              icon: <MapPin className="size-5" aria-hidden />,
-            },
-          ]}
-        />
+          <DetailMetricStrip
+            items={[
+              {
+                label: "Start",
+                value: new Date(route.startDate).toLocaleString(undefined, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }),
+                icon: <CalendarClock className="size-5" aria-hidden />,
+              },
+              {
+                label: "Total distance",
+                value: `${route.totalMileage.toLocaleString()} km`,
+                icon: <Gauge className="size-5" aria-hidden />,
+              },
+              {
+                label: "Parcels",
+                value: `${route.parcelsDelivered} / ${route.parcelCount}`,
+                hint: "Delivered / assigned",
+                icon: <Package className="size-5" aria-hidden />,
+              },
+              {
+                label: "Driver",
+                value: route.driverName,
+                icon: <User className="size-5" aria-hidden />,
+              },
+              {
+                label: "Staging area",
+                value: STAGING_AREA_LABELS[route.stagingArea],
+                icon: <MapPin className="size-5" aria-hidden />,
+              },
+            ]}
+          />
 
-        <DetailPanel
-          className="detail-panel-animate"
-          section="route"
-          title="Route details"
-          description="Schedule, odometer readings, and audit."
-        >
-          <DetailFieldGrid>
-            <DetailField label="Vehicle">
-              <Link
-                href={`/vehicles/${route.vehicleId}`}
-                className="font-mono text-primary underline-offset-4 hover:underline"
-              >
-                {route.vehiclePlate}
-              </Link>
-            </DetailField>
-            <DetailField label="Driver">{route.driverName}</DetailField>
-            <DetailField label="Staging area">
-              {STAGING_AREA_LABELS[route.stagingArea]}
-            </DetailField>
-            <DetailField label="Start date">
-              {new Date(route.startDate).toLocaleString()}
-            </DetailField>
-            <DetailField label="End date">
-              {route.endDate
-                ? new Date(route.endDate).toLocaleString()
-                : ""}
-            </DetailField>
-            <DetailField label="Start mileage">
-              {route.startMileage.toLocaleString()} km
-            </DetailField>
-            <DetailField label="End mileage">
-              {route.endMileage > 0
-                ? `${route.endMileage.toLocaleString()} km`
-                : ""}
-            </DetailField>
-            <DetailField label="Parcels delivered">
-              {route.parcelsDelivered} of {route.parcelCount}
-            </DetailField>
-            <DetailField label="Recorded">
-              {formatCreatedAt(route.createdAt)}
-            </DetailField>
-          </DetailFieldGrid>
-        </DetailPanel>
+          <DetailPanel
+            className="detail-panel-animate"
+            section="route"
+            title="Route details"
+            description="Schedule, odometer readings, and dispatch assignment."
+          >
+            <DetailFieldGrid>
+              <DetailField label="Vehicle">
+                <Link
+                  href={`/vehicles/${route.vehicleId}`}
+                  className="font-mono text-primary underline-offset-4 hover:underline"
+                >
+                  {route.vehiclePlate}
+                </Link>
+              </DetailField>
+              <DetailField label="Driver">
+                <Link
+                  href={`/drivers/${route.driverId}`}
+                  className="text-primary underline-offset-4 hover:underline"
+                >
+                  {route.driverName}
+                </Link>
+              </DetailField>
+              <DetailField label="Staging area">
+                {STAGING_AREA_LABELS[route.stagingArea]}
+              </DetailField>
+              <DetailField label="Start date">
+                {new Date(route.startDate).toLocaleString()}
+              </DetailField>
+              <DetailField label="End date">
+                {route.endDate ? new Date(route.endDate).toLocaleString() : ""}
+              </DetailField>
+              <DetailField label="Start mileage">
+                {route.startMileage.toLocaleString()} km
+              </DetailField>
+              <DetailField label="End mileage">
+                {route.endMileage > 0 ? `${route.endMileage.toLocaleString()} km` : ""}
+              </DetailField>
+              <DetailField label="Parcels delivered">
+                {route.parcelsDelivered} of {route.parcelCount}
+              </DetailField>
+              <DetailField label="Recorded">{formatCreatedAt(route.createdAt)}</DetailField>
+              <DetailField label="Last modified">
+                {route.updatedAt ? new Date(route.updatedAt).toLocaleString() : ""}
+              </DetailField>
+            </DetailFieldGrid>
+          </DetailPanel>
+
+          <DetailPanel
+            className="detail-panel-animate"
+            section="route"
+            title="Assignment audit"
+            description="Driver and vehicle allocation changes captured before dispatch."
+          >
+            {assignmentAuditTrail.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No assignment changes have been recorded for this route yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {assignmentAuditTrail.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="rounded-2xl border border-border/60 bg-background/60 p-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold">
+                          {formatAuditActionLabel(entry.action)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(entry.changedAt).toLocaleString()}
+                          {entry.changedBy ? ` | ${entry.changedBy}` : ""}
+                        </p>
+                      </div>
+                      <span className={routeStatusBadgeClass(route.status)}>
+                        {ROUTE_STATUS_LABELS[route.status]}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Driver
+                        </p>
+                        <p className="mt-2 text-sm">
+                          {entry.previousDriverName ?? "Unassigned"}
+                          {" -> "}
+                          {entry.newDriverName}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Vehicle
+                        </p>
+                        <p className="mt-2 text-sm">
+                          {entry.previousVehiclePlate ?? "Unassigned"}
+                          {" -> "}
+                          {entry.newVehiclePlate}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DetailPanel>
         </DetailPageSectionProvider>
       </DetailContainer>
     </DetailShell>
