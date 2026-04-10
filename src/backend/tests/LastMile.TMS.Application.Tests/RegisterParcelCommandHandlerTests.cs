@@ -238,7 +238,7 @@ public class RegisterParcelCommandHandlerTests
         await db.SaveChangesAsync();
 
         var geocoding = Substitute.For<IGeocodingService>();
-        // Nominatim would return a point INSIDE the zone polygon
+        // The geocoder returns a point inside the zone polygon.
         geocoding.GeocodeAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(MakePoint(31.25, 29.95)); // inside the zone polygon
 

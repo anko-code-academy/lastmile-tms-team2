@@ -39,6 +39,20 @@ type RecipientSearchSelection = {
   label: string;
 };
 
+const MAPBOX_EXACT_ADDRESS_TYPES = "address";
+const MAPBOX_ADDRESS_FIRST_TYPES = "address,street,block";
+const MAPBOX_ALPHA3_TO_ALPHA2_COUNTRY_CODES: Record<string, string> = {
+  AUS: "AU",
+  CAN: "CA",
+  GBR: "GB",
+  NZL: "NZ",
+  USA: "US",
+};
+const mapboxRegionDisplayNames =
+  typeof Intl !== "undefined"
+    ? new Intl.DisplayNames(["en"], { type: "region" })
+    : null;
+
 const recipientAutofillFieldKeys = [
   "recipientStreet1",
   "recipientCity",
@@ -96,8 +110,122 @@ function formatStreetLine(feature: SearchBoxFeatureSuggestion): string {
     .trim();
 }
 
+function queryIncludesHouseNumber(query: string): boolean {
+  return /\d/.test(query);
+}
+
+function normalizeMapboxCountryCode(value?: string | null): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (normalized.length === 3) {
+    return MAPBOX_ALPHA3_TO_ALPHA2_COUNTRY_CODES[normalized];
+  }
+
+  if (normalized.length !== 2 || !mapboxRegionDisplayNames) {
+    return undefined;
+  }
+
+  const displayName = mapboxRegionDisplayNames.of(normalized);
+  if (!displayName || displayName.toUpperCase() === normalized) {
+    return undefined;
+  }
+
+  return normalized;
+}
+
+function scoreRecipientFeature(
+  feature: SearchBoxFeatureSuggestion,
+  query: string,
+): number {
+  let score = 0;
+
+  switch (feature.properties.feature_type?.toLowerCase()) {
+    case "address":
+      score += 400;
+      break;
+    case "street":
+      score += 180;
+      break;
+    case "block":
+      score += 120;
+      break;
+    default:
+      break;
+  }
+
+  switch (feature.properties.coordinates.accuracy?.toLowerCase()) {
+    case "rooftop":
+      score += 140;
+      break;
+    case "parcel":
+      score += 120;
+      break;
+    case "interpolated":
+      score += 95;
+      break;
+    case "street":
+      score += 50;
+      break;
+    case "proximate":
+      score += 20;
+      break;
+    default:
+      break;
+  }
+
+  if (
+    feature.properties.coordinates.routable_points?.some(
+      (point) => point.name.toLowerCase() === "default",
+    )
+  ) {
+    score += 70;
+  }
+
+  if (queryIncludesHouseNumber(query)) {
+    const candidateNumber =
+      feature.properties.context.address?.address_number?.trim()
+      ?? feature.properties.context.address_number?.name?.trim()
+      ?? "";
+
+    score += candidateNumber ? 80 : -60;
+  }
+
+  return score;
+}
+
+function pickBestRecipientFeature(
+  response: SearchBoxRetrieveResponse,
+  query: string,
+): SearchBoxFeatureSuggestion | null {
+  if (response.features.length === 0) {
+    return null;
+  }
+
+  return response.features.reduce<SearchBoxFeatureSuggestion | null>(
+    (bestFeature, currentFeature) => {
+      if (!bestFeature) {
+        return currentFeature;
+      }
+
+      return scoreRecipientFeature(currentFeature, query)
+        > scoreRecipientFeature(bestFeature, query)
+        ? currentFeature
+        : bestFeature;
+    },
+    null,
+  );
+}
+
 function mapRetrieveResponseToRecipientSelection(
   response: SearchBoxRetrieveResponse,
+  query: string,
 ): (RecipientSearchSelection & {
   city: string;
   countryCode: string;
@@ -105,7 +233,7 @@ function mapRetrieveResponseToRecipientSelection(
   state: string;
   street1: string;
 }) | null {
-  const feature = response.features[0];
+  const feature = pickBestRecipientFeature(response, query);
   if (!feature) {
     return null;
   }
@@ -139,6 +267,8 @@ function getSelectionAccuracyMessage(accuracy: string | null): string | null {
       return "High-confidence rooftop match.";
     case "parcel":
       return "Parcel-level match.";
+    case "interpolated":
+      return "Interpolated address match. Double-check the building number before submitting.";
     case "street":
       return "Street-level match. Confirm the building number before submitting.";
     case "proximate":
@@ -269,6 +399,12 @@ export function ParcelEditorForm({
         lng: selectedDepot.address.geoLocation.longitude,
       }
     : undefined;
+  const recipientSearchCountry = normalizeMapboxCountryCode(
+    selectedDepot?.address?.countryCode,
+  );
+  const recipientSearchTypes = queryIncludesHouseNumber(addressSearchValue)
+    ? MAPBOX_EXACT_ADDRESS_TYPES
+    : MAPBOX_ADDRESS_FIRST_TYPES;
 
   function clearError(key: string) {
     setErrors((current) => {
@@ -301,7 +437,10 @@ export function ParcelEditorForm({
   }
 
   function applyRecipientSearchSelection(response: SearchBoxRetrieveResponse) {
-    const selection = mapRetrieveResponseToRecipientSelection(response);
+    const selection = mapRetrieveResponseToRecipientSelection(
+      response,
+      addressSearchValue,
+    );
     if (!selection) {
       return;
     }
@@ -416,8 +555,8 @@ export function ParcelEditorForm({
           <CardHeader>
             <CardTitle className="text-base">Recipient</CardTitle>
             <CardDescription>
-              Start with search for a faster, cleaner address, then fine-tune the
-              delivery details below if needed.
+              Start with search to capture a delivery-ready street address, then
+              fine-tune the details below if needed.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
@@ -431,10 +570,14 @@ export function ParcelEditorForm({
                     onChange={setAddressSearchValue}
                     onClear={() => setAddressSearchValue("")}
                     onRetrieve={applyRecipientSearchSelection}
-                    placeholder="Search recipient address or landmark..."
+                    placeholder="Search street address or building number..."
                     options={{
                       language: "en",
                       limit: 5,
+                      types: recipientSearchTypes,
+                      ...(recipientSearchCountry
+                        ? { country: recipientSearchCountry }
+                        : {}),
                       ...(recipientSearchProximity
                         ? { proximity: recipientSearchProximity }
                         : {}),
@@ -452,15 +595,26 @@ export function ParcelEditorForm({
                   />
                   <div className="mt-3 flex flex-wrap gap-2 text-xs">
                     <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-muted-foreground">
-                      3+ characters to search
+                      House numbers work best
                     </span>
                     <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-muted-foreground">
-                      Landmarks supported
+                      3+ characters to search
                     </span>
                     <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-muted-foreground">
                       Fields stay editable
                     </span>
+                    {recipientSearchCountry ? (
+                      <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-muted-foreground">
+                        Country locked to {recipientSearchCountry}
+                      </span>
+                    ) : null}
                   </div>
+                  {!queryIncludesHouseNumber(addressSearchValue) ? (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Tip: include the building number to get the most reliable
+                      delivery-zone match.
+                    </p>
+                  ) : null}
                 </div>
               ) : (
                 <p className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">

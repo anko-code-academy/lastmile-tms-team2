@@ -8,7 +8,7 @@ namespace LastMile.TMS.Api.Tests;
 /// Deterministic geocoding service for integration tests.
 /// Always returns a point that falls inside the seeded PostGIS zone polygon
 /// (zone boundary: 151.0E-152.0E longitude, -34.0S to -33.0S latitude).
-/// This removes the Nominatim network dependency from API tests while still exercising
+/// This removes the external geocoding network dependency from API tests while still exercising
 /// the real PostGIS ST_Covers zone-matching logic.
 /// </summary>
 public sealed class TestGeocodingService : IGeocodingService
@@ -23,7 +23,7 @@ public sealed class TestGeocodingService : IGeocodingService
     {
         // Return a deterministic point regardless of the input address string.
         // The zone matching service (PostGIS ST_Covers) is exercised in full;
-        // only the external Nominatim HTTP call is stubbed.
+        // only the external geocoding HTTP call is stubbed.
         return Task.FromResult<Point?>(DeterministicPoint);
     }
 }

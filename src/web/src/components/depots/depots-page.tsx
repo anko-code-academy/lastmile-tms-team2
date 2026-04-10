@@ -1,7 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
-import { Building2, Pencil, Plus, Trash2, X } from "lucide-react";
+import type {
+  SearchBoxFeatureSuggestion,
+  SearchBoxRetrieveResponse,
+} from "@mapbox/search-js-core";
+import { Building2, MapPinHouse, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import {
@@ -19,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QueryErrorAlert } from "@/components/feedback/query-error-alert";
+import { getMapboxAccessToken, getMapboxConfigurationError } from "@/lib/mapbox/config";
 import { getErrorMessage } from "@/lib/network/error-message";
 import {
   useCreateDepot,
@@ -32,6 +38,44 @@ import type {
   Depot,
   UpdateDepotRequest,
 } from "@/types/depots";
+
+const MAPBOX_EXACT_ADDRESS_TYPES = "address";
+const MAPBOX_ADDRESS_FIRST_TYPES = "address,street,block";
+const MAPBOX_ALPHA3_TO_ALPHA2_COUNTRY_CODES: Record<string, string> = {
+  AUS: "AU",
+  CAN: "CA",
+  GBR: "GB",
+  NZL: "NZ",
+  USA: "US",
+};
+const mapboxRegionDisplayNames =
+  typeof Intl !== "undefined"
+    ? new Intl.DisplayNames(["en"], { type: "region" })
+    : null;
+
+const depotSearchBoxTheme = {
+  variables: {
+    border: "1px solid rgba(148, 163, 184, 0.3)",
+    borderRadius: "1rem",
+    boxShadow: "0 20px 44px -28px rgba(15, 23, 42, 0.28)",
+    colorBackground: "#ffffff",
+    colorBackgroundHover: "#f8fafc",
+    colorPrimary: "#0f172a",
+    colorSecondary: "#64748b",
+    colorText: "#0f172a",
+    fontFamily: "inherit",
+    lineHeight: "1.45",
+    minWidth: "100%",
+    padding: "0.75rem",
+    spacing: "0.5rem",
+    unit: "0.95rem",
+  },
+} as const;
+
+const DepotAddressSearchBox = dynamic(
+  () => import("@mapbox/search-js-react").then((module) => module.SearchBox),
+  { ssr: false },
+);
 
 const DAYS = [
   "Sunday",
@@ -58,6 +102,215 @@ interface HoursData {
   openTime: string;
   closedTime: string;
   isClosed: boolean;
+}
+
+interface DepotAddressSearchSelection {
+  accuracy: string | null;
+  label: string;
+  city: string;
+  countryCode: string;
+  postalCode: string;
+  state: string;
+  street1: string;
+}
+
+function formatRegion(feature: SearchBoxFeatureSuggestion): string {
+  const regionCode = feature.properties.context.region?.region_code?.trim();
+  if (regionCode) {
+    const parts = regionCode.split("-");
+    return parts[parts.length - 1] ?? regionCode;
+  }
+
+  return feature.properties.context.region?.name?.trim() ?? "";
+}
+
+function formatStreetLine(feature: SearchBoxFeatureSuggestion): string {
+  const directAddress = feature.properties.address?.trim();
+  if (directAddress) {
+    return directAddress;
+  }
+
+  return [
+    feature.properties.context.address_number?.name?.trim(),
+    feature.properties.context.street?.name?.trim(),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+function queryIncludesHouseNumber(query: string): boolean {
+  return /\d/.test(query);
+}
+
+function normalizeMapboxCountryCode(value?: string | null): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (normalized.length === 3) {
+    return MAPBOX_ALPHA3_TO_ALPHA2_COUNTRY_CODES[normalized];
+  }
+
+  if (normalized.length !== 2 || !mapboxRegionDisplayNames) {
+    return undefined;
+  }
+
+  const displayName = mapboxRegionDisplayNames.of(normalized);
+  if (!displayName || displayName.toUpperCase() === normalized) {
+    return undefined;
+  }
+
+  return normalized;
+}
+
+function scoreDepotFeature(
+  feature: SearchBoxFeatureSuggestion,
+  query: string,
+): number {
+  let score = 0;
+
+  switch (feature.properties.feature_type?.toLowerCase()) {
+    case "address":
+      score += 400;
+      break;
+    case "street":
+      score += 180;
+      break;
+    case "block":
+      score += 120;
+      break;
+    default:
+      break;
+  }
+
+  switch (feature.properties.coordinates.accuracy?.toLowerCase()) {
+    case "rooftop":
+      score += 140;
+      break;
+    case "parcel":
+      score += 120;
+      break;
+    case "interpolated":
+      score += 95;
+      break;
+    case "street":
+      score += 50;
+      break;
+    case "proximate":
+      score += 20;
+      break;
+    default:
+      break;
+  }
+
+  if (
+    feature.properties.coordinates.routable_points?.some(
+      (point) => point.name.toLowerCase() === "default",
+    )
+  ) {
+    score += 70;
+  }
+
+  if (queryIncludesHouseNumber(query)) {
+    const candidateNumber =
+      feature.properties.context.address?.address_number?.trim()
+      ?? feature.properties.context.address_number?.name?.trim()
+      ?? "";
+
+    score += candidateNumber ? 80 : -60;
+  }
+
+  return score;
+}
+
+function pickBestDepotFeature(
+  response: SearchBoxRetrieveResponse,
+  query: string,
+): SearchBoxFeatureSuggestion | null {
+  if (response.features.length === 0) {
+    return null;
+  }
+
+  return response.features.reduce<SearchBoxFeatureSuggestion | null>(
+    (bestFeature, currentFeature) => {
+      if (!bestFeature) {
+        return currentFeature;
+      }
+
+      return scoreDepotFeature(currentFeature, query)
+        > scoreDepotFeature(bestFeature, query)
+        ? currentFeature
+        : bestFeature;
+    },
+    null,
+  );
+}
+
+function mapRetrieveResponseToDepotSelection(
+  response: SearchBoxRetrieveResponse,
+  query: string,
+): DepotAddressSearchSelection | null {
+  const feature = pickBestDepotFeature(response, query);
+  if (!feature) {
+    return null;
+  }
+
+  const city =
+    feature.properties.context.place?.name?.trim()
+    ?? feature.properties.context.locality?.name?.trim()
+    ?? feature.properties.context.district?.name?.trim()
+    ?? "";
+  const street1 = formatStreetLine(feature);
+  const label =
+    feature.properties.full_address?.trim()
+    ?? feature.properties.name?.trim()
+    ?? street1;
+
+  return {
+    accuracy: feature.properties.coordinates.accuracy ?? null,
+    city,
+    countryCode:
+      feature.properties.context.country?.country_code?.trim().toUpperCase() ?? "",
+    label,
+    postalCode: feature.properties.context.postcode?.name?.trim() ?? "",
+    state: formatRegion(feature),
+    street1,
+  };
+}
+
+function formatDepotSearchValue(form: DepotFormData): string {
+  return [
+    form.street1,
+    form.city,
+    form.state,
+    form.postalCode,
+    form.countryCode,
+  ]
+    .filter((value) => value.trim().length > 0)
+    .join(", ");
+}
+
+function getSelectionAccuracyMessage(accuracy: string | null): string | null {
+  switch (accuracy) {
+    case "rooftop":
+      return "High-confidence rooftop match.";
+    case "parcel":
+      return "Parcel-level match.";
+    case "interpolated":
+      return "Interpolated match. Double-check the street number before saving.";
+    case "street":
+      return "Street-level match. Double-check the street number before saving.";
+    case "proximate":
+      return "Approximate match. Review the address before saving.";
+    default:
+      return null;
+  }
 }
 
 function defaultHours(): HoursData[] {
@@ -139,6 +392,55 @@ function DepotForm({
   const [hours, setHours] = useState<HoursData[]>(
     initial?.hours ?? defaultForm().hours,
   );
+  const [addressSearchValue, setAddressSearchValue] = useState(
+    formatDepotSearchValue(
+      initial?.depot
+        ? {
+            name: initial.depot.name,
+            street1: initial.depot.address?.street1 ?? "",
+            city: initial.depot.address?.city ?? "",
+            state: initial.depot.address?.state ?? "",
+            postalCode: initial.depot.address?.postalCode ?? "",
+            countryCode: initial.depot.address?.countryCode ?? "AU",
+            isActive: initial.depot.isActive,
+          }
+        : defaultForm().depot,
+    ),
+  );
+  const [addressSearchSelection, setAddressSearchSelection] =
+    useState<DepotAddressSearchSelection | null>(null);
+  const mapboxToken = getMapboxAccessToken();
+  const mapboxConfigurationError = getMapboxConfigurationError();
+  const addressSearchTypes = queryIncludesHouseNumber(addressSearchValue)
+    ? MAPBOX_EXACT_ADDRESS_TYPES
+    : MAPBOX_ADDRESS_FIRST_TYPES;
+  const addressSearchCountry = normalizeMapboxCountryCode(form.countryCode);
+
+  function setAddressFields(nextFields: Partial<DepotFormData>) {
+    setAddressSearchSelection(null);
+    setForm((current) => ({ ...current, ...nextFields }));
+  }
+
+  function applyAddressSearchSelection(response: SearchBoxRetrieveResponse) {
+    const selection = mapRetrieveResponseToDepotSelection(
+      response,
+      addressSearchValue,
+    );
+    if (!selection) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      city: selection.city || current.city,
+      countryCode: selection.countryCode || current.countryCode,
+      postalCode: selection.postalCode || current.postalCode,
+      state: selection.state || current.state,
+      street1: selection.street1 || current.street1,
+    }));
+    setAddressSearchValue(selection.label);
+    setAddressSearchSelection(selection);
+  }
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -182,12 +484,92 @@ function DepotForm({
           />
         </div>
         <div className="sm:col-span-2">
+          <Label className="mb-1.5 block">Find address</Label>
+          {mapboxToken ? (
+            <div className="overflow-visible rounded-[1.25rem] border border-border/60 bg-gradient-to-br from-background via-background to-muted/30 p-3 shadow-[0_18px_45px_-35px_rgba(15,23,42,0.4)]">
+              <DepotAddressSearchBox
+                accessToken={mapboxToken}
+                value={addressSearchValue}
+                onChange={setAddressSearchValue}
+                onClear={() => {
+                  setAddressSearchValue("");
+                  setAddressSearchSelection(null);
+                }}
+                onRetrieve={applyAddressSearchSelection}
+                placeholder="Paste or search the full depot address..."
+                options={{
+                  language: "en",
+                  limit: 5,
+                  types: addressSearchTypes,
+                  ...(addressSearchCountry
+                    ? { country: addressSearchCountry }
+                    : {}),
+                }}
+                interceptSearch={(value) => {
+                  const query = value.trim();
+                  return query.length >= 3 ? query : "";
+                }}
+                popoverOptions={{
+                  flip: false,
+                  offset: 8,
+                  placement: "bottom-start",
+                }}
+                theme={depotSearchBoxTheme}
+              />
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-muted-foreground">
+                  Paste a full address
+                </span>
+                <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-muted-foreground">
+                  3+ characters to search
+                </span>
+                <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-muted-foreground">
+                  Manual fields stay editable
+                </span>
+                {addressSearchCountry ? (
+                  <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-muted-foreground">
+                    Country locked to {addressSearchCountry}
+                  </span>
+                ) : null}
+              </div>
+              {!queryIncludesHouseNumber(addressSearchValue) ? (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Tip: include the building number to get a more reliable match.
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+              Address search is unavailable until Mapbox is configured.
+              {mapboxConfigurationError ? ` ${mapboxConfigurationError}` : ""}
+            </p>
+          )}
+        </div>
+        {addressSearchSelection ? (
+          <div className="sm:col-span-2 rounded-[1.25rem] border border-emerald-200/80 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full bg-emerald-100 p-2 text-emerald-700">
+                <MapPinHouse className="h-4 w-4" aria-hidden />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium">Address matched from search</p>
+                <p>{addressSearchSelection.label}</p>
+                {getSelectionAccuracyMessage(addressSearchSelection.accuracy) ? (
+                  <p className="text-xs text-emerald-800/80">
+                    {getSelectionAccuracyMessage(addressSearchSelection.accuracy)}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
+        <div className="sm:col-span-2">
           <Label htmlFor="depot-street">Street address</Label>
           <Input
             id="depot-street"
             value={form.street1}
             onChange={(event) =>
-              setForm({ ...form, street1: event.target.value })
+              setAddressFields({ street1: event.target.value })
             }
             required
           />
@@ -197,7 +579,7 @@ function DepotForm({
           <Input
             id="depot-city"
             value={form.city}
-            onChange={(event) => setForm({ ...form, city: event.target.value })}
+            onChange={(event) => setAddressFields({ city: event.target.value })}
             required
           />
         </div>
@@ -206,7 +588,7 @@ function DepotForm({
           <Input
             id="depot-state"
             value={form.state}
-            onChange={(event) => setForm({ ...form, state: event.target.value })}
+            onChange={(event) => setAddressFields({ state: event.target.value })}
             required
           />
         </div>
@@ -216,7 +598,7 @@ function DepotForm({
             id="depot-postal"
             value={form.postalCode}
             onChange={(event) =>
-              setForm({ ...form, postalCode: event.target.value })
+              setAddressFields({ postalCode: event.target.value })
             }
             required
           />
@@ -228,8 +610,7 @@ function DepotForm({
             value={form.countryCode}
             maxLength={2}
             onChange={(event) =>
-              setForm({
-                ...form,
+              setAddressFields({
                 countryCode: event.target.value.toUpperCase().slice(0, 2),
               })
             }

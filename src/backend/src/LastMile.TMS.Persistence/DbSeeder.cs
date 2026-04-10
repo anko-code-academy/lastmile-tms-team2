@@ -182,24 +182,145 @@ public sealed class DbSeeder(
 
         await SeedRolesAsync(roleManager);
         await SeedAdminUserAsync(userManager, cancellationToken);
+
+        if (!await ShouldSeedDevelopmentDataAsync(
+                dbContext,
+                connectionString,
+                enableTestSupport,
+                cancellationToken))
+        {
+            return;
+        }
+
         await SeedTestDepotAsync(dbContext, cancellationToken);
 
         // Zone + parcel use PostGIS geometry — skip for InMemory test databases.
-        if (connectionString != "InMemory")
+        if (connectionString == "InMemory")
         {
-            await SeedTestZoneAsync(dbContext, cancellationToken);
-            await SeedTestDriverAsync(userManager, dbContext, cancellationToken);
-            await SeedTestVehicleAsync(dbContext, cancellationToken);
-            await SeedTestParcelsAsync(dbContext, cancellationToken);
+            return;
+        }
 
-            if (!enableTestSupport)
-            {
-                await SeedDevelopmentRoutesAsync(dbContext, cancellationToken);
-            }
+        await SeedTestZoneAsync(dbContext, cancellationToken);
+        await SeedTestDriverAsync(userManager, dbContext, cancellationToken);
+        await SeedTestVehicleAsync(dbContext, cancellationToken);
+        await SeedTestParcelsAsync(dbContext, cancellationToken);
+
+        if (!enableTestSupport)
+        {
+            await SeedDevelopmentRoutesAsync(dbContext, cancellationToken);
         }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    private async Task<bool> ShouldSeedDevelopmentDataAsync(
+        AppDbContext dbContext,
+        string? connectionString,
+        bool enableTestSupport,
+        CancellationToken ct)
+    {
+        if (connectionString == "InMemory")
+        {
+            logger.LogInformation("Running development seed against the in-memory database.");
+            return true;
+        }
+
+        if (!await HasAnyOperationalDataAsync(dbContext, ct))
+        {
+            logger.LogInformation("Database is empty; running initial development seed.");
+            return true;
+        }
+
+        if (await HasCompletedDevelopmentSeedAsync(dbContext, enableTestSupport, ct))
+        {
+            logger.LogInformation("Development seed already completed; skipping startup seed.");
+            return false;
+        }
+
+        if (await HasAnySeededDevelopmentDataAsync(dbContext, ct))
+        {
+            logger.LogInformation("Found partially seeded development records; resuming idempotent seed.");
+            return true;
+        }
+
+        logger.LogInformation("Skipping development seed because the database already contains operational data.");
+        return false;
+    }
+
+    private static async Task<bool> HasAnyOperationalDataAsync(AppDbContext dbContext, CancellationToken ct)
+    {
+        return await dbContext.Depots.AnyAsync(ct)
+            || await dbContext.Zones.AnyAsync(ct)
+            || await dbContext.Drivers.AnyAsync(ct)
+            || await dbContext.Vehicles.AnyAsync(ct)
+            || await dbContext.Parcels.AnyAsync(ct)
+            || await dbContext.Routes.AnyAsync(ct);
+    }
+
+    private async Task<bool> HasAnySeededDevelopmentDataAsync(AppDbContext dbContext, CancellationToken ct)
+    {
+        var seededAddressIds = new[]
+        {
+            TestDepotAddressId,
+            TestParcelShipperAddressId,
+            TestParcelRecipientAddressId,
+        };
+
+        var seededDriverIds = TestDriverSeeds
+            .Select(seed => seed.DriverId)
+            .ToArray();
+        var seededVehicleIds = VehicleSeeds
+            .Select(seed => seed.Id)
+            .ToArray();
+        var seededParcelIds = TestParcelSeeds
+            .Select(seed => seed.Id)
+            .Concat(DevelopmentRouteParcelSeeds.Select(seed => seed.Id))
+            .ToArray();
+        var seededRouteIds = BuildDevelopmentRouteSeeds()
+            .Select(seed => seed.Id)
+            .ToArray();
+
+        return await dbContext.Depots.AnyAsync(depot => depot.Id == TestDepotId, ct)
+            || await dbContext.Addresses.AnyAsync(address => seededAddressIds.Contains(address.Id), ct)
+            || await dbContext.Zones.AnyAsync(zone => zone.Id == TestZoneId, ct)
+            || await dbContext.Drivers.AnyAsync(driver => seededDriverIds.Contains(driver.Id), ct)
+            || await dbContext.Vehicles.AnyAsync(vehicle => seededVehicleIds.Contains(vehicle.Id), ct)
+            || await dbContext.Parcels.AnyAsync(parcel => seededParcelIds.Contains(parcel.Id), ct)
+            || await dbContext.Routes.AnyAsync(route => seededRouteIds.Contains(route.Id), ct);
+    }
+
+    private async Task<bool> HasCompletedDevelopmentSeedAsync(
+        AppDbContext dbContext,
+        bool enableTestSupport,
+        CancellationToken ct)
+    {
+        var seededDriverIds = TestDriverSeeds
+            .Select(seed => seed.DriverId)
+            .ToArray();
+        var seededVehicleIds = VehicleSeeds
+            .Select(seed => seed.Id)
+            .ToArray();
+        var seededParcelIds = TestParcelSeeds
+            .Select(seed => seed.Id)
+            .ToList();
+
+        if (!enableTestSupport)
+        {
+            seededParcelIds.AddRange(DevelopmentRouteParcelSeeds.Select(seed => seed.Id));
+        }
+
+        var seededRouteIds = enableTestSupport
+            ? Array.Empty<Guid>()
+            : BuildDevelopmentRouteSeeds().Select(seed => seed.Id).ToArray();
+
+        return await dbContext.Depots.AnyAsync(depot => depot.Id == TestDepotId, ct)
+            && await dbContext.Zones.AnyAsync(zone => zone.Id == TestZoneId, ct)
+            && (await dbContext.Drivers.CountAsync(driver => seededDriverIds.Contains(driver.Id), ct)) == seededDriverIds.Length
+            && (await dbContext.Vehicles.CountAsync(vehicle => seededVehicleIds.Contains(vehicle.Id), ct)) == seededVehicleIds.Length
+            && (await dbContext.Parcels.CountAsync(parcel => seededParcelIds.Contains(parcel.Id), ct)) == seededParcelIds.Count
+            && (seededRouteIds.Length == 0
+                || (await dbContext.Routes.CountAsync(route => seededRouteIds.Contains(route.Id), ct)) == seededRouteIds.Length);
+    }
 
     private async Task SeedRolesAsync(RoleManager<ApplicationRole> roleManager)
     {
@@ -1284,6 +1405,8 @@ public sealed class DbSeeder(
             .Where(driver => driverIds.Contains(driver.Id))
             .ToDictionaryAsync(driver => driver.Id, ct);
 
+        var pendingStopParcelAssignments = new List<(RouteStop Stop, Parcel Parcel)>();
+
         foreach (var seed in routeSeeds)
         {
             if (!vehicles.ContainsKey(seed.VehicleId) || !drivers.ContainsKey(seed.DriverId))
@@ -1299,17 +1422,36 @@ public sealed class DbSeeder(
                 .Include(candidate => candidate.Stops)
                 .ThenInclude(stop => stop.Parcels)
                 .Include(candidate => candidate.AssignmentAuditTrail)
-                .FirstOrDefaultAsync(candidate => candidate.Id == seed.Id, ct)
-                ?? new Route
+                .FirstOrDefaultAsync(candidate => candidate.Id == seed.Id, ct);
+            var routeAlreadyExists = route is not null;
+            route ??= new Route
                 {
                     Id = seed.Id,
                     CreatedAt = DateTimeOffset.UtcNow,
                     CreatedBy = "Seeder",
                 };
 
-            if (dbContext.Entry(route).State == EntityState.Detached)
+            if (!routeAlreadyExists)
             {
                 dbContext.Routes.Add(route);
+            }
+            else
+            {
+                route.Parcels.Clear();
+
+                if (route.Stops.Count > 0)
+                {
+                    dbContext.RouteStops.RemoveRange(route.Stops.ToList());
+                }
+
+                if (route.AssignmentAuditTrail.Count > 0)
+                {
+                    dbContext.RouteAssignmentAuditEntries.RemoveRange(route.AssignmentAuditTrail.ToList());
+                }
+
+                await dbContext.SaveChangesAsync(ct);
+                route.Stops = new List<RouteStop>();
+                route.AssignmentAuditTrail = new List<RouteAssignmentAuditEntry>();
             }
 
             route.ZoneId = TestZoneId;
@@ -1339,18 +1481,6 @@ public sealed class DbSeeder(
                 }
             }
 
-            if (route.Stops.Count > 0)
-            {
-                dbContext.RouteStops.RemoveRange(route.Stops.ToList());
-                route.Stops.Clear();
-            }
-
-            if (route.AssignmentAuditTrail.Count > 0)
-            {
-                dbContext.RouteAssignmentAuditEntries.RemoveRange(route.AssignmentAuditTrail.ToList());
-                route.AssignmentAuditTrail.Clear();
-            }
-
             var orderedParcels = seed.ParcelIds
                 .Where(parcels.ContainsKey)
                 .Select(parcelId => parcels[parcelId])
@@ -1377,7 +1507,7 @@ public sealed class DbSeeder(
                 var stop = new RouteStop
                 {
                     Id = Guid.NewGuid(),
-                    RouteId = route.Id,
+                    Route = route,
                     Sequence = index + 1,
                     RecipientLabel = BuildRecipientLabel(address),
                     Street1 = address.Street1,
@@ -1390,8 +1520,8 @@ public sealed class DbSeeder(
                     CreatedAt = DateTimeOffset.UtcNow,
                     CreatedBy = "Seeder",
                 };
-                stop.Parcels.Add(parcel);
                 route.Stops.Add(stop);
+                pendingStopParcelAssignments.Add((stop, parcel));
             }
 
             var driver = drivers[seed.DriverId];
@@ -1430,6 +1560,17 @@ public sealed class DbSeeder(
         }
 
         await dbContext.SaveChangesAsync(ct);
+
+        foreach (var (stop, parcel) in pendingStopParcelAssignments)
+        {
+            stop.Parcels.Add(parcel);
+        }
+
+        if (pendingStopParcelAssignments.Count > 0)
+        {
+            await dbContext.SaveChangesAsync(ct);
+        }
+
         logger.LogInformation("Seeded or updated {Count} development route(s)", routeSeeds.Count);
     }
 

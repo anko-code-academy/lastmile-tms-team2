@@ -4,12 +4,36 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ParcelRegistrationForm } from "@/components/parcels/parcel-registration-form";
 
-const { mockPush, mockMutateAsync, mockDownloadLabel, mockOnViewQueue } =
+const {
+  mockPush,
+  mockMutateAsync,
+  mockDownloadLabel,
+  mockOnViewQueue,
+  mockDepots,
+  mockSearchBoxProps,
+} =
   vi.hoisted(() => ({
     mockPush: vi.fn(),
     mockMutateAsync: vi.fn(),
     mockDownloadLabel: vi.fn(),
     mockOnViewQueue: vi.fn(),
+    mockDepots: [
+      {
+        id: "depot-1",
+        addressId: "address-1",
+        name: "North Depot",
+        isActive: true,
+        address: {
+          street1: "10 Depot Way",
+          street2: null,
+          city: "Chicago",
+          state: "IL",
+          postalCode: "60601",
+          countryCode: "US",
+        },
+      },
+    ],
+    mockSearchBoxProps: vi.fn(),
   }));
 
 vi.mock("@/lib/mapbox/config", () => ({
@@ -26,22 +50,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/queries/depots", () => ({
   useDepots: () => ({
-    data: [
-      {
-        id: "depot-1",
-        addressId: "address-1",
-        name: "North Depot",
-        isActive: true,
-        address: {
-          street1: "10 Depot Way",
-          street2: null,
-          city: "Chicago",
-          state: "IL",
-          postalCode: "60601",
-          countryCode: "US",
-        },
-      },
-    ],
+    data: mockDepots,
     isLoading: false,
   }),
 }));
@@ -66,16 +75,21 @@ vi.mock("@mapbox/search-js-react", () => ({
     onChange,
     onClear,
     onRetrieve,
+    options,
     placeholder,
     value,
   }: {
     onChange?: (value: string) => void;
     onClear?: () => void;
     onRetrieve?: (response: unknown) => void;
+    options?: Record<string, unknown>;
     placeholder?: string;
     value?: string;
-  }) => (
-    <div data-testid="mapbox-searchbox">
+  }) => {
+    mockSearchBoxProps({ options, placeholder, value });
+
+    return (
+      <div data-testid="mapbox-searchbox">
       <input
         aria-label="Find Address"
         placeholder={placeholder}
@@ -95,6 +109,7 @@ vi.mock("@mapbox/search-js-react", () => ({
                   coordinates: [-74.0113353, 40.7033938],
                 },
                 properties: {
+                  feature_type: "address",
                   address: "54 Pearl Street",
                   context: {
                     country: {
@@ -122,6 +137,13 @@ vi.mock("@mapbox/search-js-react", () => ({
                     accuracy: "rooftop",
                     latitude: 40.7033938,
                     longitude: -74.0113353,
+                    routable_points: [
+                      {
+                        name: "default",
+                        latitude: 40.7033938,
+                        longitude: -74.0113353,
+                      },
+                    ],
                   },
                   full_address:
                     "54 Pearl Street, New York, New York 10004, United States",
@@ -137,8 +159,9 @@ vi.mock("@mapbox/search-js-react", () => ({
       <button type="button" onClick={() => onClear?.()}>
         Clear Mapbox suggestion
       </button>
-    </div>
-  ),
+      </div>
+    );
+  },
 }));
 
 vi.mock("@/components/form/select-dropdown", () => ({
@@ -187,6 +210,20 @@ function getFutureDate(daysFromNow = 2): string {
 describe("ParcelRegistrationForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDepots.splice(0, mockDepots.length, {
+      id: "depot-1",
+      addressId: "address-1",
+      name: "North Depot",
+      isActive: true,
+      address: {
+        street1: "10 Depot Way",
+        street2: null,
+        city: "Chicago",
+        state: "IL",
+        postalCode: "60601",
+        countryCode: "US",
+      },
+    });
 
     mockMutateAsync.mockResolvedValue({
       id: "parcel-1",
@@ -301,6 +338,97 @@ describe("ParcelRegistrationForm", () => {
         }),
       );
     });
+  });
+
+  it("configures Mapbox search to favor address results in the depot country", async () => {
+    render(<ParcelRegistrationForm />);
+
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByTestId("shipperAddressId"), "address-1");
+
+    await waitFor(() => {
+      expect(mockSearchBoxProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({
+            country: "US",
+            types: "address,street,block",
+          }),
+        }),
+      );
+    });
+
+    await user.type(screen.getByLabelText("Find Address"), "54 ");
+
+    await waitFor(() => {
+      expect(mockSearchBoxProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({
+            country: "US",
+            types: "address",
+          }),
+        }),
+      );
+    });
+  });
+
+  it("falls back to proximity-only search when the depot country code is invalid", async () => {
+    mockDepots[0] = {
+      ...mockDepots[0],
+      address: {
+        ...mockDepots[0].address,
+        city: "New York",
+        countryCode: "NY",
+        state: "NY",
+      },
+    };
+
+    render(<ParcelRegistrationForm />);
+
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByTestId("shipperAddressId"), "address-1");
+
+    await waitFor(() => {
+      expect(mockSearchBoxProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          options: expect.not.objectContaining({
+            country: expect.anything(),
+          }),
+        }),
+      );
+    });
+
+    expect(screen.queryByText(/country locked to/i)).not.toBeInTheDocument();
+  });
+
+  it("normalizes alpha-3 depot country codes before passing them to Mapbox", async () => {
+    mockDepots[0] = {
+      ...mockDepots[0],
+      address: {
+        ...mockDepots[0].address,
+        city: "Sydney",
+        countryCode: "AUS",
+        postalCode: "2000",
+        state: "NSW",
+      },
+      name: "Sydney Depot",
+    };
+
+    render(<ParcelRegistrationForm />);
+
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByTestId("shipperAddressId"), "address-1");
+
+    await waitFor(() => {
+      expect(mockSearchBoxProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({
+            country: "AU",
+          }),
+        }),
+      );
+    });
+
+    expect(screen.getByText(/country locked to au/i)).toBeInTheDocument();
   });
 
   it("shows success actions and calls the download/detail flows", async () => {
