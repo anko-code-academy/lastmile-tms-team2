@@ -24,8 +24,24 @@ public class RouteConfiguration : IEntityTypeConfiguration<Route>
         builder.Property(x => x.StartMileage)
             .IsRequired();
 
+        builder.Property(x => x.PlannedDistanceMeters)
+            .HasDefaultValue(0)
+            .IsRequired();
+
+        builder.Property(x => x.PlannedDurationSeconds)
+            .HasDefaultValue(0)
+            .IsRequired();
+
+        builder.Property(x => x.PlannedPath)
+            .HasColumnType("geometry(LineString,4326)");
+
         builder.Property(x => x.CancellationReason)
             .HasMaxLength(1000);
+
+        builder.HasOne(x => x.Zone)
+            .WithMany()
+            .HasForeignKey(x => x.ZoneId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(x => x.Vehicle)
             .WithMany()
@@ -40,6 +56,11 @@ public class RouteConfiguration : IEntityTypeConfiguration<Route>
         builder.HasMany(x => x.Parcels)
             .WithMany()
             .UsingEntity("RouteParcels");
+
+        builder.HasMany(x => x.Stops)
+            .WithOne(x => x.Route)
+            .HasForeignKey(x => x.RouteId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(x => x.AssignmentAuditTrail)
             .WithOne(x => x.Route)

@@ -18,6 +18,11 @@ public sealed class RouteType : EntityObjectType<RouteEntity>
     {
         descriptor.Name("Route");
         descriptor.Field(r => r.Id).IsProjected(true);
+        descriptor.Field(r => r.ZoneId).IsProjected(true);
+        descriptor.Field("zoneName")
+            .Type<StringType>()
+            .Resolve(async ctx =>
+                (await LoadRouteZoneLabelAsync(ctx, ctx.Parent<RouteEntity>().Id)).ZoneName);
         descriptor.Field(r => r.VehicleId).IsProjected(true);
         descriptor.Field(r => r.DriverId).IsProjected(true);
         descriptor.Field("vehiclePlate")
@@ -50,6 +55,17 @@ public sealed class RouteType : EntityObjectType<RouteEntity>
             .Type<NonNullType<IntType>>()
             .Resolve(async ctx =>
                 (await LoadParcelStatsAsync(ctx) ?? RouteParcelStats.Empty(ctx.Parent<RouteEntity>().Id)).ParcelsDelivered);
+        descriptor.Field(r => r.PlannedDistanceMeters);
+        descriptor.Field(r => r.PlannedDurationSeconds);
+        descriptor.Field("estimatedStopCount")
+            .Type<NonNullType<IntType>>()
+            .Resolve(async ctx => await LoadRouteStopCountAsync(ctx));
+        descriptor.Field("path")
+            .Type<NonNullType<ListType<NonNullType<RoutePathPointType>>>>()
+            .Resolve(async ctx => await LoadRoutePathAsync(ctx));
+        descriptor.Field("stops")
+            .Type<NonNullType<ListType<NonNullType<RouteStopType>>>>()
+            .Resolve(async ctx => await LoadRouteStopsAsync(ctx));
         descriptor.Field(r => r.CreatedAt);
         descriptor.Field(r => r.LastModifiedAt).Name("updatedAt");
         descriptor.Field(r => r.AssignmentAuditTrail)
@@ -95,6 +111,43 @@ public sealed class RouteType : EntityObjectType<RouteEntity>
         public static RouteLabels Empty { get; } = new(string.Empty, string.Empty);
     }
 
+    private static async Task<RouteZoneLabel> LoadRouteZoneLabelAsync(IResolverContext ctx, Guid routeId)
+    {
+        var label = await ctx.BatchDataLoader<Guid, RouteZoneLabel>(
+                async (routeIds, ct) =>
+                {
+                    var dbContext = ctx.Service<IAppDbContext>();
+                    var rows = await dbContext.Routes
+                        .AsNoTracking()
+                        .Where(route => routeIds.Contains(route.Id))
+                        .Select(route => new
+                        {
+                            route.Id,
+                            ZoneName = route.Zone.Name,
+                        })
+                        .ToListAsync(ct);
+
+                    return routeIds.ToDictionary(
+                        id => id,
+                        id =>
+                        {
+                            var row = rows.FirstOrDefault(candidate => candidate.Id == id);
+                            return row is null
+                                ? RouteZoneLabel.Empty
+                                : new RouteZoneLabel(row.ZoneName);
+                        });
+                },
+                "RouteZoneLabelByRouteId")
+            .LoadAsync(routeId);
+
+        return label ?? RouteZoneLabel.Empty;
+    }
+
+    private sealed record RouteZoneLabel(string ZoneName)
+    {
+        public static RouteZoneLabel Empty { get; } = new(string.Empty);
+    }
+
     private static Task<RouteParcelStats?> LoadParcelStatsAsync(IResolverContext ctx)
     {
         var routeId = ctx.Parent<RouteEntity>().Id;
@@ -125,6 +178,116 @@ public sealed class RouteType : EntityObjectType<RouteEntity>
         public static RouteParcelStats Empty(Guid routeId) => new(routeId, 0, 0);
     }
 
+    private static Task<int> LoadRouteStopCountAsync(IResolverContext ctx)
+    {
+        var routeId = ctx.Parent<RouteEntity>().Id;
+
+        return ctx.BatchDataLoader<Guid, int>(
+                async (ids, ct) =>
+                {
+                    var dbContext = ctx.Service<IAppDbContext>();
+                    var counts = await dbContext.RouteStops
+                        .AsNoTracking()
+                        .Where(stop => ids.Contains(stop.RouteId))
+                        .GroupBy(stop => stop.RouteId)
+                        .Select(group => new { RouteId = group.Key, Count = group.Count() })
+                        .ToListAsync(ct);
+
+                    return ids.ToDictionary(
+                        id => id,
+                        id => counts.FirstOrDefault(candidate => candidate.RouteId == id)?.Count ?? 0);
+                },
+                "RouteStopCountByRouteId")
+            .LoadAsync(routeId);
+    }
+
+    private static async Task<List<RouteStopDto>> LoadRouteStopsAsync(IResolverContext ctx)
+    {
+        var routeId = ctx.Parent<RouteEntity>().Id;
+        var stops = await ctx.BatchDataLoader<Guid, List<RouteStopDto>>(
+                async (ids, ct) =>
+                {
+                    var dbContext = ctx.Service<IAppDbContext>();
+                    var rows = await dbContext.RouteStops
+                        .AsNoTracking()
+                        .Where(stop => ids.Contains(stop.RouteId))
+                        .Include(stop => stop.Parcels)
+                        .ThenInclude(parcel => parcel.RecipientAddress)
+                        .OrderBy(stop => stop.Sequence)
+                        .ToListAsync(ct);
+
+                    return ids.ToDictionary(
+                        id => id,
+                        id => rows
+                            .Where(stop => stop.RouteId == id)
+                            .OrderBy(stop => stop.Sequence)
+                            .Select(stop => new RouteStopDto
+                            {
+                                Id = stop.Id.ToString(),
+                                Sequence = stop.Sequence,
+                                RecipientLabel = stop.RecipientLabel,
+                                AddressLine = BuildAddressLine(stop),
+                                Longitude = stop.StopLocation.X,
+                                Latitude = stop.StopLocation.Y,
+                                Parcels = stop.Parcels
+                                    .OrderBy(parcel => parcel.TrackingNumber)
+                                    .Select(parcel => new RouteStopParcelDto
+                                    {
+                                        ParcelId = parcel.Id,
+                                        TrackingNumber = parcel.TrackingNumber,
+                                        RecipientLabel = string.IsNullOrWhiteSpace(parcel.RecipientAddress.ContactName)
+                                            ? parcel.RecipientAddress.CompanyName ?? parcel.TrackingNumber
+                                            : parcel.RecipientAddress.ContactName,
+                                        AddressLine = BuildAddressLine(parcel.RecipientAddress),
+                                    })
+                                    .ToList(),
+                            })
+                            .ToList());
+                },
+                "RouteStopsByRouteId")
+            .LoadAsync(routeId);
+
+        return stops ?? [];
+    }
+
+    private static async Task<List<RoutePathPointDto>> LoadRoutePathAsync(IResolverContext ctx)
+    {
+        var routeId = ctx.Parent<RouteEntity>().Id;
+        var path = await ctx.BatchDataLoader<Guid, List<RoutePathPointDto>>(
+                async (ids, ct) =>
+                {
+                    var dbContext = ctx.Service<IAppDbContext>();
+                    var rows = await dbContext.Routes
+                        .AsNoTracking()
+                        .Where(route => ids.Contains(route.Id))
+                        .Select(route => new
+                        {
+                            route.Id,
+                            route.PlannedPath,
+                        })
+                        .ToListAsync(ct);
+
+                    return ids.ToDictionary(
+                        id => id,
+                        id =>
+                        {
+                            var row = rows.FirstOrDefault(candidate => candidate.Id == id);
+                            return row?.PlannedPath?.Coordinates
+                                .Select(coordinate => new RoutePathPointDto
+                                {
+                                    Longitude = coordinate.X,
+                                    Latitude = coordinate.Y,
+                                })
+                                .ToList()
+                                ?? [];
+                        });
+                },
+                "RoutePathByRouteId")
+            .LoadAsync(routeId);
+
+        return path ?? [];
+    }
+
     private static Task<List<RouteAssignmentAuditEntry>> LoadAssignmentAuditTrailAsync(IResolverContext ctx)
     {
         var routeId = ctx.Parent<RouteEntity>().Id;
@@ -153,6 +316,32 @@ public sealed class RouteType : EntityObjectType<RouteEntity>
             return rows ?? [];
         }
     }
+
+    private static string BuildAddressLine(RouteStop stop) => BuildAddressLine(
+        stop.Street1,
+        stop.Street2,
+        stop.City,
+        stop.State,
+        stop.PostalCode);
+
+    private static string BuildAddressLine(Address address) => BuildAddressLine(
+        address.Street1,
+        address.Street2,
+        address.City,
+        address.State,
+        address.PostalCode);
+
+    private static string BuildAddressLine(
+        string street1,
+        string? street2,
+        string city,
+        string state,
+        string postalCode)
+    {
+        var parts = new[] { street1, street2, city, state, postalCode }
+            .Where(part => !string.IsNullOrWhiteSpace(part));
+        return string.Join(", ", parts);
+    }
 }
 
 public sealed class RouteFilterInputType : FilterInputType<RouteEntity>
@@ -162,12 +351,15 @@ public sealed class RouteFilterInputType : FilterInputType<RouteEntity>
         descriptor.Name("RouteFilterInput");
         descriptor.BindFieldsExplicitly();
         descriptor.Field(r => r.Id);
+        descriptor.Field(r => r.ZoneId);
         descriptor.Field(r => r.VehicleId);
         descriptor.Field(r => r.DriverId);
         descriptor.Field(r => r.StartDate);
         descriptor.Field(r => r.EndDate);
         descriptor.Field(r => r.StartMileage);
         descriptor.Field(r => r.EndMileage);
+        descriptor.Field(r => r.PlannedDistanceMeters);
+        descriptor.Field(r => r.PlannedDurationSeconds);
         descriptor.Field(r => r.StagingArea);
         descriptor.Field(r => r.Status);
         descriptor.Field(r => r.CreatedAt);
@@ -182,12 +374,15 @@ public sealed class RouteSortInputType : SortInputType<RouteEntity>
         descriptor.Name("RouteSortInput");
         descriptor.BindFieldsExplicitly();
         descriptor.Field(r => r.Id);
+        descriptor.Field(r => r.ZoneId);
         descriptor.Field(r => r.VehicleId);
         descriptor.Field(r => r.DriverId);
         descriptor.Field(r => r.StartDate);
         descriptor.Field(r => r.EndDate);
         descriptor.Field(r => r.StartMileage);
         descriptor.Field(r => r.EndMileage);
+        descriptor.Field(r => r.PlannedDistanceMeters);
+        descriptor.Field(r => r.PlannedDurationSeconds);
         descriptor.Field(r => r.StagingArea);
         descriptor.Field(r => r.Status);
         descriptor.Field(r => r.CreatedAt);
@@ -269,5 +464,50 @@ public sealed class DriverWorkloadRouteType : ObjectType<DriverWorkloadRouteDto>
         descriptor.Field(x => x.VehiclePlate);
         descriptor.Field(x => x.StartDate);
         descriptor.Field(x => x.Status);
+    }
+}
+
+public sealed class RoutePlanPreviewType : ObjectType<RoutePlanPreviewDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<RoutePlanPreviewDto> descriptor)
+    {
+        descriptor.Name("RoutePlanPreview");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class RoutePlanParcelCandidateType : ObjectType<RoutePlanParcelCandidateDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<RoutePlanParcelCandidateDto> descriptor)
+    {
+        descriptor.Name("RoutePlanParcelCandidate");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class RouteStopType : ObjectType<RouteStopDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<RouteStopDto> descriptor)
+    {
+        descriptor.Name("RouteStop");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class RouteStopParcelType : ObjectType<RouteStopParcelDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<RouteStopParcelDto> descriptor)
+    {
+        descriptor.Name("RouteStopParcel");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class RoutePathPointType : ObjectType<RoutePathPointDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<RoutePathPointDto> descriptor)
+    {
+        descriptor.Name("RoutePathPoint");
+        descriptor.BindFieldsImplicitly();
     }
 }

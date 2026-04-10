@@ -30,9 +30,9 @@ public sealed class CancelRouteCommandHandler(
             return null;
         }
 
-        if (route.Status != RouteStatus.Planned)
+        if (route.Status != RouteStatus.Draft && route.Status != RouteStatus.Dispatched)
         {
-            throw new InvalidOperationException("Only planned routes can be cancelled before dispatch.");
+            throw new InvalidOperationException("Only draft or dispatched routes can be cancelled before route start.");
         }
 
         var reason = request.Dto.Reason.Trim();

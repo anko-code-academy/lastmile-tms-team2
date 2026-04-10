@@ -5,6 +5,7 @@ using LastMile.TMS.Application.Drivers.Reads;
 using LastMile.TMS.Application.Parcels.Reads;
 using LastMile.TMS.Application.Parcels.Services;
 using LastMile.TMS.Application.Routes.Reads;
+using LastMile.TMS.Application.Routes.Services;
 using LastMile.TMS.Application.Users.Reads;
 using LastMile.TMS.Application.Vehicles.Reads;
 using LastMile.TMS.Application.Zones.Reads;
@@ -29,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IParcelRegistrationService, ParcelRegistrationService>();
         services.AddScoped<ParcelImportProcessor>();
         services.AddScoped<IRouteReadService, RouteReadService>();
+        services.AddScoped<IRoutePlanningService, RoutePlanningService>();
         services.AddScoped<IVehicleReadService, VehicleReadService>();
         services.AddScoped<IUserReadService, UserReadService>();
 

@@ -256,7 +256,7 @@ public class ParcelReadServiceTests
                 EndDate = null,
                 StartMileage = 150,
                 EndMileage = 0,
-                Status = RouteStatus.Planned,
+            Status = RouteStatus.Draft,
                 Parcels = [parcel],
             };
 

@@ -16,11 +16,13 @@ public sealed class DeleteVehicleCommandHandler(IAppDbContext dbContext) : IRequ
 
         var hasActiveRoutes = await dbContext.Routes
             .AnyAsync(r => r.VehicleId == request.Id &&
-                (r.Status == RouteStatus.Planned || r.Status == RouteStatus.InProgress),
+                (r.Status == RouteStatus.Draft
+                 || r.Status == RouteStatus.Dispatched
+                 || r.Status == RouteStatus.InProgress),
                 cancellationToken);
 
         if (hasActiveRoutes)
-            throw new InvalidOperationException("Cannot delete vehicle that has active routes (Planned or InProgress). Complete or cancel the routes first.");
+            throw new InvalidOperationException("Cannot delete vehicle that has active routes. Complete or cancel the routes first.");
 
         dbContext.Vehicles.Remove(vehicle);
         await dbContext.SaveChangesAsync(cancellationToken);

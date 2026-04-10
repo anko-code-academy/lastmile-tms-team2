@@ -18,6 +18,7 @@ public interface IAppDbContext
     DbSet<Driver> Drivers { get; }
     DbSet<Vehicle> Vehicles { get; }
     DbSet<Route> Routes { get; }
+    DbSet<RouteStop> RouteStops { get; }
     DbSet<Address> Addresses { get; }
     DbSet<OperatingHours> DepotOperatingHours { get; }
     DbSet<DriverAvailability> DriverAvailabilities { get; }

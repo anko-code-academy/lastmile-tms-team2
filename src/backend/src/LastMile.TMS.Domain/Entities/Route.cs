@@ -1,10 +1,14 @@
 using LastMile.TMS.Domain.Common;
 using LastMile.TMS.Domain.Enums;
+using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Domain.Entities;
 
 public class Route : BaseAuditableEntity
 {
+    public Guid ZoneId { get; set; }
+    public Zone Zone { get; set; } = null!;
+
     public Guid VehicleId { get; set; }
     public Vehicle Vehicle { get; set; } = null!;
 
@@ -16,6 +20,9 @@ public class Route : BaseAuditableEntity
 
     public int StartMileage { get; set; }
     public int EndMileage { get; set; }
+    public int PlannedDistanceMeters { get; set; }
+    public int PlannedDurationSeconds { get; set; }
+    public LineString? PlannedPath { get; set; }
 
     public StagingArea StagingArea { get; set; }
     public string? CancellationReason { get; set; }
@@ -23,6 +30,7 @@ public class Route : BaseAuditableEntity
     public RouteStatus Status { get; set; }
 
     public ICollection<Parcel> Parcels { get; set; } = new List<Parcel>();
+    public ICollection<RouteStop> Stops { get; set; } = new List<RouteStop>();
     public ICollection<RouteAssignmentAuditEntry> AssignmentAuditTrail { get; set; } =
         new List<RouteAssignmentAuditEntry>();
 
@@ -40,6 +48,11 @@ public class Route : BaseAuditableEntity
     /// Number of parcels assigned to this route
     /// </summary>
     public int ParcelCount => Parcels?.Count ?? 0;
+
+    /// <summary>
+    /// Number of delivery stops planned for this route.
+    /// </summary>
+    public int EstimatedStopCount => Stops?.Count ?? 0;
 
     /// <summary>
     /// Half-open intervals [start, end): a null end means unbounded forward.

@@ -2,7 +2,8 @@ namespace LastMile.TMS.Domain.Enums;
 
 public enum RouteStatus
 {
-    Planned,
+    Draft,
+    Dispatched,
     InProgress,
     Completed,
     Cancelled

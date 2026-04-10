@@ -27,10 +27,10 @@ public sealed class UpdateRouteAssignmentCommandHandler(
             return null;
         }
 
-        if (route.Status != RouteStatus.Planned)
+        if (route.Status != RouteStatus.Draft)
         {
             throw new InvalidOperationException(
-                "Only planned routes can be reassigned before dispatch.");
+                "Only draft routes can be reassigned before dispatch.");
         }
 
         if (route.DriverId == request.Dto.DriverId && route.VehicleId == request.Dto.VehicleId)
@@ -78,10 +78,10 @@ public sealed class UpdateRouteAssignmentCommandHandler(
             throw new InvalidOperationException("Driver and vehicle must belong to the same depot.");
         }
 
-        if (route.Parcels.Any(parcel => parcel.ZoneId != driver.ZoneId))
+        if (driver.ZoneId != route.ZoneId)
         {
             throw new InvalidOperationException(
-                "All route parcels must belong to the driver's zone.");
+                "Driver must belong to the route's zone.");
         }
 
         if (!RouteAssignmentSupport.DoParcelsFitVehicle(route.Parcels.ToList(), vehicle))

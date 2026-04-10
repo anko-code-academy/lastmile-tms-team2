@@ -72,9 +72,11 @@ public sealed class ParcelReadService(IAppDbContext dbContext) : IParcelReadServ
             .Where(route => route.Parcels.Any(assignedParcel => assignedParcel.Id == parcel.Id))
             .OrderBy(route => route.Status == RouteStatus.InProgress
                 ? 0
-                : route.Status == RouteStatus.Planned
+                : route.Status == RouteStatus.Dispatched
                     ? 1
-                    : 2)
+                    : route.Status == RouteStatus.Draft
+                        ? 2
+                        : 3)
             .ThenByDescending(route => route.StartDate)
             .Select(route => new ParcelRouteAssignmentDto
             {

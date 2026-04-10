@@ -26,12 +26,12 @@ public class GetRouteAssignmentCandidatesQueryHandlerTests
         var vehicle4 = await db.Vehicles.SingleAsync(vehicle => vehicle.Id == data.Vehicle4.Id);
         var driver1 = await db.Drivers.SingleAsync(driver => driver.Id == data.Driver1.Id);
         var driver2 = await db.Drivers.SingleAsync(driver => driver.Id == data.Driver2.Id);
-        var driver3 = await db.Drivers.SingleAsync(driver => driver.Id == data.Driver3.Id);
+        var driver4 = await db.Drivers.SingleAsync(driver => driver.Id == data.Driver4.Id);
         var currentRoute = RouteAssignmentTestData.CreateRoute(
             vehicle1,
             driver1,
             data.ServiceDate,
-            RouteStatus.Planned);
+            RouteStatus.Draft);
 
         var conflictingRoute = RouteAssignmentTestData.CreateRoute(
             vehicle2,
@@ -41,7 +41,7 @@ public class GetRouteAssignmentCandidatesQueryHandlerTests
 
         var completedRoute = RouteAssignmentTestData.CreateRoute(
             vehicle4,
-            driver3,
+            driver4,
             data.ServiceDate.AddHours(2),
             RouteStatus.Completed);
 
@@ -51,7 +51,7 @@ public class GetRouteAssignmentCandidatesQueryHandlerTests
         var handler = new GetRouteAssignmentCandidatesQueryHandler(db);
 
         var result = await handler.Handle(
-            new GetRouteAssignmentCandidatesQuery(data.ServiceDate, currentRoute.Id),
+            new GetRouteAssignmentCandidatesQuery(data.ServiceDate, data.Zone1.Id, currentRoute.Id),
             CancellationToken.None);
 
         result.Vehicles.Select(vehicle => vehicle.Id).Should().Contain(currentRoute.VehicleId);
@@ -60,20 +60,59 @@ public class GetRouteAssignmentCandidatesQueryHandlerTests
         result.Vehicles.Select(vehicle => vehicle.Id).Should().NotContain(data.Vehicle3.Id);
 
         result.Drivers.Select(driver => driver.Id).Should().Contain(currentRoute.DriverId);
-        result.Drivers.Select(driver => driver.Id).Should().Contain(data.Driver3.Id);
+        result.Drivers.Select(driver => driver.Id).Should().Contain(data.Driver4.Id);
         result.Drivers.Select(driver => driver.Id).Should().NotContain(data.Driver2.Id);
 
-        var driverWithoutSchedule = result.Drivers.Single(driver => driver.Id == data.Driver3.Id);
-        driverWithoutSchedule.WorkloadRoutes.Should().ContainSingle();
-        driverWithoutSchedule.WorkloadRoutes[0].RouteId.Should().Be(completedRoute.Id);
-        driverWithoutSchedule.WorkloadRoutes[0].Status.Should().Be(RouteStatus.Completed);
+        var availableDriver = result.Drivers.Single(driver => driver.Id == data.Driver4.Id);
+        availableDriver.WorkloadRoutes.Should().ContainSingle();
+        availableDriver.WorkloadRoutes[0].RouteId.Should().Be(completedRoute.Id);
+        availableDriver.WorkloadRoutes[0].Status.Should().Be(RouteStatus.Completed);
+    }
+
+    [Fact]
+    public async Task Handle_WithNonUtcServiceDate_UsesUtcDayBoundsForSameLocalDay()
+    {
+        await using var db = RouteAssignmentTestData.CreateDbContext();
+        var data = await RouteAssignmentTestData.SeedAsync(db);
+        db.ChangeTracker.Clear();
+
+        var vehicle2 = await db.Vehicles.SingleAsync(vehicle => vehicle.Id == data.Vehicle2.Id);
+        var vehicle4 = await db.Vehicles.SingleAsync(vehicle => vehicle.Id == data.Vehicle4.Id);
+        var driver2 = await db.Drivers.SingleAsync(driver => driver.Id == data.Driver2.Id);
+        var driver4 = await db.Drivers.SingleAsync(driver => driver.Id == data.Driver4.Id);
+
+        var localServiceDate = new DateTimeOffset(2026, 4, 9, 8, 0, 0, TimeSpan.FromHours(3));
+        var sameLocalDayRoute = RouteAssignmentTestData.CreateRoute(
+            vehicle2,
+            driver2,
+            new DateTimeOffset(2026, 4, 8, 22, 30, 0, TimeSpan.Zero),
+            RouteStatus.Draft);
+        var previousLocalDayRoute = RouteAssignmentTestData.CreateRoute(
+            vehicle4,
+            driver4,
+            new DateTimeOffset(2026, 4, 8, 20, 30, 0, TimeSpan.Zero),
+            RouteStatus.Draft);
+
+        db.Routes.AddRange(sameLocalDayRoute, previousLocalDayRoute);
+        await db.SaveChangesAsync();
+
+        var handler = new GetRouteAssignmentCandidatesQueryHandler(db);
+
+        var result = await handler.Handle(
+            new GetRouteAssignmentCandidatesQuery(localServiceDate, data.Zone1.Id),
+            CancellationToken.None);
+
+        result.Vehicles.Select(vehicle => vehicle.Id).Should().NotContain(data.Vehicle2.Id);
+        result.Drivers.Select(driver => driver.Id).Should().NotContain(data.Driver2.Id);
+        result.Vehicles.Select(vehicle => vehicle.Id).Should().Contain(data.Vehicle4.Id);
+        result.Drivers.Select(driver => driver.Id).Should().Contain(data.Driver4.Id);
     }
 }
 
 public class UpdateRouteAssignmentCommandHandlerTests
 {
     [Fact]
-    public async Task Handle_WhenRouteIsNotPlanned_Throws()
+    public async Task Handle_WhenRouteIsNotDraft_Throws()
     {
         await using var db = RouteAssignmentTestData.CreateDbContext();
         var data = await RouteAssignmentTestData.SeedAsync(db);
@@ -106,7 +145,7 @@ public class UpdateRouteAssignmentCommandHandlerTests
 
         await act.Should()
             .ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Only planned routes can be reassigned before dispatch*");
+            .WithMessage("*Only draft routes can be reassigned before dispatch*");
     }
 
     [Fact]
@@ -122,7 +161,7 @@ public class UpdateRouteAssignmentCommandHandlerTests
             vehicle1,
             driver1,
             data.ServiceDate,
-            RouteStatus.Planned);
+            RouteStatus.Draft);
         db.Routes.Add(route);
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
@@ -161,7 +200,7 @@ public class UpdateRouteAssignmentCommandHandlerTests
             vehicle1,
             driver1,
             data.ServiceDate,
-            RouteStatus.Planned,
+            RouteStatus.Draft,
             parcel1);
         db.Routes.Add(route);
         await db.SaveChangesAsync();
@@ -183,7 +222,7 @@ public class UpdateRouteAssignmentCommandHandlerTests
 
         await act.Should()
             .ThrowAsync<InvalidOperationException>()
-            .WithMessage("*driver's zone*");
+            .WithMessage("*route's zone*");
     }
 }
 
@@ -364,9 +403,12 @@ internal static class RouteAssignmentTestData
         RouteStatus status,
         params Parcel[] parcels)
     {
+        var routeZoneId = parcels.FirstOrDefault()?.ZoneId ?? driver.ZoneId;
+
         return new Route
         {
             Id = Guid.NewGuid(),
+            ZoneId = routeZoneId,
             VehicleId = vehicle.Id,
             DriverId = driver.Id,
             StartDate = startDate,

@@ -20,7 +20,9 @@ public sealed class DeleteDriverCommandHandler(
 
         var hasActiveRoutes = await dbContext.Routes
             .AnyAsync(r => r.DriverId == request.Id &&
-                (r.Status == RouteStatus.Planned || r.Status == RouteStatus.InProgress),
+                (r.Status == RouteStatus.Draft
+                 || r.Status == RouteStatus.Dispatched
+                 || r.Status == RouteStatus.InProgress),
                 cancellationToken);
 
         if (hasActiveRoutes)

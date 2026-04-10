@@ -57,12 +57,16 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
             {
                 input = new
                 {
+                    zoneId = DbSeeder.TestZoneId,
                     vehicleId = DbSeeder.TestVehicleId,
                     driverId = DbSeeder.TestDriverId,
                     stagingArea = "A",
                     startDate,
                     startMileage = 250,
-                    parcelIds = new[] { DbSeeder.TestParcelId }
+                    assignmentMode = "MANUAL_PARCELS",
+                    stopMode = "AUTO",
+                    parcelIds = new[] { DbSeeder.TestParcelId },
+                    stops = Array.Empty<object>()
                 }
             },
             token);
@@ -77,7 +81,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         route.GetProperty("vehicleId").GetString().Should().Be(DbSeeder.TestVehicleId.ToString());
         route.GetProperty("driverId").GetString().Should().Be(DbSeeder.TestDriverId.ToString());
         route.GetProperty("stagingArea").GetString().Should().Be("A");
-        route.GetProperty("status").GetString().Should().Be("PLANNED");
+        route.GetProperty("status").GetString().Should().Be("DRAFT");
         route.GetProperty("parcelCount").GetInt32().Should().Be(1);
         route.GetProperty("parcelsDelivered").GetInt32().Should().Be(0);
 
@@ -95,9 +99,59 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         var persistedRoute = await dbContext.Routes
             .Include(r => r.Parcels)
             .SingleAsync(r => r.Id == routeId);
-        persistedRoute.Status.Should().Be(RouteStatus.Planned);
+        persistedRoute.Status.Should().Be(RouteStatus.Draft);
         persistedRoute.StagingArea.Should().Be(StagingArea.A);
         persistedRoute.ParcelCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CreateRoute_WithNonUtcStartDate_NormalizesToUtc()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var startDate = new DateTimeOffset(2026, 4, 10, 8, 0, 0, TimeSpan.FromHours(3));
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation CreateRoute($input: CreateRouteInput!) {
+              createRoute(input: $input) {
+                id
+                startDate
+              }
+            }
+            """,
+            new
+            {
+                input = new
+                {
+                    zoneId = DbSeeder.TestZoneId,
+                    vehicleId = DbSeeder.TestVehicleId,
+                    driverId = DbSeeder.TestDriverId,
+                    stagingArea = "A",
+                    startDate,
+                    startMileage = 250,
+                    assignmentMode = "MANUAL_PARCELS",
+                    stopMode = "AUTO",
+                    parcelIds = new[] { DbSeeder.TestParcelId },
+                    stops = Array.Empty<object>()
+                }
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out _).Should().BeFalse(document.RootElement.GetRawText());
+
+        var route = document.RootElement
+            .GetProperty("data")
+            .GetProperty("createRoute");
+
+        var routeId = route.GetProperty("id").GetGuid();
+        route.GetProperty("startDate").GetDateTimeOffset().Should().Be(startDate.ToUniversalTime());
+
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var persistedRoute = await dbContext.Routes.SingleAsync(candidate => candidate.Id == routeId);
+        persistedRoute.StartDate.Should().Be(startDate.ToUniversalTime());
+        persistedRoute.StartDate.Offset.Should().Be(TimeSpan.Zero);
     }
 
     [Fact]
@@ -118,12 +172,16 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
             {
                 input = new
                 {
+                    zoneId = DbSeeder.TestZoneId,
                     vehicleId = DbSeeder.TestVehicleId,
                     driverId = DbSeeder.TestDriverId,
                     stagingArea = "A",
                     startDate = DateTimeOffset.UtcNow.AddHours(1),
                     startMileage = 100,
-                    parcelIds = new[] { DbSeeder.TestParcelId }
+                    assignmentMode = "MANUAL_PARCELS",
+                    stopMode = "AUTO",
+                    parcelIds = new[] { DbSeeder.TestParcelId },
+                    stops = Array.Empty<object>()
                 }
             },
             token);
@@ -149,12 +207,16 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
             {
                 input = new
                 {
+                    zoneId = DbSeeder.TestZoneId,
                     vehicleId = DbSeeder.TestVehicleId,
                     driverId = DbSeeder.TestDriverId,
                     stagingArea = "A",
                     startDate = DateTimeOffset.UtcNow.AddHours(1),
                     startMileage = 100,
-                    parcelIds = new[] { Guid.NewGuid() }
+                    assignmentMode = "MANUAL_PARCELS",
+                    stopMode = "AUTO",
+                    parcelIds = new[] { Guid.NewGuid() },
+                    stops = Array.Empty<object>()
                 }
             },
             token);
@@ -182,12 +244,16 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
             {
                 input = new
                 {
+                    zoneId = DbSeeder.TestZoneId,
                     vehicleId = DbSeeder.TestVehicleId,
                     driverId = DbSeeder.TestDriverId,
                     stagingArea = "A",
                     startDate = DateTimeOffset.UtcNow.AddHours(1),
                     startMileage = 100,
-                    parcelIds = new[] { alternateParcelId }
+                    assignmentMode = "MANUAL_PARCELS",
+                    stopMode = "AUTO",
+                    parcelIds = new[] { alternateParcelId },
+                    stops = Array.Empty<object>()
                 }
             },
             token);
@@ -204,7 +270,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         await SeedRouteAsync(
             alternateVehicleId,
             DbSeeder.TestDriver2Id,
-            RouteStatus.Planned,
+            RouteStatus.Draft,
             StagingArea.B,
             startMileage: 50,
             parcelIds: DbSeeder.TestParcelId);
@@ -221,12 +287,16 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
             {
                 input = new
                 {
+                    zoneId = DbSeeder.TestZoneId,
                     vehicleId = DbSeeder.TestVehicleId,
                     driverId = DbSeeder.TestDriverId,
                     stagingArea = "A",
                     startDate = DateTimeOffset.UtcNow.AddHours(1),
                     startMileage = 100,
-                    parcelIds = new[] { DbSeeder.TestParcelId }
+                    assignmentMode = "MANUAL_PARCELS",
+                    stopMode = "AUTO",
+                    parcelIds = new[] { DbSeeder.TestParcelId },
+                    stops = Array.Empty<object>()
                 }
             },
             token);
@@ -244,7 +314,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         var plannedRouteId = await SeedRouteAsync(
             availableVehicleId,
             DbSeeder.TestDriverId,
-            RouteStatus.Planned,
+            RouteStatus.Draft,
             StagingArea.A,
             startMileage: 0);
         var completedRouteId = await SeedRouteAsync(
@@ -342,12 +412,16 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
             {
                 input = new
                 {
+                    zoneId = DbSeeder.TestZoneId,
                     vehicleId = DbSeeder.TestVehicleId,
                     driverId = DbSeeder.TestDriverId,
                     stagingArea = "A",
                     startDate,
                     startMileage = 125,
-                    parcelIds = new[] { DbSeeder.TestParcelId }
+                    assignmentMode = "MANUAL_PARCELS",
+                    stopMode = "AUTO",
+                    parcelIds = new[] { DbSeeder.TestParcelId },
+                    stops = Array.Empty<object>()
                 }
             },
             token);
@@ -409,7 +483,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         var currentRouteId = await SeedRouteAsync(
             DbSeeder.TestVehicleId,
             DbSeeder.TestDriverId,
-            RouteStatus.Planned,
+            RouteStatus.Draft,
             StagingArea.A,
             startMileage: 120,
             startDate: serviceDate);
@@ -441,8 +515,8 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
 
         using var document = await PostGraphQLAsync(
             """
-            query Candidates($serviceDate: DateTime!, $routeId: UUID) {
-              routeAssignmentCandidates(serviceDate: $serviceDate, routeId: $routeId) {
+            query Candidates($serviceDate: DateTime!, $zoneId: UUID!, $routeId: UUID) {
+              routeAssignmentCandidates(serviceDate: $serviceDate, zoneId: $zoneId, routeId: $routeId) {
                 vehicles {
                   id
                   registrationPlate
@@ -463,6 +537,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
             new
             {
                 serviceDate,
+                zoneId = DbSeeder.TestZoneId,
                 routeId = currentRouteId
             },
             token);
@@ -532,12 +607,16 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
             {
                 input = new
                 {
+                    zoneId = DbSeeder.TestZoneId,
                     vehicleId = DbSeeder.TestVehicleId,
                     driverId = DbSeeder.TestDriverId,
                     stagingArea = "A",
                     startDate,
                     startMileage = 150,
-                    parcelIds = new[] { DbSeeder.TestParcelId }
+                    assignmentMode = "MANUAL_PARCELS",
+                    stopMode = "AUTO",
+                    parcelIds = new[] { DbSeeder.TestParcelId },
+                    stops = Array.Empty<object>()
                 }
             },
             token);
@@ -642,7 +721,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         document.RootElement.TryGetProperty("errors", out var errors).Should().BeTrue();
         errors[0].GetProperty("message").GetString()
             .Should()
-            .Contain("Only planned routes can be reassigned before dispatch");
+            .Contain("Only draft routes can be reassigned before dispatch");
     }
 
     [Fact]
@@ -656,7 +735,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         var routeId = await SeedRouteAsync(
             DbSeeder.TestVehicleId,
             DbSeeder.TestDriverId,
-            RouteStatus.Planned,
+            RouteStatus.Draft,
             StagingArea.A,
             startMileage: 100,
             startDate: DateTimeOffset.UtcNow.AddHours(3),
@@ -754,7 +833,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         document.RootElement.TryGetProperty("errors", out var errors).Should().BeTrue();
         errors[0].GetProperty("message").GetString()
             .Should()
-            .Contain("Only planned routes can be cancelled before dispatch");
+            .Contain("Only draft or dispatched routes can be cancelled before route start");
     }
 
     public Task InitializeAsync() => Factory.ResetDatabaseAsync();
@@ -861,9 +940,15 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
             : await dbContext.Parcels
                 .Where(parcel => parcelIds.Contains(parcel.Id))
                 .ToListAsync();
+        var routeZoneId = parcels.FirstOrDefault()?.ZoneId
+            ?? await dbContext.Drivers
+                .Where(driver => driver.Id == driverId)
+                .Select(driver => driver.ZoneId)
+                .SingleAsync();
 
         var route = new Route
         {
+            ZoneId = routeZoneId,
             VehicleId = vehicleId,
             DriverId = driverId,
             StartDate = startDate ?? DateTimeOffset.UtcNow.AddHours(-2),

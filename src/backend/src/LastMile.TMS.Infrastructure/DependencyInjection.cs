@@ -1,5 +1,6 @@
 using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Parcels.Services;
+using LastMile.TMS.Application.Routes.Services;
 using LastMile.TMS.Application.Zones.Services;
 using LastMile.TMS.Infrastructure.Options;
 using LastMile.TMS.Infrastructure.Services;
@@ -32,6 +33,14 @@ public static class DependencyInjection
                         && !string.IsNullOrWhiteSpace(options.SecretKey)),
                 "Storage access key and secret key are required when external infrastructure is enabled.")
             .ValidateOnStart();
+        services.AddOptions<MapboxOptions>()
+            .Bind(configuration.GetSection("Mapbox"))
+            .Validate(
+                options => enableTestSupport
+                    || isInMemoryDatabase
+                    || !string.IsNullOrWhiteSpace(options.AccessToken),
+                "Mapbox access token is required when external routing/geocoding is enabled.")
+            .ValidateOnStart();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IDriverPhotoFileCleanup, DriverPhotoFileCleanup>();
         services.AddScoped<DriverPhotoOrphanCleanupJob>();
@@ -58,14 +67,17 @@ public static class DependencyInjection
         if (enableTestSupport)
         {
             services.AddScoped<IGeocodingService, TestSupportGeocodingService>();
+            services.AddScoped<IRouteRoutingService, DeterministicRouteRoutingService>();
         }
         else if (isInMemoryDatabase)
         {
             services.AddScoped<IGeocodingService, DeterministicGeocodingService>();
+            services.AddScoped<IRouteRoutingService, DeterministicRouteRoutingService>();
         }
         else
         {
-            services.AddHttpClient<IGeocodingService, NominatimGeocodingService>();
+            services.AddHttpClient<IGeocodingService, MapboxGeocodingService>();
+            services.AddHttpClient<IRouteRoutingService, MapboxRouteRoutingService>();
         }
 
         services.AddScoped<IZoneMatchingService, ZoneMatchingService>();

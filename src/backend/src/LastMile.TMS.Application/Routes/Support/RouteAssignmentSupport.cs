@@ -7,22 +7,37 @@ internal static class RouteAssignmentSupport
 {
     internal static readonly RouteStatus[] ActiveAssignmentStatuses =
     [
-        RouteStatus.Planned,
+        RouteStatus.Draft,
+        RouteStatus.Dispatched,
         RouteStatus.InProgress,
     ];
 
+    internal static DateTimeOffset NormalizeUtc(DateTimeOffset value) =>
+        value.Offset == TimeSpan.Zero
+            ? value
+            : value.ToUniversalTime();
+
     internal static DateTimeOffset GetServiceDayStart(DateTimeOffset serviceDate) =>
-        new(
-            serviceDate.Year,
-            serviceDate.Month,
-            serviceDate.Day,
-            0,
-            0,
-            0,
-            serviceDate.Offset);
+        NormalizeUtc(
+            new DateTimeOffset(
+                serviceDate.Year,
+                serviceDate.Month,
+                serviceDate.Day,
+                0,
+                0,
+                0,
+                serviceDate.Offset));
 
     internal static DateTimeOffset GetServiceDayEnd(DateTimeOffset serviceDate) =>
-        GetServiceDayStart(serviceDate).AddDays(1);
+        NormalizeUtc(
+            new DateTimeOffset(
+                serviceDate.Year,
+                serviceDate.Month,
+                serviceDate.Day,
+                0,
+                0,
+                0,
+                serviceDate.Offset).AddDays(1));
 
     internal static bool IsVehicleAssignableStatus(VehicleStatus status) =>
         status != VehicleStatus.Maintenance && status != VehicleStatus.Retired;

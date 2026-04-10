@@ -10,13 +10,14 @@ namespace LastMile.TMS.Infrastructure.Services;
 /// </summary>
 public sealed class TestSupportGeocodingService : IGeocodingService
 {
-    private static readonly Point DeterministicPoint =
-        NtsGeometryServices.Instance
-            .CreateGeometryFactory(srid: 4326)
-            .CreatePoint(new Coordinate(151.5, -33.5));
+    private static readonly GeometryFactory GeometryFactory =
+        NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
     public Task<Point?> GeocodeAsync(string address, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<Point?>(DeterministicPoint);
+        var hash = Math.Abs(StringComparer.OrdinalIgnoreCase.GetHashCode(address ?? string.Empty));
+        var longitude = 151.20 + (hash % 3000) / 10000d;
+        var latitude = -33.80 + ((hash / 3000) % 3000) / 10000d;
+        return Task.FromResult<Point?>(GeometryFactory.CreatePoint(new Coordinate(longitude, latitude)));
     }
 }

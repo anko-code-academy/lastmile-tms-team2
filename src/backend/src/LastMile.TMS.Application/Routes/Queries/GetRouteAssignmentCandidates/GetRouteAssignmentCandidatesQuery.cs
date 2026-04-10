@@ -9,6 +9,7 @@ namespace LastMile.TMS.Application.Routes.Queries;
 
 public sealed record GetRouteAssignmentCandidatesQuery(
     DateTimeOffset ServiceDate,
+    Guid ZoneId,
     Guid? RouteId = null) : IRequest<RouteAssignmentCandidatesDto>;
 
 public sealed class GetRouteAssignmentCandidatesQueryHandler(IAppDbContext dbContext)
@@ -20,6 +21,7 @@ public sealed class GetRouteAssignmentCandidatesQueryHandler(IAppDbContext dbCon
     {
         Guid? currentVehicleId = null;
         Guid? currentDriverId = null;
+        Guid effectiveZoneId = request.ZoneId;
 
         if (request.RouteId.HasValue)
         {
@@ -30,6 +32,7 @@ public sealed class GetRouteAssignmentCandidatesQueryHandler(IAppDbContext dbCon
                 {
                     route.VehicleId,
                     route.DriverId,
+                    route.ZoneId,
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -40,7 +43,19 @@ public sealed class GetRouteAssignmentCandidatesQueryHandler(IAppDbContext dbCon
 
             currentVehicleId = currentRoute.VehicleId;
             currentDriverId = currentRoute.DriverId;
+            effectiveZoneId = currentRoute.ZoneId;
         }
+
+        var zone = await dbContext.Zones
+            .AsNoTracking()
+            .Where(candidate => candidate.Id == effectiveZoneId && candidate.IsActive)
+            .Select(candidate => new
+            {
+                candidate.Id,
+                candidate.DepotId,
+            })
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Zone not found.");
 
         var serviceDayStart = RouteAssignmentSupport.GetServiceDayStart(request.ServiceDate);
         var serviceDayEnd = RouteAssignmentSupport.GetServiceDayEnd(request.ServiceDate);
@@ -90,6 +105,7 @@ public sealed class GetRouteAssignmentCandidatesQueryHandler(IAppDbContext dbCon
 
         var vehicles = await dbContext.Vehicles
             .AsNoTracking()
+            .Where(vehicle => vehicle.DepotId == zone.DepotId)
             .Select(vehicle => new AssignableVehicleDto
             {
                 Id = vehicle.Id,
@@ -106,6 +122,7 @@ public sealed class GetRouteAssignmentCandidatesQueryHandler(IAppDbContext dbCon
         var drivers = await dbContext.Drivers
             .AsNoTracking()
             .Include(driver => driver.AvailabilitySchedule)
+            .Where(driver => driver.ZoneId == effectiveZoneId && driver.DepotId == zone.DepotId)
             .ToListAsync(cancellationToken);
 
         var assignableVehicles = vehicles

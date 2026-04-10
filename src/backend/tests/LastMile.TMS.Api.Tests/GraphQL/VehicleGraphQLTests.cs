@@ -254,7 +254,7 @@ public class VehicleGraphQLTests : GraphQLTestBase, IAsyncLifetime
     {
         var token = await GetAdminAccessTokenAsync();
         var vehicleId = await SeedVehicleAsync($"ACTIVE-{Guid.NewGuid():N}"[..20], VehicleStatus.Available);
-        await SeedRouteAsync(vehicleId, RouteStatus.Planned, startMileage: 0);
+        await SeedRouteAsync(vehicleId, RouteStatus.Draft, startMileage: 0);
 
         using var document = await PostGraphQLAsync(
             """
@@ -280,7 +280,7 @@ public class VehicleGraphQLTests : GraphQLTestBase, IAsyncLifetime
             token);
 
         document.RootElement.TryGetProperty("errors", out var errors).Should().BeTrue();
-        errors[0].GetProperty("message").GetString().Should().Contain("planned or in-progress route");
+        errors[0].GetProperty("message").GetString().Should().Contain("active route");
     }
 
     [Fact]
@@ -363,7 +363,7 @@ public class VehicleGraphQLTests : GraphQLTestBase, IAsyncLifetime
     {
         var token = await GetAdminAccessTokenAsync();
         var vehicleId = await SeedVehicleAsync($"DEL-{Guid.NewGuid():N}"[..20], VehicleStatus.Available);
-        await SeedRouteAsync(vehicleId, RouteStatus.Planned, startMileage: 0);
+        await SeedRouteAsync(vehicleId, RouteStatus.Draft, startMileage: 0);
 
         using var document = await PostGraphQLAsync(
             """
@@ -414,6 +414,7 @@ public class VehicleGraphQLTests : GraphQLTestBase, IAsyncLifetime
 
         var route = new Route
         {
+            ZoneId = DbSeeder.TestZoneId,
             VehicleId = vehicleId,
             DriverId = DbSeeder.TestDriverId,
             StartDate = DateTimeOffset.UtcNow.AddHours(-1),

@@ -117,7 +117,9 @@ public sealed class StageParcelForRouteCommandHandler(
             .AsNoTracking()
             .Where(candidate =>
                 candidate.Id != route.Id
-                && (candidate.Status == RouteStatus.Planned || candidate.Status == RouteStatus.InProgress)
+                && (candidate.Status == RouteStatus.Draft
+                    || candidate.Status == RouteStatus.Dispatched
+                    || candidate.Status == RouteStatus.InProgress)
                 && candidate.Parcels.Any(conflictingParcel => conflictingParcel.Id == parcel.Id))
             .Select(candidate => new
             {

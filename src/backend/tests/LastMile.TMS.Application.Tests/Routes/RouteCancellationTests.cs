@@ -24,7 +24,7 @@ public class CancelRouteCommandHandlerTests
             vehicle,
             driver,
             data.ServiceDate,
-            RouteStatus.Planned);
+            RouteStatus.Draft);
         vehicle.Status = VehicleStatus.InUse;
         db.Routes.Add(route);
         await db.SaveChangesAsync();
@@ -78,7 +78,7 @@ public class CancelRouteCommandHandlerTests
             vehicle,
             driver,
             data.ServiceDate,
-            RouteStatus.Planned,
+            RouteStatus.Draft,
             parcel);
         vehicle.Status = VehicleStatus.InUse;
         db.Routes.Add(route);
@@ -135,12 +135,12 @@ public class CancelRouteCommandHandlerTests
             vehicle,
             driver1,
             data.ServiceDate,
-            RouteStatus.Planned);
+            RouteStatus.Draft);
         var siblingActiveRoute = RouteAssignmentTestData.CreateRoute(
             vehicle,
             driver2,
             data.ServiceDate.AddDays(1),
-            RouteStatus.Planned);
+            RouteStatus.Draft);
         vehicle.Status = VehicleStatus.InUse;
         db.Routes.AddRange(routeToCancel, siblingActiveRoute);
         await db.SaveChangesAsync();
@@ -165,7 +165,7 @@ public class CancelRouteCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenRouteIsNotPlanned_Throws()
+    public async Task Handle_WhenRouteIsNotCancellable_Throws()
     {
         await using var db = RouteAssignmentTestData.CreateDbContext();
         var data = await RouteAssignmentTestData.SeedAsync(db);
@@ -199,7 +199,7 @@ public class CancelRouteCommandHandlerTests
 
         await act.Should()
             .ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Only planned routes can be cancelled before dispatch*");
+            .WithMessage("*Only draft or dispatched routes can be cancelled before route start*");
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public class CancelRouteCommandHandlerTests
             vehicle,
             driver,
             data.ServiceDate,
-            RouteStatus.Planned);
+            RouteStatus.Draft);
         db.Routes.Add(route);
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();

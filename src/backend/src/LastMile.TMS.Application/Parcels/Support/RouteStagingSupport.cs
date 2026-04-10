@@ -12,13 +12,17 @@ internal static class RouteStagingSupport
         db.Routes
             .AsNoTracking()
             .Where(route =>
-                (route.Status == RouteStatus.Planned || route.Status == RouteStatus.InProgress)
+                (route.Status == RouteStatus.Draft
+                 || route.Status == RouteStatus.Dispatched
+                 || route.Status == RouteStatus.InProgress)
                 && route.Vehicle.DepotId == depotId);
 
     public static IQueryable<Route> GetTrackedActiveDepotRoutes(IAppDbContext db, Guid depotId) =>
         db.Routes
             .Where(route =>
-                (route.Status == RouteStatus.Planned || route.Status == RouteStatus.InProgress)
+                (route.Status == RouteStatus.Draft
+                 || route.Status == RouteStatus.Dispatched
+                 || route.Status == RouteStatus.InProgress)
                 && route.Vehicle.DepotId == depotId);
 
     public static Task<RouteStagingBoardDto?> LoadBoardAsync(

@@ -31,10 +31,20 @@ public sealed class RouteQueries
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
     public Task<RouteAssignmentCandidatesDto> GetRouteAssignmentCandidates(
         DateTimeOffset serviceDate,
+        Guid zoneId,
         Guid? routeId,
         [Service] ISender mediator,
         CancellationToken cancellationToken) =>
         mediator.Send(
-            new GetRouteAssignmentCandidatesQuery(serviceDate, routeId),
+            new GetRouteAssignmentCandidatesQuery(serviceDate, zoneId, routeId),
+            cancellationToken);
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
+    public Task<RoutePlanPreviewDto> GetRoutePlanPreview(
+        RoutePlanPreviewInput input,
+        [Service] ISender mediator,
+        CancellationToken cancellationToken) =>
+        mediator.Send(
+            new GetRoutePlanPreviewQuery(input.ToDto()),
             cancellationToken);
 }

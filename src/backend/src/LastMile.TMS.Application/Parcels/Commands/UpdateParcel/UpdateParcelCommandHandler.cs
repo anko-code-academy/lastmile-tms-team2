@@ -64,6 +64,19 @@ public sealed class UpdateParcelCommandHandler(
 
         if (ParcelChangeSupport.HasGeocodedAddressChanges(parcel, input))
         {
+            var hasNonCancelledRouteAssignment = await dbContext.Routes
+                .AsNoTracking()
+                .AnyAsync(
+                    route => route.Status != RouteStatus.Cancelled
+                        && route.Parcels.Any(assignedParcel => assignedParcel.Id == parcel.Id),
+                    cancellationToken);
+
+            if (hasNonCancelledRouteAssignment)
+            {
+                throw new InvalidOperationException(
+                    $"Parcel {parcel.TrackingNumber} is already assigned to a route and its delivery address cannot be changed until the route is cancelled or recomputed.");
+            }
+
             var addressString = ParcelChangeSupport.BuildAddressString(input.RecipientAddress);
             point = await geocodingService.GeocodeAsync(addressString, cancellationToken);
 
