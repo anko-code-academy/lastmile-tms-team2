@@ -303,6 +303,14 @@ export default function RouteDetailPage({
           >
             <DetailFieldGrid>
               <DetailField label="Zone">{route.zoneName}</DetailField>
+              <DetailField label="Depot">
+                {route.depotName ? (
+                  <div className="space-y-1">
+                    <div>{route.depotName}</div>
+                    {route.depotAddressLine ? <div className="text-xs text-muted-foreground">{route.depotAddressLine}</div> : null}
+                  </div>
+                ) : ""}
+              </DetailField>
               <DetailField label="Vehicle">
                 <Link
                   href={`/vehicles/${route.vehicleId}`}
@@ -350,12 +358,13 @@ export default function RouteDetailPage({
             className="detail-panel-animate"
             section="route"
             title="Planned map"
-            description="Read-only route geometry with numbered route stops, recipient names, and delivery addresses."
+            description="Read-only route geometry from the depot through numbered route stops and back to the depot."
           >
             <div className="space-y-4">
               <RouteMap
                 path={route.path}
                 stops={route.stops}
+                depot={{ name: route.depotName ?? "Depot", addressLine: route.depotAddressLine, longitude: route.depotLongitude, latitude: route.depotLatitude }}
                 emptyMessage="No route geometry is available for this route yet."
               />
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

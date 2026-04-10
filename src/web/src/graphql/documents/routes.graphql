@@ -47,6 +47,11 @@ query GetRoutes($where: RouteFilterInput, $order: [RouteSortInput!]) {
 query GetRoute($id: UUID!) {
   route(id: $id) {
     ...RouteSummaryFields
+    depotId
+    depotName
+    depotAddressLine
+    depotLongitude
+    depotLatitude
     path {
       longitude
       latitude
@@ -107,6 +112,9 @@ query GetRoutePlanPreview($input: RoutePlanPreviewInput!) {
     zoneName
     depotId
     depotName
+    depotAddressLine
+    depotLongitude
+    depotLatitude
     estimatedStopCount
     plannedDistanceMeters
     plannedDurationSeconds

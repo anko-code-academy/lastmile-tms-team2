@@ -291,17 +291,18 @@ export default function NewRoutePage() {
             </DetailPanel>
           ) : null}
 
-          <DetailPanel className="form-page-panel-animate-delay" section="route" title="Preview" description="Live route metrics, warnings, and read-only map.">
+          <DetailPanel className="form-page-panel-animate-delay" section="route" title="Preview" description="Live route metrics, warnings, and read-only map from the depot through the route and back.">
             {!previewRequest ? <p className="text-sm text-muted-foreground">Route preview will appear once service date and zone are selected.</p> : previewLoading ? <p className="text-sm text-muted-foreground">Building route preview...</p> : previewError || !preview ? <QueryErrorAlert title="Could not build route preview" message={getErrorMessage(previewError)} /> : (
               <div className="space-y-5">
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                   <div className="rounded-2xl border border-border/60 bg-background/60 p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Zone</p><p className="mt-2 text-sm font-semibold">{preview.zoneName}</p></div>
+                  <div className="rounded-2xl border border-border/60 bg-background/60 p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Depot</p><p className="mt-2 text-sm font-semibold">{preview.depotName}</p><p className="mt-1 text-xs text-muted-foreground">{preview.depotAddressLine}</p></div>
                   <div className="rounded-2xl border border-border/60 bg-background/60 p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Stops</p><p className="mt-2 text-sm font-semibold">{preview.estimatedStopCount}</p></div>
                   <div className="rounded-2xl border border-border/60 bg-background/60 p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Planned distance</p><p className="mt-2 text-sm font-semibold">{formatDistance(preview.plannedDistanceMeters)}</p></div>
                   <div className="rounded-2xl border border-border/60 bg-background/60 p-4"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Planned duration</p><p className="mt-2 text-sm font-semibold">{formatDuration(preview.plannedDurationSeconds)}</p></div>
                 </div>
                 {preview.warnings.length > 0 ? <div className="rounded-2xl border border-amber-500/30 bg-amber-500/8 p-4"><p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Planner warnings</p><ul className="mt-2 space-y-1 text-sm text-amber-900/90 dark:text-amber-200/90">{preview.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div> : null}
-                <RouteMap path={preview.path} stops={preview.stops} emptyMessage="No preview geometry is available for the current selection." />
+                <RouteMap path={preview.path} stops={preview.stops} depot={{ name: preview.depotName, addressLine: preview.depotAddressLine, longitude: preview.depotLongitude, latitude: preview.depotLatitude }} emptyMessage="No preview geometry is available for the current selection." />
               </div>
             )}
           </DetailPanel>

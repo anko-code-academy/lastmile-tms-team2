@@ -11,24 +11,90 @@ const INITIAL_CENTER: [number, number] = [0, 18];
 const INITIAL_ZOOM = 1.5;
 const PATH_SOURCE_ID = "route-path";
 const PATH_CASING_LAYER_ID = "route-path-casing";
-const PATH_LAYER_ID = "route-path-line";
+const OUTBOUND_PATH_LAYER_ID = "route-path-outbound";
+const RETURN_PATH_LAYER_ID = "route-path-return";
+const OUTBOUND_PATH_COLOR = "#0f766e";
+const RETURN_PATH_COLOR = "#b45309";
+
+type RoutePathSegment = "outbound" | "return";
+type RoutePathFeatureProperties = {
+  segment: RoutePathSegment;
+};
 
 type MapboxModule = typeof import("mapbox-gl")["default"];
 
-function buildPathFeature(path: RoutePathPoint[]): FeatureCollection<LineString> {
-  const features: Feature<LineString>[] =
-    path.length >= 2
-      ? [
-          {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "LineString",
-              coordinates: path.map((point) => [point.longitude, point.latitude]),
-            },
-          },
-        ]
-      : [];
+type RouteMapDepot = {
+  name: string;
+  addressLine?: string | null;
+  longitude?: number | null;
+  latitude?: number | null;
+};
+
+function buildLineFeature(
+  path: RoutePathPoint[],
+  segment: RoutePathSegment,
+): Feature<LineString, RoutePathFeatureProperties> | null {
+  if (path.length < 2) {
+    return null;
+  }
+
+  return {
+    type: "Feature",
+    properties: {
+      segment,
+    },
+    geometry: {
+      type: "LineString",
+      coordinates: path.map((point) => [point.longitude, point.latitude]),
+    },
+  };
+}
+
+function findReturnSplitIndex(path: RoutePathPoint[], stops: RouteStop[]): number | null {
+  if (path.length < 2 || stops.length === 0) {
+    return null;
+  }
+
+  const lastStop = stops.reduce((furthestStop, currentStop) =>
+    currentStop.sequence > furthestStop.sequence ? currentStop : furthestStop,
+  );
+
+  let bestIndex = -1;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (let index = 0; index < path.length; index += 1) {
+    const point = path[index];
+    const longitudeDelta = point.longitude - lastStop.longitude;
+    const latitudeDelta = point.latitude - lastStop.latitude;
+    const squaredDistance = longitudeDelta * longitudeDelta + latitudeDelta * latitudeDelta;
+
+    if (
+      squaredDistance < bestDistance
+      || (Math.abs(squaredDistance - bestDistance) < 0.000000000001 && index > bestIndex)
+    ) {
+      bestDistance = squaredDistance;
+      bestIndex = index;
+    }
+  }
+
+  if (bestIndex <= 0 || bestIndex >= path.length - 1) {
+    return null;
+  }
+
+  return bestIndex;
+}
+
+function buildPathFeature(
+  path: RoutePathPoint[],
+  stops: RouteStop[],
+): FeatureCollection<LineString, RoutePathFeatureProperties> {
+  const splitIndex = findReturnSplitIndex(path, stops);
+  const outboundPath = splitIndex == null ? path : path.slice(0, splitIndex + 1);
+  const returnPath = splitIndex == null ? [] : path.slice(splitIndex);
+  const features = [
+    buildLineFeature(outboundPath, "outbound"),
+    buildLineFeature(returnPath, "return"),
+  ].filter((feature): feature is Feature<LineString, RoutePathFeatureProperties> => feature !== null);
 
   return {
     type: "FeatureCollection",
@@ -39,11 +105,13 @@ function buildPathFeature(path: RoutePathPoint[]): FeatureCollection<LineString>
 export function RouteMap({
   path,
   stops,
+  depot,
   className,
   emptyMessage = "Route preview will appear here once stops are planned.",
 }: {
   path: RoutePathPoint[];
   stops: RouteStop[];
+  depot?: RouteMapDepot | null;
   className?: string;
   emptyMessage?: string;
 }) {
@@ -54,7 +122,10 @@ export function RouteMap({
   const mapboxModuleRef = useRef<MapboxModule | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const hasGeometry = path.length > 0 || stops.length > 0;
+  const depotLongitude = depot?.longitude ?? null;
+  const depotLatitude = depot?.latitude ?? null;
+  const hasDepotCoordinates = depotLongitude != null && depotLatitude != null;
+  const hasGeometry = path.length > 0 || stops.length > 0 || hasDepotCoordinates;
 
   useEffect(() => {
     let isCancelled = false;
@@ -106,7 +177,7 @@ export function RouteMap({
 
         map.addSource(PATH_SOURCE_ID, {
           type: "geojson",
-          data: buildPathFeature(path),
+          data: buildPathFeature([], []),
         });
 
         map.addLayer({
@@ -125,13 +196,31 @@ export function RouteMap({
         });
 
         map.addLayer({
-          id: PATH_LAYER_ID,
+          id: OUTBOUND_PATH_LAYER_ID,
           type: "line",
           source: PATH_SOURCE_ID,
+          filter: ["==", ["get", "segment"], "outbound"],
           paint: {
-            "line-color": "#0f172a",
-            "line-width": 4,
-            "line-opacity": 0.92,
+            "line-color": OUTBOUND_PATH_COLOR,
+            "line-width": 4.5,
+            "line-opacity": 0.94,
+          },
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+        });
+
+        map.addLayer({
+          id: RETURN_PATH_LAYER_ID,
+          type: "line",
+          source: PATH_SOURCE_ID,
+          filter: ["==", ["get", "segment"], "return"],
+          paint: {
+            "line-color": RETURN_PATH_COLOR,
+            "line-width": 4.5,
+            "line-opacity": 0.94,
+            "line-dasharray": [1.25, 1.1],
           },
           layout: {
             "line-join": "round",
@@ -164,8 +253,8 @@ export function RouteMap({
     }
 
     const source = map.getSource(PATH_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
-    source?.setData(buildPathFeature(path));
-  }, [mapLoaded, path]);
+    source?.setData(buildPathFeature(path, stops));
+  }, [mapLoaded, path, stops]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -175,7 +264,39 @@ export function RouteMap({
     }
 
     markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current = stops.map((stop) => {
+    const markers: mapboxgl.Marker[] = [];
+
+    if (hasDepotCoordinates) {
+      const depotCoordinates: [number, number] = [depotLongitude, depotLatitude];
+      const element = document.createElement("button");
+      element.type = "button";
+      element.className =
+        "flex size-9 items-center justify-center rounded-full border-2 border-white bg-emerald-600 text-xs font-black text-white shadow-lg";
+      element.textContent = "D";
+
+      markers.push(
+        new mapbox.Marker({
+          element,
+          anchor: "center",
+        })
+          .setLngLat(depotCoordinates)
+          .setPopup(
+            new mapbox.Popup({
+              closeButton: false,
+              offset: 18,
+            }).setHTML(
+              `<div class="space-y-1">
+                <div class="text-sm font-semibold">${depot?.name ?? "Depot"}</div>
+                ${depot?.addressLine ? `<div class="text-xs text-slate-600">${depot.addressLine}</div>` : ""}
+                <div class="text-xs text-slate-500">Route start and finish</div>
+              </div>`,
+            ),
+          )
+          .addTo(map),
+      );
+    }
+
+    markers.push(...stops.map((stop) => {
       const element = document.createElement("button");
       element.type = "button";
       element.className =
@@ -200,13 +321,15 @@ export function RouteMap({
           ),
         )
         .addTo(map);
-    });
+    }));
+
+    markersRef.current = markers;
 
     return () => {
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
     };
-  }, [mapLoaded, stops]);
+  }, [depot?.addressLine, depot?.name, depotLatitude, depotLongitude, hasDepotCoordinates, mapLoaded, stops]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -222,6 +345,10 @@ export function RouteMap({
     for (const stop of stops) {
       bounds.extend([stop.longitude, stop.latitude]);
     }
+    if (hasDepotCoordinates) {
+      const depotCoordinates: [number, number] = [depotLongitude, depotLatitude];
+      bounds.extend(depotCoordinates);
+    }
 
     if (bounds.isEmpty()) {
       return;
@@ -232,7 +359,7 @@ export function RouteMap({
       duration: 600,
       maxZoom: 13,
     });
-  }, [hasGeometry, mapLoaded, path, stops]);
+  }, [depotLatitude, depotLongitude, hasDepotCoordinates, hasGeometry, mapLoaded, path, stops]);
 
   return (
     <div
@@ -242,6 +369,27 @@ export function RouteMap({
       )}
     >
       <div ref={containerRef} className="h-[22rem] w-full sm:h-[28rem]" />
+      {mapLoaded && hasGeometry ? (
+        <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-lg backdrop-blur-sm">
+            <span
+              className="block h-1.5 w-8 rounded-full"
+              style={{ backgroundColor: OUTBOUND_PATH_COLOR }}
+            />
+            To route stops
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-lg backdrop-blur-sm">
+            <span
+              className="block h-1.5 w-8 rounded-full"
+              style={{
+                backgroundColor: RETURN_PATH_COLOR,
+                backgroundImage: `repeating-linear-gradient(90deg, ${RETURN_PATH_COLOR} 0 10px, rgba(255,255,255,0) 10px 14px)`,
+              }}
+            />
+            Return to depot
+          </div>
+        </div>
+      ) : null}
       {!mapLoaded ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-200/70 text-sm font-medium text-slate-700 backdrop-blur-sm">
           Loading route map...

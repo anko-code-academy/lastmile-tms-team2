@@ -52,6 +52,11 @@ export type Route = {
   id: string;
   zoneId: string;
   zoneName: string;
+  depotId: string | null;
+  depotName: string | null;
+  depotAddressLine: string | null;
+  depotLongitude: number | null;
+  depotLatitude: number | null;
   vehicleId: string;
   vehiclePlate: string;
   driverId: string;

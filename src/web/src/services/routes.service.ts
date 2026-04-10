@@ -49,6 +49,11 @@ function mapRouteSummary(
     id: raw.id,
     zoneId: raw.zoneId,
     zoneName: raw.zoneName?.trim() || "Unknown zone",
+    depotId: null,
+    depotName: null,
+    depotAddressLine: null,
+    depotLongitude: null,
+    depotLatitude: null,
     vehicleId: raw.vehicleId,
     vehiclePlate: raw.vehiclePlate?.trim() || "Unknown vehicle",
     driverId: raw.driverId,
@@ -78,6 +83,11 @@ function mapRouteSummary(
 function mapRouteDetail(raw: NonNullable<GetRouteQuery["route"]>): Route {
   return {
     ...mapRouteSummary(raw),
+    depotId: raw.depotId ?? null,
+    depotName: raw.depotName?.trim() || null,
+    depotAddressLine: raw.depotAddressLine?.trim() || null,
+    depotLongitude: raw.depotLongitude ?? null,
+    depotLatitude: raw.depotLatitude ?? null,
     path: raw.path ?? [],
     stops: raw.stops ?? [],
     assignmentAuditTrail: raw.assignmentAuditTrail ?? [],
