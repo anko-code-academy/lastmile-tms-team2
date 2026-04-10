@@ -80,7 +80,7 @@ import type {
   StartInboundReceivingSessionRequest,
 } from "@/types/parcels";
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
+const USE_MOCK = false;
 
 function buildApiUrl(path: string): string {
   return `${apiBaseUrl().replace(/\/$/, "")}${path}`;

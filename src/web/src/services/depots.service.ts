@@ -7,29 +7,12 @@ import {
 } from "@/graphql/depots";
 import { normalizeDepot, serializeDepotOperatingHours } from "@/lib/depots/operating-hours";
 import { graphqlRequest } from "@/lib/network/graphql-client";
-import { mockDepots } from "@/mocks/depots.mock";
 import type { CreateDepotRequest, Depot, UpdateDepotRequest } from "@/types/depots";
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 type GraphQLDepot = Parameters<typeof normalizeDepot>[0];
 
 export const depotsService = {
   list: async (): Promise<Depot[]> => {
-    if (USE_MOCK) {
-      return mockDepots.map((depot) => ({
-        id: depot.id,
-        name: depot.name,
-        addressId: depot.id === "00000000-0000-0000-0000-000000000001"
-          ? "00000000-0000-0000-0000-000000000002"
-          : depot.id,
-        address: null,
-        operatingHours: null,
-        isActive: true,
-        createdAt: new Date(0).toISOString(),
-        updatedAt: null,
-      }));
-    }
-
     const data = await graphqlRequest<{ depots: GraphQLDepot[] }>(DEPOTS_LIST);
     return data.depots.map(normalizeDepot);
   },

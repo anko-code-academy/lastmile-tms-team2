@@ -16,23 +16,11 @@ import type {
   CreateVehicleRequest,
   UpdateVehicleRequest,
 } from "@/types/vehicles";
-import {
-  getMockVehiclesPaginated,
-  getMockVehicleById,
-} from "@/mocks/vehicles.mock";
-
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 
 export const vehiclesService = {
   getAll: async (
     where?: VehicleFilterInput
   ): Promise<Vehicle[]> => {
-    if (USE_MOCK) {
-      return Promise.resolve(
-        getMockVehiclesPaginated(1, 1000).items,
-      );
-    }
-
     const variables: Record<string, unknown> = {};
     if (where !== undefined) {
       variables.where = where;
@@ -60,12 +48,6 @@ export const vehiclesService = {
   },
 
   getById: async (id: string): Promise<Vehicle> => {
-    if (USE_MOCK) {
-      const vehicle = getMockVehicleById(id);
-      if (!vehicle) throw new Error("Vehicle not found");
-      return Promise.resolve(vehicle);
-    }
-
     const vehicles = await vehiclesService.getAll();
     const vehicle = vehicles.find((v) => v.id === id);
     if (!vehicle) throw new Error("Vehicle not found");
@@ -73,20 +55,6 @@ export const vehiclesService = {
   },
 
   create: async (data: CreateVehicleRequest): Promise<Vehicle> => {
-    if (USE_MOCK) {
-      const newVehicle: Vehicle = {
-        ...data,
-        id: `mock-${Date.now()}`,
-        depotName: "Test Depot",
-        totalRoutes: 0,
-        routesCompleted: 0,
-        totalMileage: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-      };
-      return Promise.resolve(newVehicle);
-    }
-
     const res = await graphqlRequest<CreateVehicleMutation>(
       CREATE_VEHICLE,
       {
@@ -119,18 +87,6 @@ export const vehiclesService = {
   },
 
   update: async (id: string, data: UpdateVehicleRequest): Promise<Vehicle> => {
-    if (USE_MOCK) {
-      const existing = getMockVehicleById(id);
-      if (!existing) throw new Error("Vehicle not found");
-      const updated: Vehicle = {
-        ...existing,
-        ...data,
-        depotName: existing.depotName,
-        updatedAt: new Date().toISOString(),
-      };
-      return Promise.resolve(updated);
-    }
-
     const res = await graphqlRequest<UpdateVehicleMutation>(
       UPDATE_VEHICLE,
       {
@@ -165,11 +121,6 @@ export const vehiclesService = {
   },
 
   delete: async (id: string): Promise<boolean> => {
-    if (USE_MOCK) {
-      if (!getMockVehicleById(id)) throw new Error("Vehicle not found");
-      return Promise.resolve(true);
-    }
-
     const res = await graphqlRequest<{ deleteVehicle: boolean }>(
       DELETE_VEHICLE,
       { id }
