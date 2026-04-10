@@ -391,6 +391,51 @@ public sealed class StageParcelForRouteResultType : ObjectType<StageParcelForRou
     }
 }
 
+public sealed class LoadOutRouteType : ObjectType<LoadOutRouteDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<LoadOutRouteDto> descriptor)
+    {
+        descriptor.Name("LoadOutRoute");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class RouteLoadOutExpectedParcelType : ObjectType<RouteLoadOutExpectedParcelDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<RouteLoadOutExpectedParcelDto> descriptor)
+    {
+        descriptor.Name("RouteLoadOutExpectedParcel");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class RouteLoadOutBoardType : ObjectType<RouteLoadOutBoardDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<RouteLoadOutBoardDto> descriptor)
+    {
+        descriptor.Name("RouteLoadOutBoard");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class LoadParcelForRouteResultType : ObjectType<LoadParcelForRouteResultDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<LoadParcelForRouteResultDto> descriptor)
+    {
+        descriptor.Name("LoadParcelForRouteResult");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class CompleteLoadOutResultType : ObjectType<CompleteLoadOutResultDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<CompleteLoadOutResultDto> descriptor)
+    {
+        descriptor.Name("CompleteLoadOutResult");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
 public sealed class ParcelFilterInputType : FilterInputType<Parcel>
 {
     protected override void Configure(IFilterInputTypeDescriptor<Parcel> descriptor)

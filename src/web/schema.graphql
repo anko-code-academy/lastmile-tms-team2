@@ -48,6 +48,15 @@ type BinLocation {
   deliveryZoneName: String
 }
 
+type CompleteLoadOutResult {
+  success: Boolean!
+  message: String!
+  loadedCount: Int!
+  skippedCount: Int!
+  totalCount: Int!
+  board: RouteLoadOutBoard!
+}
+
 type DeliveryZoneOption {
   id: UUID!
   name: String!
@@ -186,6 +195,30 @@ type InboundScannedParcel {
   scannedBy: String
 }
 
+type LoadOutRoute {
+  id: UUID!
+  vehicleId: UUID!
+  vehiclePlate: String!
+  driverId: UUID!
+  driverName: String!
+  status: RouteStatus!
+  stagingArea: StagingArea!
+  startDate: DateTime!
+  expectedParcelCount: Int!
+  loadedParcelCount: Int!
+  remainingParcelCount: Int!
+}
+
+type LoadParcelForRouteResult {
+  outcome: RouteLoadOutScanOutcome!
+  message: String!
+  trackingNumber: String
+  parcelId: UUID
+  conflictingRouteId: UUID
+  conflictingStagingArea: StagingArea
+  board: RouteLoadOutBoard!
+}
+
 type Mutation {
   createDepot(input: CreateDepotInput!): Depot! @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
   updateDepot(id: UUID! input: UpdateDepotInput!): Depot @authorize(roles: [ "Admin", "OperationsManager" ]) @cost(weight: "10")
@@ -210,6 +243,8 @@ type Mutation {
   scanInboundParcel(input: ScanInboundParcelInput!): InboundParcelScanResult! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   confirmInboundReceivingSession(input: ConfirmInboundReceivingSessionInput!): InboundReceivingSession! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   stageParcelForRoute(input: StageParcelForRouteInput!): StageParcelForRouteResult! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
+  loadParcelForRoute(input: LoadParcelForRouteInput!): LoadParcelForRouteResult! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
+  completeLoadOut(input: CompleteLoadOutInput!): CompleteLoadOutResult! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   createRoute(input: CreateRouteInput!): Route! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   updateRouteAssignment(id: UUID! input: UpdateRouteAssignmentInput!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   cancelRoute(id: UUID! input: CancelRouteInput!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
@@ -443,6 +478,8 @@ type Query {
   inboundReceivingSession(sessionId: UUID!): InboundReceivingSession @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   stagingRoutes: [StagingRoute!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   routeStagingBoard(routeId: UUID!): RouteStagingBoard @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
+  loadOutRoutes: [LoadOutRoute!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
+  routeLoadOutBoard(routeId: UUID!): RouteLoadOutBoard @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   routes(where: RouteFilterInput @cost(weight: "10") order: [RouteSortInput!] @cost(weight: "10")): [Route!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   route(id: UUID!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   routeAssignmentCandidates(serviceDate: DateTime! routeId: UUID): RouteAssignmentCandidates! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
@@ -526,6 +563,29 @@ type RouteAssignmentAuditEntry {
 type RouteAssignmentCandidates {
   vehicles: [AssignableVehicle!]!
   drivers: [AssignableDriver!]!
+}
+
+type RouteLoadOutBoard {
+  id: UUID!
+  vehicleId: UUID!
+  vehiclePlate: String!
+  driverId: UUID!
+  driverName: String!
+  status: RouteStatus!
+  stagingArea: StagingArea!
+  startDate: DateTime!
+  expectedParcelCount: Int!
+  loadedParcelCount: Int!
+  remainingParcelCount: Int!
+  expectedParcels: [RouteLoadOutExpectedParcel!]!
+}
+
+type RouteLoadOutExpectedParcel {
+  parcelId: UUID!
+  trackingNumber: String!
+  barcode: String!
+  status: String!
+  isLoaded: Boolean!
 }
 
 type RouteStagingBoard {
@@ -727,6 +787,11 @@ input CancelParcelInput {
 
 input CancelRouteInput {
   reason: String!
+}
+
+input CompleteLoadOutInput {
+  routeId: UUID!
+  force: Boolean!
 }
 
 input CompletePasswordResetInput {
@@ -941,6 +1006,11 @@ input IntOperationFilterInput {
   nlt: Int @cost(weight: "10")
   lte: Int @cost(weight: "10")
   nlte: Int @cost(weight: "10")
+}
+
+input LoadParcelForRouteInput {
+  routeId: UUID!
+  barcode: String!
 }
 
 input OperatingHoursFilterInput {
@@ -1400,6 +1470,14 @@ enum ParcelStatus {
 enum RouteAssignmentAuditAction {
   ASSIGNED
   REASSIGNED
+}
+
+enum RouteLoadOutScanOutcome {
+  LOADED
+  ALREADY_LOADED
+  WRONG_ROUTE
+  NOT_EXPECTED
+  INVALID_STATUS
 }
 
 enum RouteStagingScanOutcome {

@@ -398,3 +398,13 @@ export interface StageParcelForRouteResult {
   conflictingStagingArea: import("@/graphql/generated").StagingArea | null;
   board: RouteStagingBoard;
 }
+
+export interface LoadParcelForRouteRequest {
+  routeId: string;
+  barcode: string;
+}
+
+export interface CompleteLoadOutRequest {
+  routeId: string;
+  force: boolean;
+}

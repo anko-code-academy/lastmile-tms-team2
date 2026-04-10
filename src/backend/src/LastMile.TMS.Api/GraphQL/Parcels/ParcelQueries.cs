@@ -108,6 +108,19 @@ public sealed class ParcelQueries
         CancellationToken cancellationToken) =>
         mediator.Send(new GetRouteStagingBoardQuery(routeId), cancellationToken);
 
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
+    public Task<IReadOnlyList<LoadOutRouteDto>> GetLoadOutRoutes(
+        [Service] ISender mediator,
+        CancellationToken cancellationToken) =>
+        mediator.Send(new GetLoadOutRoutesQuery(), cancellationToken);
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
+    public Task<RouteLoadOutBoardDto?> GetRouteLoadOutBoard(
+        Guid routeId,
+        [Service] ISender mediator,
+        CancellationToken cancellationToken) =>
+        mediator.Send(new GetRouteLoadOutBoardQuery(routeId), cancellationToken);
+
     private static IQueryable<Parcel> ApplyParcelSearch(IQueryable<Parcel> query, string? search)
     {
         if (string.IsNullOrWhiteSpace(search))

@@ -1,0 +1,99 @@
+query GetLoadOutRoutes {
+  loadOutRoutes {
+    id
+    vehicleId
+    vehiclePlate
+    driverId
+    driverName
+    status
+    stagingArea
+    startDate
+    expectedParcelCount
+    loadedParcelCount
+    remainingParcelCount
+  }
+}
+
+query GetRouteLoadOutBoard($routeId: UUID!) {
+  routeLoadOutBoard(routeId: $routeId) {
+    id
+    vehicleId
+    vehiclePlate
+    driverId
+    driverName
+    status
+    stagingArea
+    startDate
+    expectedParcelCount
+    loadedParcelCount
+    remainingParcelCount
+    expectedParcels {
+      parcelId
+      trackingNumber
+      barcode
+      status
+      isLoaded
+    }
+  }
+}
+
+mutation LoadParcelForRoute($input: LoadParcelForRouteInput!) {
+  loadParcelForRoute(input: $input) {
+    outcome
+    message
+    trackingNumber
+    parcelId
+    conflictingRouteId
+    conflictingStagingArea
+    board {
+      id
+      vehicleId
+      vehiclePlate
+      driverId
+      driverName
+      status
+      stagingArea
+      startDate
+      expectedParcelCount
+      loadedParcelCount
+      remainingParcelCount
+      expectedParcels {
+        parcelId
+        trackingNumber
+        barcode
+        status
+        isLoaded
+      }
+    }
+  }
+}
+
+mutation CompleteLoadOut($input: CompleteLoadOutInput!) {
+  completeLoadOut(input: $input) {
+    success
+    message
+    loadedCount
+    skippedCount
+    totalCount
+    board {
+      id
+      vehicleId
+      vehiclePlate
+      driverId
+      driverName
+      status
+      stagingArea
+      startDate
+      expectedParcelCount
+      loadedParcelCount
+      remainingParcelCount
+      expectedParcels {
+        parcelId
+        trackingNumber
+        barcode
+        status
+        isLoaded
+      }
+    }
+  }
+}

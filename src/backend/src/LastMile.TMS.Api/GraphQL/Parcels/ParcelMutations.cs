@@ -64,4 +64,18 @@ public sealed class ParcelMutations
         [Service] ISender mediator = null!,
         CancellationToken cancellationToken = default) =>
         mediator.Send(input.ToDto(), cancellationToken);
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
+    public Task<LoadParcelForRouteResultDto> LoadParcelForRoute(
+        LoadParcelForRouteInput input,
+        [Service] ISender mediator = null!,
+        CancellationToken cancellationToken = default) =>
+        mediator.Send(input.ToDto(), cancellationToken);
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
+    public Task<CompleteLoadOutResultDto> CompleteLoadOut(
+        CompleteLoadOutInput input,
+        [Service] ISender mediator = null!,
+        CancellationToken cancellationToken = default) =>
+        mediator.Send(input.ToDto(), cancellationToken);
 }
