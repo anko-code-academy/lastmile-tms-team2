@@ -1468,7 +1468,7 @@ public class ParcelGraphQLTests(CustomWebApplicationFactory factory)
 
         aggregateParcel.GetProperty("id").GetString().Should().Be(parcelId);
         aggregateParcel.GetProperty("trackingNumber").GetString().Should().Be(trackingNumber);
-        aggregateParcel.GetProperty("senderAddress").GetProperty("street1").GetString().Should().Be("388 George Street");
+        aggregateParcel.GetProperty("senderAddress").GetProperty("street1").GetString().Should().Be("500 W Madison St");
         aggregateParcel.GetProperty("recipientAddress").GetProperty("contactName").GetString().Should().Be("Aggregate Test");
         aggregateParcel.GetProperty("statusTimeline").EnumerateArray().Should().NotBeEmpty();
         aggregateParcel.GetProperty("routeAssignment").GetProperty("driverName").GetString().Should().Be("Test Driver");

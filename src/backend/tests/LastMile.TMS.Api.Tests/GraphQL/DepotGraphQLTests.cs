@@ -489,6 +489,128 @@ public class DepotGraphQLTests : GraphQLTestBase, IAsyncLifetime
     }
 
     [Fact]
+    public async Task UpdateDepot_WithAddressInput_UpdatesAddressAndReturnsGeoLocation()
+    {
+        var depotId = await SeedDepotAsync();
+        var token = await GetAdminAccessTokenAsync();
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation UpdateDepot($id: UUID!, $input: UpdateDepotInput!) {
+              updateDepot(id: $id, input: $input) {
+                id
+                name
+                isActive
+                address {
+                  street1
+                  city
+                  state
+                  postalCode
+                  countryCode
+                  geoLocation {
+                    latitude
+                    longitude
+                  }
+                }
+              }
+            }
+            """,
+            new
+            {
+                id = depotId,
+                input = new
+                {
+                    name = "Depot GraphQL Address Update",
+                    isActive = true,
+                    address = new
+                    {
+                        street1 = "123 Market Street",
+                        city = "Sydney",
+                        state = "NSW",
+                        postalCode = "2000",
+                        countryCode = "au",
+                        isResidential = false
+                    }
+                }
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out _).Should().BeFalse(document.RootElement.GetRawText());
+
+        var depot = document.RootElement
+            .GetProperty("data")
+            .GetProperty("updateDepot");
+
+        depot.GetProperty("id").GetString().Should().Be(depotId.ToString());
+        depot.GetProperty("name").GetString().Should().Be("Depot GraphQL Address Update");
+        depot.GetProperty("isActive").GetBoolean().Should().BeTrue();
+        depot.GetProperty("address").GetProperty("street1").GetString().Should().Be("123 Market Street");
+        depot.GetProperty("address").GetProperty("city").GetString().Should().Be("Sydney");
+        depot.GetProperty("address").GetProperty("state").GetString().Should().Be("NSW");
+        depot.GetProperty("address").GetProperty("postalCode").GetString().Should().Be("2000");
+        depot.GetProperty("address").GetProperty("countryCode").GetString().Should().Be("AU");
+        depot.GetProperty("address").GetProperty("geoLocation").GetProperty("latitude").GetDouble().Should().BeApproximately(-33.5, 0.0001);
+        depot.GetProperty("address").GetProperty("geoLocation").GetProperty("longitude").GetDouble().Should().BeApproximately(151.5, 0.0001);
+    }
+
+    [Fact]
+    public async Task UpdateDepot_WithIsoDurationOperatingHoursInput_AcceptsTimeSpanPayload()
+    {
+        var depotId = await SeedDepotAsync();
+        var token = await GetAdminAccessTokenAsync();
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation UpdateDepot($id: UUID!, $input: UpdateDepotInput!) {
+              updateDepot(id: $id, input: $input) {
+                id
+                operatingHours {
+                  dayOfWeek
+                  openTime
+                  closedTime
+                  isClosed
+                }
+              }
+            }
+            """,
+            new
+            {
+                id = depotId,
+                input = new
+                {
+                    name = "Depot GraphQL ISO Duration Update",
+                    isActive = true,
+                    operatingHours = new[]
+                    {
+                        new
+                        {
+                            dayOfWeek = "MONDAY",
+                            openTime = "PT8H",
+                            closedTime = "PT17H30M",
+                            isClosed = false
+                        }
+                    }
+                }
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out _).Should().BeFalse(document.RootElement.GetRawText());
+
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var persistedDepot = await dbContext.Depots
+            .Include(d => d.OperatingHours)
+            .SingleAsync(d => d.Id == depotId);
+
+        persistedDepot.OperatingHours.Should().ContainSingle(x =>
+            x.DayOfWeek == DayOfWeek.Monday &&
+            x.OpenTime == new TimeOnly(8, 0) &&
+            x.ClosedTime == new TimeOnly(17, 30) &&
+            !x.IsClosed);
+    }
+
+    [Fact]
     public async Task UpdateDepot_WithDuplicateOperatingHoursDays_ReturnsValidationError()
     {
         var depotId = await SeedDepotAsync();

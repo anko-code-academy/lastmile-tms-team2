@@ -134,6 +134,77 @@ public sealed class DepotCommandHandlerTests
         persistedDepot.Address.GeoLocation.Y.Should().BeApproximately(-37.8136, 0.000001);
     }
 
+    [Fact]
+    public async Task UpdateDepot_WithUnchangedAddress_WhenGeocodingFails_KeepsStoredLocation()
+    {
+        var db = MakeDbContext();
+        var depot = await SeedDepotAsync(db);
+        var handler = new UpdateDepotCommandHandler(db, new ThrowingGeocodingService());
+
+        var result = await handler.Handle(
+            new UpdateDepotCommand(
+                depot.Id,
+                new UpdateDepotDto
+                {
+                    Name = "Seed Depot Updated",
+                    IsActive = true,
+                    Address = new AddressDto
+                    {
+                        Street1 = "101 Market Street",
+                        City = "Melbourne",
+                        State = "VIC",
+                        PostalCode = "3000",
+                        CountryCode = "AU",
+                    },
+                }),
+            CancellationToken.None);
+
+        result.Should().NotBeNull();
+
+        var persistedDepot = await db.Depots
+            .Include(currentDepot => currentDepot.Address)
+            .SingleAsync(currentDepot => currentDepot.Id == depot.Id);
+
+        persistedDepot.Address.GeoLocation.Should().NotBeNull();
+        persistedDepot.Address.GeoLocation!.X.Should().BeApproximately(144.9631, 0.000001);
+        persistedDepot.Address.GeoLocation.Y.Should().BeApproximately(-37.8136, 0.000001);
+    }
+
+    [Fact]
+    public async Task UpdateDepot_WithChangedAddress_WhenGeocodingFails_ClearsStoredLocation()
+    {
+        var db = MakeDbContext();
+        var depot = await SeedDepotAsync(db);
+        var handler = new UpdateDepotCommandHandler(db, new ThrowingGeocodingService());
+
+        var result = await handler.Handle(
+            new UpdateDepotCommand(
+                depot.Id,
+                new UpdateDepotDto
+                {
+                    Name = "Sydney Depot",
+                    IsActive = true,
+                    Address = new AddressDto
+                    {
+                        Street1 = "123 Market Street",
+                        City = "Sydney",
+                        State = "NSW",
+                        PostalCode = "2000",
+                        CountryCode = "AU",
+                    },
+                }),
+            CancellationToken.None);
+
+        result.Should().NotBeNull();
+
+        var persistedDepot = await db.Depots
+            .Include(currentDepot => currentDepot.Address)
+            .SingleAsync(currentDepot => currentDepot.Id == depot.Id);
+
+        persistedDepot.Address.Street1.Should().Be("123 Market Street");
+        persistedDepot.Address.GeoLocation.Should().BeNull();
+    }
+
     private static async Task<Depot> SeedDepotAsync(AppDbContext db)
     {
         var depot = new Depot
@@ -175,5 +246,13 @@ public sealed class DepotCommandHandlerTests
             RequestedAddresses.Add(address);
             return Task.FromResult(point);
         }
+    }
+
+    private sealed class ThrowingGeocodingService : IGeocodingService
+    {
+        public Task<Point?> GeocodeAsync(
+            string address,
+            CancellationToken cancellationToken = default) =>
+            throw new HttpRequestException("Mapbox is unavailable.");
     }
 }

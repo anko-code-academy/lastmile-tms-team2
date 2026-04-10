@@ -4,6 +4,7 @@ import type {
   DepotOperatingHours,
   UpdateDepotRequest,
 } from "@/types/depots";
+import { timeSpanScalarToHms } from "@/lib/time/graphql-timespan";
 
 const DAY_OF_WEEK_ENUMS = [
   "SUNDAY",
@@ -22,6 +23,23 @@ type GraphQLDepotOperatingHours = Omit<DepotOperatingHours, "dayOfWeek"> & {
 type GraphQLDepot = Omit<Depot, "operatingHours"> & {
   operatingHours: GraphQLDepotOperatingHours[] | null;
 };
+
+function normalizeOperatingHoursTime(value: string | null | undefined): string | null {
+  if (value == null) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.startsWith("P") || trimmed.startsWith("-P")) {
+    return timeSpanScalarToHms(trimmed);
+  }
+
+  return trimmed;
+}
 
 function isDayOfWeekIndex(value: number): boolean {
   return Number.isInteger(value) && value >= 0 && value < DAY_OF_WEEK_ENUMS.length;
@@ -73,6 +91,8 @@ export function normalizeDepot(raw: GraphQLDepot): Depot {
     operatingHours: raw.operatingHours?.map((item) => ({
       ...item,
       dayOfWeek: dayOfWeekToIndex(item.dayOfWeek),
+      openTime: normalizeOperatingHoursTime(item.openTime),
+      closedTime: normalizeOperatingHoursTime(item.closedTime),
     })) ?? null,
   };
 }
@@ -83,5 +103,7 @@ export function serializeDepotOperatingHours(
   return operatingHours?.map((item) => ({
     ...item,
     dayOfWeek: dayOfWeekFromIndex(item.dayOfWeek),
+    openTime: normalizeOperatingHoursTime(item.openTime) ?? item.openTime,
+    closedTime: normalizeOperatingHoursTime(item.closedTime) ?? item.closedTime,
   }));
 }

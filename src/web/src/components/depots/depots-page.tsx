@@ -296,6 +296,18 @@ function formatDepotSearchValue(form: DepotFormData): string {
     .join(", ");
 }
 
+function depotAddressToComparableValue(form: DepotFormData): string {
+  return [
+    form.street1,
+    form.city,
+    form.state,
+    form.postalCode,
+    form.countryCode,
+  ]
+    .map((value) => value.trim().toUpperCase())
+    .join("|");
+}
+
 function getSelectionAccuracyMessage(accuracy: string | null): string | null {
   switch (accuracy) {
     case "rooftop":
@@ -330,7 +342,7 @@ function defaultForm(): { depot: DepotFormData; hours: HoursData[] } {
       city: "",
       state: "",
       postalCode: "",
-      countryCode: "AU",
+      countryCode: "",
       isActive: true,
     },
     hours: defaultHours(),
@@ -384,7 +396,7 @@ function DepotForm({
           city: initial.depot.address?.city ?? "",
           state: initial.depot.address?.state ?? "",
           postalCode: initial.depot.address?.postalCode ?? "",
-          countryCode: initial.depot.address?.countryCode ?? "AU",
+          countryCode: initial.depot.address?.countryCode ?? "",
           isActive: initial.depot.isActive,
         }
       : defaultForm().depot,
@@ -401,7 +413,7 @@ function DepotForm({
             city: initial.depot.address?.city ?? "",
             state: initial.depot.address?.state ?? "",
             postalCode: initial.depot.address?.postalCode ?? "",
-            countryCode: initial.depot.address?.countryCode ?? "AU",
+            countryCode: initial.depot.address?.countryCode ?? "",
             isActive: initial.depot.isActive,
           }
         : defaultForm().depot,
@@ -463,9 +475,24 @@ function DepotForm({
         isClosed: item.isClosed,
       }));
 
+    const initialAddressComparableValue = initial?.depot.address
+      ? depotAddressToComparableValue({
+          name: initial.depot.name,
+          street1: initial.depot.address.street1 ?? "",
+          city: initial.depot.address.city ?? "",
+          state: initial.depot.address.state ?? "",
+          postalCode: initial.depot.address.postalCode ?? "",
+          countryCode: initial.depot.address.countryCode ?? "",
+          isActive: initial.depot.isActive,
+        })
+      : null;
+    const currentAddressComparableValue = depotAddressToComparableValue(form);
+    const shouldIncludeAddress =
+      !initial || initialAddressComparableValue !== currentAddressComparableValue;
+
     onSubmit({
       name: form.name,
-      address,
+      ...(shouldIncludeAddress ? { address } : {}),
       operatingHours,
       isActive: form.isActive,
     });

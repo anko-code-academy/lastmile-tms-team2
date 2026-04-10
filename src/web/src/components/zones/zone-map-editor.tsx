@@ -474,6 +474,10 @@ export function ZoneMapEditor({
             offset: 14,
           }).setHTML(
             `<div class="text-sm font-medium">${markerData.name}</div>${
+              markerData.locationLabel
+                ? `<div class="mt-1 text-xs text-slate-600">${markerData.locationLabel}</div>`
+                : ""
+            }${
               markerData.isFallback
                 ? '<div class="mt-1 text-xs text-amber-600">Approximate geocoded location</div>'
                 : ""

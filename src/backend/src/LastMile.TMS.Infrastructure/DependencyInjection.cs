@@ -39,7 +39,14 @@ public static class DependencyInjection
                 options => enableTestSupport
                     || isInMemoryDatabase
                     || !string.IsNullOrWhiteSpace(options.AccessToken),
-                "Mapbox access token is required when external routing/geocoding is enabled.")
+                "Mapbox access token is required when external routing is enabled.")
+            .ValidateOnStart();
+        services.AddOptions<NominatimOptions>()
+            .Bind(configuration.GetSection("Nominatim"))
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(options.BaseUrl)
+                    && !string.IsNullOrWhiteSpace(options.UserAgent),
+                "Nominatim base URL and user agent are required when external geocoding is enabled.")
             .ValidateOnStart();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IDriverPhotoFileCleanup, DriverPhotoFileCleanup>();
@@ -76,7 +83,7 @@ public static class DependencyInjection
         }
         else
         {
-            services.AddHttpClient<IGeocodingService, MapboxGeocodingService>();
+            services.AddHttpClient<IGeocodingService, NominatimGeocodingService>();
             services.AddHttpClient<IRouteRoutingService, MapboxRouteRoutingService>();
         }
 

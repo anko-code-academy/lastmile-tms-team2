@@ -37,8 +37,8 @@ describe("depot operating hours helpers", () => {
         operatingHours: [
           {
             dayOfWeek: "WEDNESDAY",
-            openTime: "08:00:00",
-            closedTime: "17:00:00",
+            openTime: "PT8H",
+            closedTime: "PT17H",
             isClosed: false,
           },
         ],
@@ -51,6 +51,26 @@ describe("depot operating hours helpers", () => {
         dayOfWeek: 3,
         openTime: "08:00:00",
         closedTime: "17:00:00",
+        isClosed: false,
+      },
+    ]);
+  });
+
+  it("serializes TimeSpan-like operating hours back to clock strings", () => {
+    expect(
+      serializeDepotOperatingHours([
+        {
+          dayOfWeek: 1,
+          openTime: "PT8H",
+          closedTime: "PT17H30M",
+          isClosed: false,
+        },
+      ])
+    ).toEqual([
+      {
+        dayOfWeek: "MONDAY",
+        openTime: "08:00:00",
+        closedTime: "17:30:00",
         isClosed: false,
       },
     ]);

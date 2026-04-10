@@ -30,6 +30,7 @@ export async function geocodeDepotAddress(
   );
   url.searchParams.set("access_token", accessToken);
   url.searchParams.set("limit", "1");
+  url.searchParams.set("permanent", "false");
 
   const response = await fetch(url, { signal, cache: "no-store" });
   if (!response.ok) {

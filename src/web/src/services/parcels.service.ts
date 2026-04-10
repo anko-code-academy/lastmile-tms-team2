@@ -50,7 +50,6 @@ import { apiBaseUrl, parseApiErrorMessage } from "@/lib/network/api";
 import { graphqlRequest } from "@/lib/network/graphql-client";
 import { downloadAuthenticatedFile, saveBlobAsFile } from "@/lib/network/download";
 import { isGuidString } from "@/lib/validation/guid-string";
-import { mockParcels } from "@/mocks/parcels.mock";
 import { ParcelWeightUnit } from "@/types/parcels";
 import type {
   CancelParcelRequest,
@@ -81,6 +80,7 @@ import type {
 } from "@/types/parcels";
 
 const USE_MOCK = false;
+const mockParcels: Array<RegisteredParcelResult & { detail: ParcelDetail }> = [];
 
 function buildApiUrl(path: string): string {
   return `${apiBaseUrl().replace(/\/$/, "")}${path}`;

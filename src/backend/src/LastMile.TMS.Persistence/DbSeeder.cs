@@ -21,6 +21,8 @@ public sealed class DbSeeder(
 {
     private const string DefaultAdminEmail = "admin@lastmile.com";
     private const string DefaultAdminPassword = "Admin@12345";
+    private const string SeededTestDepotName = "Test Depot";
+    private const string SeededTestZoneName = "Test Zone";
 
     /// <summary>Well-known depot ID used by integration tests and development.</summary>
     public static readonly Guid TestDepotId = new("00000000-0000-0000-0000-000000000001");
@@ -129,35 +131,35 @@ public sealed class DbSeeder(
 
     private static readonly AddressSeed TestDepotAddressSeed = new(
         TestDepotAddressId,
-        "201 Sussex Street",
+        "600 W Chicago Ave",
         null,
-        "Sydney",
-        "NSW",
-        "2000",
-        "AU",
+        "Chicago",
+        "IL",
+        "60654",
+        "US",
         false,
         null,
-        "Last Mile Central Depot",
-        "+61290000000",
+        "Last Mile Chicago Depot",
+        "+13125550000",
         "depot@lastmile.local",
-        151.20440,
-        -33.87273);
+        -87.6437911,
+        41.8975826);
 
     private static readonly AddressSeed TestParcelShipperAddressSeed = new(
         TestParcelShipperAddressId,
-        "388 George Street",
+        "500 W Madison St",
         null,
-        "Sydney",
-        "NSW",
-        "2000",
-        "AU",
+        "Chicago",
+        "IL",
+        "60661",
+        "US",
         false,
         "Dispatch Desk",
-        "Acme Fulfillment",
-        "+61290000010",
+        "Acme Fulfillment Chicago",
+        "+13125550010",
         "dock@acme.local",
-        151.20742,
-        -33.86938);
+        -87.6405304,
+        41.8838270);
 
     public Task StartAsync(CancellationToken cancellationToken) =>
         SeedAsync(cancellationToken);
@@ -490,16 +492,17 @@ public sealed class DbSeeder(
             ?? new Address
         {
             Id = TestDepotAddressId,
-            Street1 = "201 Sussex Street",
-            City = "Sydney",
-            State = "NSW",
-            PostalCode = "2000",
-            CountryCode = "AU",
+            Street1 = TestDepotAddressSeed.Street1,
+            City = TestDepotAddressSeed.City,
+            State = TestDepotAddressSeed.State,
+            PostalCode = TestDepotAddressSeed.PostalCode,
+            CountryCode = TestDepotAddressSeed.CountryCode,
             IsResidential = false,
-            CompanyName = "Last Mile Central Depot",
-            Phone = "+61290000000",
-            Email = "depot@lastmile.local",
-            GeoLocation = GeometryFactory.CreatePoint(new Coordinate(151.20440, -33.87273)),
+            CompanyName = TestDepotAddressSeed.CompanyName,
+            Phone = TestDepotAddressSeed.Phone,
+            Email = TestDepotAddressSeed.Email,
+            GeoLocation = GeometryFactory.CreatePoint(
+                new Coordinate(TestDepotAddressSeed.Longitude, TestDepotAddressSeed.Latitude)),
             CreatedAt = DateTimeOffset.UtcNow,
             CreatedBy = "Seeder"
         };
@@ -511,7 +514,7 @@ public sealed class DbSeeder(
             ?? new Depot
         {
             Id = TestDepotId,
-            Name = "Test Depot",
+            Name = SeededTestDepotName,
             AddressId = address.Id,
             Address = address,
             IsActive = true,
@@ -519,7 +522,7 @@ public sealed class DbSeeder(
             CreatedBy = "Seeder"
         };
 
-        depot.Name = "Test Depot";
+        depot.Name = SeededTestDepotName;
         depot.AddressId = address.Id;
         depot.Address = address;
         depot.IsActive = true;
@@ -558,11 +561,11 @@ public sealed class DbSeeder(
 
         var boundaryCoords = new[]
         {
-            new Coordinate(151.0, -33.0),
-            new Coordinate(152.0, -33.0),
-            new Coordinate(152.0, -34.0),
-            new Coordinate(151.0, -34.0),
-            new Coordinate(151.0, -33.0),
+            new Coordinate(-87.6460, 41.8745),
+            new Coordinate(-87.6180, 41.8745),
+            new Coordinate(-87.6180, 41.8995),
+            new Coordinate(-87.6460, 41.8995),
+            new Coordinate(-87.6460, 41.8745),
         };
 
         var now = DateTimeOffset.UtcNow;
@@ -571,7 +574,7 @@ public sealed class DbSeeder(
             ?? new Zone
         {
             Id = TestZoneId,
-            Name = "Test Zone",
+            Name = SeededTestZoneName,
             Boundary = GeometryFactory.CreatePolygon(boundaryCoords),
             IsActive = true,
             DepotId = TestDepotId,
@@ -579,7 +582,7 @@ public sealed class DbSeeder(
             CreatedBy = "Seeder",
         };
 
-        zone.Name = "Test Zone";
+        zone.Name = SeededTestZoneName;
         zone.Boundary = GeometryFactory.CreatePolygon(boundaryCoords);
         zone.IsActive = true;
         zone.DepotId = TestDepotId;
@@ -606,20 +609,20 @@ public sealed class DbSeeder(
             ParcelStatus.Sorted,
             new AddressSeed(
                 TestParcelRecipientAddressId,
-                "1 Market Street",
+                "111 S Michigan Ave",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60603",
+                "US",
                 false,
                 "Olivia Hart",
-                null,
-                "+61290000101",
+                "Michigan Avenue Intake",
+                "+13125550101",
                 "olivia.hart@example.com",
-                151.20576,
-                -33.87135),
-            "Priority documents for CBD delivery",
+                -87.6221380,
+                41.8798388),
+            "Priority documents for downtown delivery",
             "Satchel"),
         new(
             new Guid("00000000-0000-0000-0000-000000000010"),
@@ -628,19 +631,19 @@ public sealed class DbSeeder(
             ParcelStatus.Sorted,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000101"),
-                "20 Bridge Street",
+                "78 E Washington St",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60602",
+                "US",
                 false,
                 "Mason Lee",
-                "Bridge Legal",
-                "+61290000102",
+                "Washington Legal",
+                "+13125550102",
                 "mason.lee@example.com",
-                151.21066,
-                -33.86351),
+                -87.6248023,
+                41.8838628),
             "Small legal packet"),
         new(
             new Guid("00000000-0000-0000-0000-000000000011"),
@@ -649,19 +652,19 @@ public sealed class DbSeeder(
             ParcelStatus.Sorted,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000102"),
-                "5 Martin Place",
+                "400 S State St",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60605",
+                "US",
                 false,
                 "Ava Chen",
-                "Martin Place Clinic",
-                "+61290000103",
+                "State Street Clinic",
+                "+13125550103",
                 "ava.chen@example.com",
-                151.20926,
-                -33.86772),
+                -87.6282117,
+                41.8762833),
             "Medical supplies"),
         new(
             new Guid("00000000-0000-0000-0000-000000000012"),
@@ -670,19 +673,19 @@ public sealed class DbSeeder(
             ParcelStatus.Sorted,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000103"),
-                "68 Pitt Street",
+                "121 N LaSalle St",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
-                true,
+                "Chicago",
+                "IL",
+                "60602",
+                "US",
+                false,
                 "Noah Wilson",
-                null,
-                "+61290000104",
+                "LaSalle Advisory",
+                "+13125550104",
                 "noah.wilson@example.com",
-                151.20766,
-                -33.86701),
+                -87.6319503,
+                41.8838293),
             "Replacement phone case"),
         new(
             new Guid("00000000-0000-0000-0000-000000000013"),
@@ -691,19 +694,19 @@ public sealed class DbSeeder(
             ParcelStatus.Sorted,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000104"),
-                "200 George Street",
+                "233 S Wacker Dr",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60606",
+                "US",
                 false,
                 "Emma Davis",
-                "Rocks Cafe",
-                "+61290000105",
+                "Wacker Cafe Supply",
+                "+13125550105",
                 "emma.davis@example.com",
-                151.20618,
-                -33.86095),
+                -87.6359612,
+                41.8787381),
             "Cafe supplies"),
         new(
             new Guid("00000000-0000-0000-0000-000000000014"),
@@ -712,19 +715,19 @@ public sealed class DbSeeder(
             ParcelStatus.Sorted,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000105"),
-                "201 George Street",
+                "20 N Wacker Dr",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60606",
+                "US",
                 false,
                 "Liam Brown",
-                "Quay Retail",
-                "+61290000106",
+                "Wacker Operations",
+                "+13125550106",
                 "liam.brown@example.com",
-                151.20665,
-                -33.86108),
+                -87.6374724,
+                41.8827112),
             "Retail inventory restock"),
         new(
             new Guid("00000000-0000-0000-0000-000000000015"),
@@ -733,19 +736,19 @@ public sealed class DbSeeder(
             ParcelStatus.Sorted,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000106"),
-                "8 Spring Street",
+                "200 E Randolph St",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60601",
+                "US",
                 false,
                 "Sophia Martin",
-                "Spring Finance",
-                "+61290000107",
+                "Randolph Finance",
+                "+13125550107",
                 "sophia.martin@example.com",
-                151.21189,
-                -33.86560),
+                -87.6215489,
+                41.8852857),
             "Printed finance reports"),
         new(
             new Guid("00000000-0000-0000-0000-000000000016"),
@@ -754,19 +757,19 @@ public sealed class DbSeeder(
             ParcelStatus.Sorted,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000107"),
-                "151 Clarence Street",
+                "180 N Stetson Ave",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60601",
+                "US",
                 false,
                 "Jack Turner",
-                "Clarence Legal",
-                "+61290000108",
+                "Stetson Legal",
+                "+13125550108",
                 "jack.turner@example.com",
-                151.20418,
-                -33.87031),
+                -87.6227225,
+                41.8855410),
             "Contract packet"),
         new(
             new Guid("00000000-0000-0000-0000-000000000017"),
@@ -775,19 +778,19 @@ public sealed class DbSeeder(
             ParcelStatus.Sorted,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000108"),
-                "2 Park Street",
+                "433 W Van Buren St",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
-                true,
+                "Chicago",
+                "IL",
+                "60607",
+                "US",
+                false,
                 "Lucas Green",
-                null,
-                "+61290000109",
+                "Van Buren Retail",
+                "+13125550109",
                 "lucas.green@example.com",
-                151.20864,
-                -33.87325),
+                -87.6387645,
+                41.8759856),
             "Home appliance part",
             "Box"),
     ];
@@ -809,19 +812,19 @@ public sealed class DbSeeder(
             ParcelStatus.Sorted,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000211"),
-                "60 Margaret Street",
+                "444 W Lake St",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60606",
+                "US",
                 false,
                 "Harper Scott",
-                "Northpoint Office",
-                "+61290000201",
+                "River Point Office",
+                "+13125550201",
                 "harper.scott@example.com",
-                151.20525,
-                -33.86501),
+                -87.6394541,
+                41.8861713),
             "Draft route stop 1"),
         new(
             new Guid("00000000-0000-0000-0000-000000000202"),
@@ -830,19 +833,19 @@ public sealed class DbSeeder(
             ParcelStatus.Sorted,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000212"),
-                "135 King Street",
+                "222 W Merchandise Mart Plaza",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60654",
+                "US",
                 false,
                 "Ethan Brooks",
-                "King Street Studio",
-                "+61290000202",
+                "Merchandise Mart Studio",
+                "+13125550202",
                 "ethan.brooks@example.com",
-                151.20728,
-                -33.86996),
+                -87.6344719,
+                41.8888053),
             "Draft route stop 2"),
         new(
             new Guid("00000000-0000-0000-0000-000000000203"),
@@ -851,19 +854,19 @@ public sealed class DbSeeder(
             ParcelStatus.Staged,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000213"),
-                "126 Phillip Street",
+                "70 W Madison St",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60602",
+                "US",
                 false,
                 "Isla Cooper",
-                "Phillip Advisory",
-                "+61290000203",
+                "Madison Advisory",
+                "+13125550203",
                 "isla.cooper@example.com",
-                151.21207,
-                -33.86803),
+                -87.6300019,
+                41.8823349),
             "Dispatched route stop 1"),
         new(
             new Guid("00000000-0000-0000-0000-000000000204"),
@@ -872,19 +875,19 @@ public sealed class DbSeeder(
             ParcelStatus.Staged,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000214"),
-                "1 Bligh Street",
+                "30 N LaSalle St",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60602",
+                "US",
                 false,
                 "Mila Foster",
-                "Bligh Tower",
-                "+61290000204",
+                "LaSalle Tower",
+                "+13125550204",
                 "mila.foster@example.com",
-                151.21071,
-                -33.86548),
+                -87.6329140,
+                41.8828459),
             "Dispatched route stop 2"),
         new(
             new Guid("00000000-0000-0000-0000-000000000205"),
@@ -893,19 +896,19 @@ public sealed class DbSeeder(
             ParcelStatus.Loaded,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000215"),
-                "25 Martin Place",
+                "190 S LaSalle St",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60603",
+                "US",
                 false,
                 "Leo Simmons",
-                "City Bank",
-                "+61290000205",
+                "Financial District Office",
+                "+13125550205",
                 "leo.simmons@example.com",
-                151.21012,
-                -33.86737),
+                -87.6326495,
+                41.8797583),
             "In-progress route stop 1"),
         new(
             new Guid("00000000-0000-0000-0000-000000000206"),
@@ -914,19 +917,19 @@ public sealed class DbSeeder(
             ParcelStatus.OutForDelivery,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000216"),
-                "48 York Street",
+                "175 W Jackson Blvd",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60604",
+                "US",
                 false,
                 "Grace Howard",
-                "York Street Dental",
-                "+61290000206",
+                "Jackson Dental",
+                "+13125550206",
                 "grace.howard@example.com",
-                151.20511,
-                -33.87091),
+                -87.6332110,
+                41.8776429),
             "In-progress route stop 2"),
         new(
             new Guid("00000000-0000-0000-0000-000000000207"),
@@ -935,19 +938,19 @@ public sealed class DbSeeder(
             ParcelStatus.Delivered,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000217"),
-                "50 Bridge Street",
+                "35 E Wacker Dr",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
+                "Chicago",
+                "IL",
+                "60601",
+                "US",
                 false,
                 "Zoe Perry",
-                "Bridge Street Chambers",
-                "+61290000207",
+                "Wacker Chambers",
+                "+13125550207",
                 "zoe.perry@example.com",
-                151.20992,
-                -33.86358),
+                -87.6267925,
+                41.8864833),
             "Completed route stop 1"),
         new(
             new Guid("00000000-0000-0000-0000-000000000208"),
@@ -956,19 +959,19 @@ public sealed class DbSeeder(
             ParcelStatus.Delivered,
             new AddressSeed(
                 new Guid("00000000-0000-0000-0000-000000000218"),
-                "227 Elizabeth Street",
+                "455 N Cityfront Plaza Dr",
                 null,
-                "Sydney",
-                "NSW",
-                "2000",
-                "AU",
-                true,
+                "Chicago",
+                "IL",
+                "60611",
+                "US",
+                false,
                 "Nina Ward",
-                null,
-                "+61290000208",
+                "Cityfront Office",
+                "+13125550208",
                 "nina.ward@example.com",
-                151.20975,
-                -33.87601),
+                -87.6210753,
+                41.8900569),
             "Completed route stop 2"),
     ];
 
@@ -983,33 +986,8 @@ public sealed class DbSeeder(
         await UpsertParcelSeedsAsync(dbContext, TestParcelSeeds, ct);
         return;
 
-        var now = DateTimeOffset.UtcNow;
-
-        // Shared shipper address for all parcels.
-        if (!await dbContext.Addresses.AnyAsync(a => a.Id == TestParcelShipperAddressId, ct))
-        {
-            dbContext.Addresses.Add(new Address
-            {
-                Id = TestParcelShipperAddressId,
-                Street1 = "388 George Street",
-                City = "Sydney",
-                State = "NSW",
-                PostalCode = "2000",
-                CountryCode = "AU",
-                IsResidential = false,
-                ContactName = "Dispatch Desk",
-                CompanyName = "Acme Fulfillment",
-                Phone = "+61290000010",
-                Email = "dock@acme.local",
-                GeoLocation = GeometryFactory.CreatePoint(new Coordinate(151.20742, -33.86938)),
-                CreatedAt = now,
-                CreatedBy = "Seeder",
-            });
-
-            await dbContext.SaveChangesAsync(ct);
-        }
-
         // Seed each parcel with its own individual recipient address.
+        var now = DateTimeOffset.UtcNow;
         var added = 0;
         foreach (var seed in TestParcelSeeds)
         {
@@ -1096,7 +1074,7 @@ public sealed class DbSeeder(
             "driver.test@lastmile.local",
             "Test",
             "Driver",
-            "+61000000001",
+            "+13125551001",
             "TEST-LIC-SEED-001"),
         new(
             TestDriver2UserId,
@@ -1104,7 +1082,7 @@ public sealed class DbSeeder(
             "driver2.test@lastmile.local",
             "Alex",
             "Nguyen",
-            "+61000000002",
+            "+13125551002",
             "TEST-LIC-SEED-002"),
         new(
             TestDriver3UserId,
@@ -1112,7 +1090,7 @@ public sealed class DbSeeder(
             "driver3.test@lastmile.local",
             "Sam",
             "Reyes",
-            "+61000000003",
+            "+13125551003",
             "TEST-LIC-SEED-003"),
         new(
             TestDriver4UserId,
@@ -1120,7 +1098,7 @@ public sealed class DbSeeder(
             "driver4.test@lastmile.local",
             "Jordan",
             "Park",
-            "+61000000004",
+            "+13125551004",
             "TEST-LIC-SEED-004"),
     ];
 
@@ -1357,7 +1335,7 @@ public sealed class DbSeeder(
             parcel.Height = 10;
             parcel.DimensionUnit = DimensionUnit.Cm;
             parcel.DeclaredValue = 100m;
-            parcel.Currency = "AUD";
+            parcel.Currency = "USD";
             parcel.EstimatedDeliveryDate = now.AddDays(seed.Status == ParcelStatus.Delivered ? -1 : 1);
             parcel.ActualDeliveryDate = seed.Status == ParcelStatus.Delivered ? now.AddHours(-2) : null;
             parcel.DeliveryAttempts = seed.Status == ParcelStatus.Delivered ? 1 : 0;

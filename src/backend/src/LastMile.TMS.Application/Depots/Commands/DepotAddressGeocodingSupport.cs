@@ -1,5 +1,6 @@
 using LastMile.TMS.Application.Parcels.Services;
 using LastMile.TMS.Domain.Entities;
+using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Application.Depots.Commands;
 
@@ -8,15 +9,24 @@ internal static class DepotAddressGeocodingSupport
     public static async Task ApplyGeoLocationAsync(
         Address address,
         IGeocodingService geocodingService,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Point? fallbackOnError = null)
     {
         ArgumentNullException.ThrowIfNull(address);
         ArgumentNullException.ThrowIfNull(geocodingService);
 
         var query = BuildAddressQuery(address);
-        address.GeoLocation = string.IsNullOrWhiteSpace(query)
-            ? null
-            : await geocodingService.GeocodeAsync(query, cancellationToken);
+
+        try
+        {
+            address.GeoLocation = string.IsNullOrWhiteSpace(query)
+                ? null
+                : await geocodingService.GeocodeAsync(query, cancellationToken);
+        }
+        catch
+        {
+            address.GeoLocation = fallbackOnError;
+        }
     }
 
     public static string BuildAddressQuery(Address address)

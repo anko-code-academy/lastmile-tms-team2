@@ -7,11 +7,13 @@ import DepotsPage from "@/components/depots/depots-page";
 const {
   createDepotMutateAsync,
   deleteDepotMutateAsync,
+  mockDepots,
   mockSearchBoxProps,
   updateDepotMutateAsync,
 } = vi.hoisted(() => ({
   createDepotMutateAsync: vi.fn(),
   deleteDepotMutateAsync: vi.fn(),
+  mockDepots: [] as Array<Record<string, unknown>>,
   mockSearchBoxProps: vi.fn(),
   updateDepotMutateAsync: vi.fn(),
 }));
@@ -29,7 +31,7 @@ vi.mock("@/lib/mapbox/config", () => ({
 
 vi.mock("@/queries/depots", () => ({
   useDepots: () => ({
-    data: [],
+    data: mockDepots,
     isLoading: false,
     error: null,
   }),
@@ -144,6 +146,7 @@ vi.mock("@mapbox/search-js-react", () => ({
 describe("DepotsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDepots.splice(0, mockDepots.length);
     createDepotMutateAsync.mockResolvedValue({});
     updateDepotMutateAsync.mockResolvedValue({});
     deleteDepotMutateAsync.mockResolvedValue({});
@@ -159,12 +162,15 @@ describe("DepotsPage", () => {
       expect(mockSearchBoxProps).toHaveBeenLastCalledWith(
         expect.objectContaining({
           options: expect.objectContaining({
-            country: "AU",
             types: "address,street,block",
           }),
         }),
       );
     });
+
+    expect(mockSearchBoxProps.mock.lastCall?.[0]?.options).not.toHaveProperty(
+      "country",
+    );
 
     await user.click(screen.getByRole("button", { name: /use mapbox suggestion/i }));
 
@@ -235,5 +241,61 @@ describe("DepotsPage", () => {
         isActive: true,
       });
     });
+  });
+
+  it("does not send address on edit when the depot address was not changed", async () => {
+    mockDepots.push({
+      id: "depot-1",
+      name: "North Depot",
+      addressId: "address-1",
+      isActive: true,
+      createdAt: "2026-04-10T12:00:00Z",
+      updatedAt: null,
+      operatingHours: [],
+      address: {
+        street1: "500 Collins Street",
+        street2: null,
+        city: "Melbourne",
+        state: "VIC",
+        postalCode: "3000",
+        countryCode: "AU",
+        isResidential: false,
+        contactName: null,
+        companyName: null,
+        phone: null,
+        email: null,
+        geoLocation: {
+          latitude: -37.8136,
+          longitude: 144.9631,
+        },
+      },
+    });
+
+    render(<DepotsPage />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /edit/i }));
+    await user.clear(screen.getByLabelText(/depot name/i));
+    await user.type(screen.getByLabelText(/depot name/i), "North Depot Updated");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(updateDepotMutateAsync).toHaveBeenCalledTimes(1);
+    });
+
+    const [payload] = updateDepotMutateAsync.mock.calls[0] as [
+      { id: string; data: Record<string, unknown> },
+    ];
+
+    expect(payload).toEqual(
+      expect.objectContaining({
+        id: "depot-1",
+        data: expect.objectContaining({
+          name: "North Depot Updated",
+          isActive: true,
+        }),
+      }),
+    );
+    expect(payload.data).not.toHaveProperty("address");
   });
 });

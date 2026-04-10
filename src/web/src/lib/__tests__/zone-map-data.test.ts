@@ -91,6 +91,9 @@ describe("zone map data", () => {
     );
 
     expect(depotMarkers).toHaveLength(1);
+    expect(depotMarkers[0]?.locationLabel).toBe(
+      "1 Market Street, Melbourne, VIC, 3000, AU",
+    );
     expect(bounds).not.toBeNull();
     expect(bounds?.[0]).toBeLessThan(bounds?.[2] ?? 0);
   });

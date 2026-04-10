@@ -1,8 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Map as MapIcon, Pencil, Plus, Redo2, Trash2, Undo2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import {
@@ -20,6 +19,7 @@ import { QueryErrorAlert } from "@/components/feedback/query-error-alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatDepotAddressLabel, formatDepotLocation } from "@/lib/depots/address";
 import { getMapboxAccessToken, getMapboxConfigurationError } from "@/lib/mapbox/config";
 import { formatDepotGeocodingQuery, geocodeDepotAddress } from "@/lib/mapbox/geocoding";
 import {
@@ -103,14 +103,19 @@ export default function ZonesPage() {
   const [submitError, setSubmitError] = useState<string | undefined>();
   const [form, setForm] = useState<ZoneFormState>(defaultForm(undefined));
   const [draftHistory, setDraftHistory] = useState(createGeometryHistory(null));
+  const [geocodingScopeId, setGeocodingScopeId] = useState(0);
 
   const isLoading = zonesLoading || depotsLoading;
   const queryError = zonesError ?? depotsError;
-  const depotMap = new Map((depots ?? []).map((depot) => [depot.id, depot.name]));
+  const depotMap = new Map((depots ?? []).map((depot) => [depot.id, depot]));
   const totalCount = zones?.length ?? 0;
   const selectedZone = zoneById(zones, selectedZoneId);
   const activeDepot = depots?.find((depot) => depot.id === form.depotId) ?? null;
   const activeDepotAddress = activeDepot?.address ?? null;
+  const activeDepotLocation = formatDepotAddressLabel(activeDepotAddress);
+  const activeDepotGeocodingQuery = activeDepotAddress
+    ? formatDepotGeocodingQuery(activeDepotAddress)
+    : null;
   const shouldGeocodeDepot =
     status === "authenticated"
     && mode !== "idle"
@@ -120,24 +125,60 @@ export default function ZonesPage() {
   const draftGeometry = draftHistory.present;
   const isBusy =
     createZone.isPending || updateZone.isPending || deleteZone.isPending;
-
-  const activeDepotGeocodingQuery = useQuery<DepotGeoLocation | null>({
-    queryKey: [
-      "zones",
-      "depot-fallback-geocode",
-      activeDepot?.id ?? null,
-      activeDepotAddress ? formatDepotGeocodingQuery(activeDepotAddress) : null,
-      mapboxToken ?? null,
-    ],
-    queryFn: ({ signal }) =>
-      geocodeDepotAddress(activeDepotAddress as NonNullable<typeof activeDepotAddress>, mapboxToken as string, signal),
-    enabled: shouldGeocodeDepot,
-    staleTime: 1000 * 60 * 15,
+  const depotGeocodingRequestKey =
+    shouldGeocodeDepot && activeDepotAddress && mapboxToken
+      ? `${geocodingScopeId}:${activeDepot?.id ?? ""}:${activeDepotGeocodingQuery ?? ""}:${mapboxToken}`
+      : null;
+  const [depotGeocodingState, setDepotGeocodingState] = useState<{
+    key: string | null;
+    location: DepotGeoLocation | null;
+  }>({
+    key: null,
+    location: null,
   });
-  const fallbackDepotLocation = shouldGeocodeDepot
-    ? activeDepotGeocodingQuery.data ?? null
-    : null;
-  const isGeocodingDepot = shouldGeocodeDepot && activeDepotGeocodingQuery.isPending;
+
+  const fallbackDepotLocation =
+    depotGeocodingRequestKey
+    && depotGeocodingState.key === depotGeocodingRequestKey
+      ? depotGeocodingState.location
+      : null;
+  const isGeocodingDepot =
+    Boolean(depotGeocodingRequestKey)
+    && depotGeocodingState.key !== depotGeocodingRequestKey;
+
+  useEffect(() => {
+    if (!depotGeocodingRequestKey || !activeDepotAddress || !mapboxToken) {
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    void geocodeDepotAddress(activeDepotAddress, mapboxToken, abortController.signal)
+      .then((location) => {
+        if (!abortController.signal.aborted) {
+          setDepotGeocodingState({
+            key: depotGeocodingRequestKey,
+            location,
+          });
+        }
+      })
+      .catch(() => {
+        if (!abortController.signal.aborted) {
+          setDepotGeocodingState({
+            key: depotGeocodingRequestKey,
+            location: null,
+          });
+        }
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [
+    activeDepotAddress,
+    depotGeocodingRequestKey,
+    mapboxToken,
+  ]);
 
   if (status === "loading" || isLoading) {
     return <ListPageLoading />;
@@ -153,6 +194,7 @@ export default function ZonesPage() {
   }
 
   function resetEditor(nextMode: EditorMode = "idle") {
+    setGeocodingScopeId((current) => current + 1);
     setMode(nextMode);
     setSelectedZoneId(null);
     setSubmitError(undefined);
@@ -161,6 +203,7 @@ export default function ZonesPage() {
   }
 
   function startCreateFlow() {
+    setGeocodingScopeId((current) => current + 1);
     setMode("create");
     setSelectedZoneId(null);
     setSubmitError(undefined);
@@ -169,6 +212,7 @@ export default function ZonesPage() {
   }
 
   function startEditFlow(zone: Zone) {
+    setGeocodingScopeId((current) => current + 1);
     setMode("edit");
     setSelectedZoneId(zone.id);
     setSubmitError(undefined);
@@ -403,6 +447,19 @@ export default function ZonesPage() {
                   Looking up a fallback marker for the selected depot…
                 </p>
               ) : null}
+              {activeDepot ? (
+                <div className="mt-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Selected depot
+                  </p>
+                  <p className="mt-1 font-medium text-foreground">{activeDepot.name}</p>
+                  {activeDepotLocation ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {activeDepotLocation}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-6 space-y-4">
@@ -526,77 +583,93 @@ export default function ZonesPage() {
           </thead>
           <tbody>
             {zones.map((zone) => (
-              <tr
-                key={zone.id}
-                className={cn(
-                  listDataTableBodyRowClass,
-                  !mapboxConfigurationError && "cursor-pointer transition-colors",
-                  selectedZoneId === zone.id && "bg-primary/5",
-                )}
-                onClick={() => {
-                  if (!mapboxConfigurationError) {
-                    startEditFlow(zone);
-                  }
-                }}
-              >
-                <td className={cn(listDataTableTdClass, "font-medium")}>
-                  {zone.name}
-                </td>
-                <td className={cn(listDataTableTdClass, "text-muted-foreground")}>
-                  {depotMap.get(zone.depotId) ?? zone.depotName ?? "-"}
-                </td>
-                <td
-                  className={cn(
-                    listDataTableTdClass,
-                    "max-w-[320px] truncate font-mono text-xs text-muted-foreground",
-                  )}
-                  title={zone.boundary}
-                >
-                  {zone.boundary || "GeoJSON polygon available"}
-                </td>
-                <td className={listDataTableTdClass}>
-                  <span
+              (() => {
+                const depot = depotMap.get(zone.depotId);
+                const depotLocation = formatDepotLocation(depot?.address);
+
+                return (
+                  <tr
+                    key={zone.id}
                     className={cn(
-                      "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
-                      zone.isActive
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-amber-100 text-amber-700",
+                      listDataTableBodyRowClass,
+                      !mapboxConfigurationError && "cursor-pointer transition-colors",
+                      selectedZoneId === zone.id && "bg-primary/5",
                     )}
-                  >
-                    {zone.isActive ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td className={cn(listDataTableTdClass, "text-right")}>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={Boolean(mapboxConfigurationError)}
-                      onClick={(event) => {
-                        event.stopPropagation();
+                    onClick={() => {
+                      if (!mapboxConfigurationError) {
                         startEditFlow(zone);
-                      }}
+                      }
+                    }}
+                  >
+                    <td className={cn(listDataTableTdClass, "font-medium")}>
+                      {zone.name}
+                    </td>
+                    <td className={listDataTableTdClass}>
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">
+                          {depot?.name ?? zone.depotName ?? "-"}
+                        </p>
+                        {depotLocation ? (
+                          <p className="text-xs text-muted-foreground">
+                            {depotLocation}
+                          </p>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td
+                      className={cn(
+                        listDataTableTdClass,
+                        "max-w-[320px] truncate font-mono text-xs text-muted-foreground",
+                      )}
+                      title={zone.boundary}
                     >
-                      <Pencil className="size-3.5" aria-hidden />
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="border-destructive/25 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setDeleteTarget(zone);
-                      }}
-                    >
-                      <Trash2 className="size-3.5" aria-hidden />
-                      Delete
-                    </Button>
-                  </div>
-                </td>
-              </tr>
+                      {zone.boundary || "GeoJSON polygon available"}
+                    </td>
+                    <td className={listDataTableTdClass}>
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                          zone.isActive
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-amber-100 text-amber-700",
+                        )}
+                      >
+                        {zone.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className={cn(listDataTableTdClass, "text-right")}>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={Boolean(mapboxConfigurationError)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            startEditFlow(zone);
+                          }}
+                        >
+                          <Pencil className="size-3.5" aria-hidden />
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="border-destructive/25 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setDeleteTarget(zone);
+                          }}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })()
             ))}
           </tbody>
         </ListDataTable>

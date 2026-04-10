@@ -1,6 +1,7 @@
 import bbox from "@turf/bbox";
 import centroid from "@turf/centroid";
 import type { Feature, FeatureCollection, Point, Polygon } from "geojson";
+import { formatDepotAddressLabel } from "@/lib/depots/address";
 import type { Depot, DepotGeoLocation } from "@/types/depots";
 import type { Zone } from "@/types/zones";
 
@@ -24,6 +25,7 @@ export interface ZoneLabelDatum {
 export interface DepotMarkerDatum {
   id: string;
   name: string;
+  locationLabel: string | null;
   coordinates: [number, number];
   isActive: boolean;
   isFallback: boolean;
@@ -186,6 +188,7 @@ export function buildDepotMarkerData(
     markers.push({
       id: depot.id,
       name: depot.name,
+      locationLabel: formatDepotAddressLabel(depot.address),
       coordinates,
       isActive: depot.id === activeDepotId,
       isFallback: Boolean(!depot.address?.geoLocation && fallbackDepotLocation && depot.id === activeDepotId),

@@ -86,7 +86,6 @@ src/web/src/
 
   hooks/
   lib/
-  mocks/
   queries/
   services/
   types/
