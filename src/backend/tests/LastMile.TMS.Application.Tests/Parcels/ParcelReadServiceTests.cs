@@ -62,6 +62,91 @@ public class ParcelReadServiceTests
         result.StatusTimeline.Should().HaveCount(2);
     }
 
+    [Fact]
+    public async Task GetPreLoadParcels_ReturnsStatusesShownOnParcelsPage()
+    {
+        await using var db = MakeDbContext();
+
+        var depotAddress = new Address
+        {
+            Id = Guid.NewGuid(),
+            Street1 = "1 Depot Street",
+            City = "Sydney",
+            State = "NSW",
+            PostalCode = "2000",
+            CountryCode = "AU",
+        };
+
+        var shipperAddress = new Address
+        {
+            Id = Guid.NewGuid(),
+            Street1 = "10 Shipper Lane",
+            City = "Sydney",
+            State = "NSW",
+            PostalCode = "2001",
+            CountryCode = "AU",
+        };
+
+        var recipientAddress = new Address
+        {
+            Id = Guid.NewGuid(),
+            Street1 = "99 Recipient Road",
+            City = "Melbourne",
+            State = "VIC",
+            PostalCode = "3000",
+            CountryCode = "AU",
+        };
+
+        var depot = new Depot
+        {
+            Id = Guid.NewGuid(),
+            Name = "North Depot",
+            AddressId = depotAddress.Id,
+            Address = depotAddress,
+            IsActive = true,
+        };
+
+        var zone = new Zone
+        {
+            Id = Guid.NewGuid(),
+            Name = "North Zone",
+            Boundary = MakePolygon(),
+            DepotId = depot.Id,
+            Depot = depot,
+            IsActive = true,
+        };
+
+        db.Addresses.AddRange(depotAddress, shipperAddress, recipientAddress);
+        db.Depots.Add(depot);
+        db.Zones.Add(zone);
+        db.Parcels.AddRange(
+            CreateParcel("LMSTATUS0001", ParcelStatus.Registered, shipperAddress, recipientAddress, zone),
+            CreateParcel("LMSTATUS0002", ParcelStatus.Staged, shipperAddress, recipientAddress, zone),
+            CreateParcel("LMSTATUS0003", ParcelStatus.Loaded, shipperAddress, recipientAddress, zone),
+            CreateParcel("LMSTATUS0004", ParcelStatus.OutForDelivery, shipperAddress, recipientAddress, zone),
+            CreateParcel("LMSTATUS0005", ParcelStatus.Delivered, shipperAddress, recipientAddress, zone),
+            CreateParcel("LMSTATUS0006", ParcelStatus.Exception, shipperAddress, recipientAddress, zone),
+            CreateParcel("LMSTATUS0007", ParcelStatus.Cancelled, shipperAddress, recipientAddress, zone),
+            CreateParcel("LMSTATUS0008", ParcelStatus.FailedAttempt, shipperAddress, recipientAddress, zone));
+
+        await db.SaveChangesAsync();
+
+        var service = new ParcelReadService(db);
+
+        var results = await service.GetPreLoadParcels()
+            .Select(parcel => new { parcel.TrackingNumber, parcel.Status })
+            .ToListAsync();
+
+        results.Should().Contain(entry => entry.TrackingNumber == "LMSTATUS0001" && entry.Status == ParcelStatus.Registered);
+        results.Should().Contain(entry => entry.TrackingNumber == "LMSTATUS0002" && entry.Status == ParcelStatus.Staged);
+        results.Should().Contain(entry => entry.TrackingNumber == "LMSTATUS0003" && entry.Status == ParcelStatus.Loaded);
+        results.Should().Contain(entry => entry.TrackingNumber == "LMSTATUS0004" && entry.Status == ParcelStatus.OutForDelivery);
+        results.Should().Contain(entry => entry.TrackingNumber == "LMSTATUS0005" && entry.Status == ParcelStatus.Delivered);
+        results.Should().Contain(entry => entry.TrackingNumber == "LMSTATUS0006" && entry.Status == ParcelStatus.Exception);
+        results.Should().NotContain(entry => entry.Status == ParcelStatus.Cancelled);
+        results.Should().NotContain(entry => entry.Status == ParcelStatus.FailedAttempt);
+    }
+
     private static async Task<ParcelAggregateFixture> SeedAggregateParcelAsync(
         AppDbContext db,
         bool includeRouteAssignment,
@@ -322,6 +407,38 @@ public class ParcelReadServiceTests
         polygon.SRID = 4326;
         return polygon;
     }
+
+    private static Parcel CreateParcel(
+        string trackingNumber,
+        ParcelStatus status,
+        Address shipperAddress,
+        Address recipientAddress,
+        Zone zone) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            TrackingNumber = trackingNumber,
+            Description = "Seeded list parcel",
+            ServiceType = ServiceType.Standard,
+            Status = status,
+            ShipperAddressId = shipperAddress.Id,
+            ShipperAddress = shipperAddress,
+            RecipientAddressId = recipientAddress.Id,
+            RecipientAddress = recipientAddress,
+            Weight = 2.5m,
+            WeightUnit = WeightUnit.Kg,
+            Length = 20m,
+            Width = 10m,
+            Height = 5m,
+            DimensionUnit = DimensionUnit.Cm,
+            DeclaredValue = 100m,
+            Currency = "AUD",
+            EstimatedDeliveryDate = DateTimeOffset.UtcNow.AddDays(2),
+            DeliveryAttempts = 0,
+            ParcelType = "Box",
+            ZoneId = zone.Id,
+            Zone = zone,
+        };
 
     private sealed record ParcelAggregateFixture(Parcel Parcel, Route? InProgressRoute);
 }

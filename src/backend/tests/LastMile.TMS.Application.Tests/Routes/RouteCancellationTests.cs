@@ -122,6 +122,67 @@ public class CancelRouteCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenRouteHasLoadedParcels_ReturnsThemToSortedAndNotifies()
+    {
+        await using var db = RouteAssignmentTestData.CreateDbContext();
+        var data = await RouteAssignmentTestData.SeedAsync(db);
+        db.ChangeTracker.Clear();
+
+        var vehicle = await db.Vehicles.SingleAsync(candidate => candidate.Id == data.Vehicle1.Id);
+        var driver = await db.Drivers.SingleAsync(candidate => candidate.Id == data.Driver1.Id);
+        var parcel = await db.Parcels
+            .Include(candidate => candidate.TrackingEvents)
+            .Include(candidate => candidate.ChangeHistory)
+            .SingleAsync(candidate => candidate.Id == data.Parcel1.Id);
+        parcel.Status = ParcelStatus.Loaded;
+
+        var route = RouteAssignmentTestData.CreateRoute(
+            vehicle,
+            driver,
+            data.ServiceDate,
+            RouteStatus.Dispatched,
+            parcel);
+        vehicle.Status = VehicleStatus.InUse;
+        db.Routes.Add(route);
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var currentUser = Substitute.For<ICurrentUserService>();
+        currentUser.UserName.Returns("dispatcher@test");
+        var parcelUpdateNotifier = Substitute.For<IParcelUpdateNotifier>();
+
+        var handler = new CancelRouteCommandHandler(db, currentUser, parcelUpdateNotifier);
+
+        await handler.Handle(
+            new CancelRouteCommand(
+                route.Id,
+                new()
+                {
+                    Reason = "Vehicle swap required",
+                }),
+            CancellationToken.None);
+
+        var persistedParcel = await db.Parcels
+            .Include(candidate => candidate.ChangeHistory)
+            .Include(candidate => candidate.TrackingEvents)
+            .SingleAsync(candidate => candidate.Id == parcel.Id);
+
+        persistedParcel.Status.Should().Be(ParcelStatus.Sorted);
+        persistedParcel.ChangeHistory.Should().ContainSingle(entry =>
+            entry.Action == ParcelChangeAction.Updated
+            && entry.FieldName == "Status"
+            && entry.BeforeValue == "Loaded"
+            && entry.AfterValue == "Sorted");
+        persistedParcel.TrackingEvents.Should().Contain(entry =>
+            entry.Description.Contains("Vehicle swap required"));
+        await parcelUpdateNotifier.Received(1).NotifyParcelUpdatedAsync(
+            Arg.Is<ParcelUpdateNotification>(notification =>
+                notification.TrackingNumber == persistedParcel.TrackingNumber
+                && notification.Status == ParcelStatus.Sorted.ToString()),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Handle_WhenVehicleHasOtherActiveRoutes_KeepsVehicleInUse()
     {
         await using var db = RouteAssignmentTestData.CreateDbContext();

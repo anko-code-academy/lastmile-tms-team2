@@ -410,9 +410,18 @@ public class ParcelGraphQLTests(CustomWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task GetPreLoadParcels_ReturnsPreLoadStatuses()
+    public async Task GetPreLoadParcels_ReturnsStatusesVisibleOnParcelsPage()
     {
         var token = await GetAdminAccessTokenAsync();
+        const string loadedTrackingNumber = "LMPRELOADLOADED001";
+        const string outForDeliveryTrackingNumber = "LMPRELOADOUT00001";
+        const string deliveredTrackingNumber = "LMPRELOADDLVD0001";
+        const string exceptionTrackingNumber = "LMPRELOADEXCEPT001";
+
+        await SeedParcelAsync(DbSeeder.TestZoneId, loadedTrackingNumber, ParcelStatus.Loaded);
+        await SeedParcelAsync(DbSeeder.TestZoneId, outForDeliveryTrackingNumber, ParcelStatus.OutForDelivery);
+        await SeedParcelAsync(DbSeeder.TestZoneId, deliveredTrackingNumber, ParcelStatus.Delivered);
+        await SeedParcelAsync(DbSeeder.TestZoneId, exceptionTrackingNumber, ParcelStatus.Exception);
 
         using var registerDoc = await PostGraphQLAsync(
             """
@@ -483,6 +492,18 @@ public class ParcelGraphQLTests(CustomWebApplicationFactory factory)
             parcel.GetProperty("trackingNumber").GetString() == registeredTracking
             && parcel.GetProperty("status").GetString() == "Registered");
         parcels.Should().Contain(parcel => parcel.GetProperty("status").GetString() == "Sorted");
+        parcels.Should().Contain(parcel =>
+            parcel.GetProperty("trackingNumber").GetString() == loadedTrackingNumber
+            && parcel.GetProperty("status").GetString() == "Loaded");
+        parcels.Should().Contain(parcel =>
+            parcel.GetProperty("trackingNumber").GetString() == outForDeliveryTrackingNumber
+            && parcel.GetProperty("status").GetString() == "OutForDelivery");
+        parcels.Should().Contain(parcel =>
+            parcel.GetProperty("trackingNumber").GetString() == deliveredTrackingNumber
+            && parcel.GetProperty("status").GetString() == "Delivered");
+        parcels.Should().Contain(parcel =>
+            parcel.GetProperty("trackingNumber").GetString() == exceptionTrackingNumber
+            && parcel.GetProperty("status").GetString() == "Exception");
     }
 
     [Fact]

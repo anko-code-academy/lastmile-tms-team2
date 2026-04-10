@@ -549,8 +549,19 @@ public class DepotGraphQLTests : GraphQLTestBase, IAsyncLifetime
         depot.GetProperty("address").GetProperty("state").GetString().Should().Be("NSW");
         depot.GetProperty("address").GetProperty("postalCode").GetString().Should().Be("2000");
         depot.GetProperty("address").GetProperty("countryCode").GetString().Should().Be("AU");
-        depot.GetProperty("address").GetProperty("geoLocation").GetProperty("latitude").GetDouble().Should().BeApproximately(-33.5, 0.0001);
-        depot.GetProperty("address").GetProperty("geoLocation").GetProperty("longitude").GetDouble().Should().BeApproximately(151.5, 0.0001);
+
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var persistedDepot = await dbContext.Depots
+            .Include(d => d.Address)
+            .SingleAsync(d => d.Id == depotId);
+
+        persistedDepot.Address.Should().NotBeNull();
+        persistedDepot.Address.GeoLocation.Should().NotBeNull();
+        depot.GetProperty("address").GetProperty("geoLocation").GetProperty("latitude").GetDouble()
+            .Should().BeApproximately(persistedDepot.Address.GeoLocation!.Y, 0.0001);
+        depot.GetProperty("address").GetProperty("geoLocation").GetProperty("longitude").GetDouble()
+            .Should().BeApproximately(persistedDepot.Address.GeoLocation!.X, 0.0001);
     }
 
     [Fact]

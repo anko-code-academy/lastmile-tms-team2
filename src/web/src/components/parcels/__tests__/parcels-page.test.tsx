@@ -24,12 +24,12 @@ vi.mock("@/components/ui/label", () => ({
 vi.mock("@/queries/parcels", () => ({
   usePreLoadParcelsPage: () => ({
     data: {
-      totalCount: 2,
+      totalCount: 3,
       pageInfo: {
         hasNextPage: false,
         hasPreviousPage: false,
         startCursor: "0",
-        endCursor: "2",
+        endCursor: "3",
       },
       nodes: [
         {
@@ -54,6 +54,17 @@ vi.mock("@/queries/parcels", () => ({
           createdAt: "2026-04-01T09:30:00Z",
           zoneName: "Central Zone",
         },
+        {
+          id: "parcel-3",
+          trackingNumber: "LM202604010003",
+          status: "DELIVERED",
+          serviceType: "STANDARD",
+          weight: 3.4,
+          weightUnit: "KG",
+          parcelType: "Crate",
+          createdAt: "2026-04-01T10:15:00Z",
+          zoneName: "South Zone",
+        },
       ],
     },
     isLoading: false,
@@ -63,6 +74,7 @@ vi.mock("@/queries/parcels", () => ({
     data: [
       { id: "parcel-1", parcelType: "Box" },
       { id: "parcel-2", parcelType: "Envelope" },
+      { id: "parcel-3", parcelType: "Crate" },
     ],
     isLoading: false,
     error: null,
@@ -140,10 +152,21 @@ describe("ParcelsPage", () => {
 
     await waitFor(() => {
       expect(mockDownloadBulkLabels).toHaveBeenCalledWith(
-        ["parcel-1", "parcel-2"],
+        ["parcel-1", "parcel-2", "parcel-3"],
         "pdf",
       );
     });
+  });
+
+  it("disables edit and cancellation once a parcel is past load-out", () => {
+    render(<ParcelsPage />);
+
+    expect(
+      screen.getByRole("link", { name: /edit lm202604010003/i }),
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByRole("button", { name: /cancel lm202604010003/i }),
+    ).toBeDisabled();
   });
 
   it("requires a cancellation reason before cancelling a parcel", async () => {
