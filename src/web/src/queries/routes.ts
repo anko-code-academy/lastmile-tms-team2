@@ -1,9 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  HubConnectionBuilder,
+  HubConnectionState,
+} from "@microsoft/signalr";
+import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import type { RouteFilterInput } from "@/graphql/generated";
+import { apiBaseUrl } from "@/lib/network/api";
+import { getRouteParcelAdjustmentDescription } from "@/lib/routes/route-parcel-adjustments";
 import type { MutationToastMeta } from "@/lib/query/mutation-toast-meta";
+import { appToast } from "@/lib/toast/app-toast";
 import { routesService } from "@/services/routes.service";
 import type {
+  AdjustRouteParcelRequest,
   CancelRouteRequest,
   CompleteRouteRequest,
   CreateRouteRequest,
@@ -39,6 +48,8 @@ export const routeKeys = {
     ] as const,
   preview: (request?: RoutePlanPreviewRequest | null) =>
     [...routeKeys.all, "preview", request ? JSON.stringify(request) : ""] as const,
+  adjustmentCandidates: (routeId?: string | null) =>
+    [...routeKeys.all, "adjustmentCandidates", routeId ?? ""] as const,
 };
 
 function invalidateRouteCaches(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
@@ -147,6 +158,18 @@ export function useRoutePlanPreview(request?: RoutePlanPreviewRequest | null) {
   });
 }
 
+export function useDispatchedRouteParcelCandidates(
+  routeId?: string | null,
+  enabled = true,
+) {
+  const { status } = useSession();
+  return useQuery({
+    queryKey: routeKeys.adjustmentCandidates(routeId),
+    queryFn: () => routesService.getDispatchedRouteParcelCandidates(routeId!),
+    enabled: status === "authenticated" && enabled && !!routeId,
+  });
+}
+
 export function useCreateRoute() {
   const queryClient = useQueryClient();
 
@@ -220,6 +243,42 @@ export function useDispatchRoute() {
   });
 }
 
+export function useAddParcelToDispatchedRoute() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: AdjustRouteParcelRequest }) =>
+      routesService.addParcelToDispatchedRoute(id, data),
+    meta: {
+      successToast: {
+        title: "Parcel added to route",
+        description: "The dispatched route was updated and the driver will see the change on the web schedule.",
+      },
+    } satisfies MutationToastMeta,
+    onSuccess: (_, { id }) => {
+      invalidateRouteCaches(queryClient, id);
+    },
+  });
+}
+
+export function useRemoveParcelFromDispatchedRoute() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: AdjustRouteParcelRequest }) =>
+      routesService.removeParcelFromDispatchedRoute(id, data),
+    meta: {
+      successToast: {
+        title: "Parcel removed from route",
+        description: "The parcel was returned to staged status and the driver's route was updated on the web schedule.",
+      },
+    } satisfies MutationToastMeta,
+    onSuccess: (_, { id }) => {
+      invalidateRouteCaches(queryClient, id);
+    },
+  });
+}
+
 export function useStartRoute() {
   const queryClient = useQueryClient();
 
@@ -253,4 +312,80 @@ export function useCompleteRoute() {
       invalidateRouteCaches(queryClient, id);
     },
   });
+}
+
+type RouteUpdatedEvent = {
+  routeId?: string | null;
+  action?: string | null;
+  trackingNumber?: string | null;
+  reason?: string | null;
+  changedAt?: string | null;
+};
+
+export function useDriverRouteRealtimeUpdates(enabled = true) {
+  const queryClient = useQueryClient();
+  const { data: session, status } = useSession();
+  const accessToken = session?.accessToken ?? "";
+
+  useEffect(() => {
+    if (!enabled || status !== "authenticated") {
+      return;
+    }
+
+    const connection = new HubConnectionBuilder()
+      .withUrl(`${apiBaseUrl().replace(/\/$/, "")}/hubs/routes`, {
+        accessTokenFactory: () => accessToken,
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    const handleRouteUpdated = (event: RouteUpdatedEvent) => {
+      void queryClient.invalidateQueries({ queryKey: routeKeys.myLists() });
+      if (event.routeId) {
+        void queryClient.invalidateQueries({ queryKey: routeKeys.myDetail(event.routeId) });
+      }
+
+      appToast.success("Route updated", {
+        description: getRouteParcelAdjustmentDescription(event),
+      });
+    };
+
+    connection.on("RouteUpdated", handleRouteUpdated);
+
+    let isDisposed = false;
+
+    void (async () => {
+      try {
+        await connection.start();
+        if (isDisposed) {
+          return;
+        }
+
+        await connection.invoke("SubscribeToMyRoutes");
+      } catch (error) {
+        console.warn("Failed to subscribe to route updates", error);
+      }
+    })();
+
+    return () => {
+      isDisposed = true;
+      connection.off("RouteUpdated", handleRouteUpdated);
+
+      void (async () => {
+        try {
+          if (connection.state === HubConnectionState.Connected) {
+            await connection.invoke("UnsubscribeFromMyRoutes");
+          }
+        } catch (error) {
+          console.warn("Failed to unsubscribe from route updates", error);
+        } finally {
+          try {
+            await connection.stop();
+          } catch (error) {
+            console.warn("Failed to stop route updates connection", error);
+          }
+        }
+      })();
+    };
+  }, [accessToken, enabled, queryClient, status]);
 }

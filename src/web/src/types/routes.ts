@@ -1,9 +1,11 @@
 import type {
+  GetDispatchedRouteParcelCandidatesQuery,
   GetRouteAssignmentCandidatesQuery,
   GetRoutePlanPreviewQuery,
   GetRouteQuery,
 } from "@/graphql/routes";
 import type {
+  AdjustRouteParcelInput,
   CancelRouteInput,
   CompleteRouteInput,
   CreateRouteInput,
@@ -17,6 +19,7 @@ export type {
   ParcelStatus,
   RouteAssignmentAuditAction,
   RouteAssignmentMode,
+  RouteParcelAdjustmentAction,
   RouteStatus,
   RouteStopMode,
   StagingArea,
@@ -37,6 +40,12 @@ export type AssignableVehicle =
 
 export type RouteAssignmentCandidates =
   GetRouteAssignmentCandidatesQuery["routeAssignmentCandidates"];
+
+export type RouteParcelAdjustmentAuditEntry =
+  NonNullable<NonNullable<GetRouteQuery["route"]>["parcelAdjustmentAuditTrail"]>[number];
+
+export type RouteParcelAdjustmentCandidate =
+  GetDispatchedRouteParcelCandidatesQuery["dispatchedRouteParcelCandidates"][number];
 
 export type RouteStopParcel =
   NonNullable<NonNullable<GetRouteQuery["route"]>["stops"]>[number]["parcels"][number];
@@ -72,6 +81,8 @@ export type Route = Omit<
   | "path"
   | "stops"
   | "assignmentAuditTrail"
+  | "parcelAdjustmentAuditTrail"
+  | "latestParcelAdjustment"
 > & {
   zoneName: string;
   depotId: string | null;
@@ -88,6 +99,8 @@ export type Route = Omit<
   path: RoutePathPoint[];
   stops: RouteStop[];
   assignmentAuditTrail: RouteAssignmentAuditEntry[];
+  parcelAdjustmentAuditTrail: RouteParcelAdjustmentAuditEntry[];
+  latestParcelAdjustment: RouteParcelAdjustmentAuditEntry | null;
 };
 
 export type DispatchMapStopStatus = "WAITING" | "DELIVERED" | "FAILED";
@@ -113,5 +126,7 @@ export type RoutePlanPreviewRequest = RoutePlanPreviewInput;
 export type UpdateRouteAssignmentRequest = UpdateRouteAssignmentInput;
 
 export type CancelRouteRequest = CancelRouteInput;
+
+export type AdjustRouteParcelRequest = AdjustRouteParcelInput;
 
 export type CompleteRouteRequest = CompleteRouteInput;

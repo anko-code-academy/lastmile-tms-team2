@@ -24,6 +24,16 @@ fragment RouteSummaryFields on Route {
   createdAt
   updatedAt
   cancellationReason
+  latestParcelAdjustment {
+    id
+    action
+    parcelId
+    trackingNumber
+    reason
+    affectedStopSequence
+    changedAt
+    changedBy
+  }
 }
 
 fragment RouteStopFields on RouteStop {
@@ -115,6 +125,16 @@ query GetRoute($id: UUID!) {
       changedAt
       changedBy
     }
+    parcelAdjustmentAuditTrail {
+      id
+      action
+      parcelId
+      trackingNumber
+      reason
+      affectedStopSequence
+      changedAt
+      changedBy
+    }
   }
 }
 
@@ -153,6 +173,28 @@ query GetMyRoute($id: UUID!) {
       changedAt
       changedBy
     }
+    parcelAdjustmentAuditTrail {
+      id
+      action
+      parcelId
+      trackingNumber
+      reason
+      affectedStopSequence
+      changedAt
+      changedBy
+    }
+  }
+}
+
+query GetDispatchedRouteParcelCandidates($routeId: UUID!) {
+  dispatchedRouteParcelCandidates(routeId: $routeId) {
+    id
+    trackingNumber
+    recipientLabel
+    addressLine
+    longitude
+    latitude
+    status
   }
 }
 
@@ -236,6 +278,18 @@ mutation UpdateRouteAssignment($id: UUID!, $input: UpdateRouteAssignmentInput!) 
 
 mutation CancelRoute($id: UUID!, $input: CancelRouteInput!) {
   cancelRoute(id: $id, input: $input) {
+    ...RouteSummaryFields
+  }
+}
+
+mutation AddParcelToDispatchedRoute($id: UUID!, $input: AdjustRouteParcelInput!) {
+  addParcelToDispatchedRoute(id: $id, input: $input) {
+    ...RouteSummaryFields
+  }
+}
+
+mutation RemoveParcelFromDispatchedRoute($id: UUID!, $input: AdjustRouteParcelInput!) {
+  removeParcelFromDispatchedRoute(id: $id, input: $input) {
     ...RouteSummaryFields
   }
 }
