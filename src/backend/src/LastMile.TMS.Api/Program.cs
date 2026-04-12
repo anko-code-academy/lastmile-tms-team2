@@ -70,6 +70,7 @@ try
     app.MapGraphQL("/api/graphql");
     app.MapGraphQL("/graphql");
     app.MapHub<ParcelUpdatesHub>("/hubs/parcels");
+    app.MapHub<RouteUpdatesHub>("/hubs/routes");
 
     if (args.Contains("--run-storage-backfill", StringComparer.OrdinalIgnoreCase))
     {

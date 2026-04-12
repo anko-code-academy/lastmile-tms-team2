@@ -45,6 +45,12 @@ public sealed class CancelRouteInput
     public string Reason { get; set; } = string.Empty;
 }
 
+public sealed class AdjustRouteParcelInput
+{
+    public Guid ParcelId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+}
+
 public sealed class CompleteRouteInput
 {
     public int EndMileage { get; set; }

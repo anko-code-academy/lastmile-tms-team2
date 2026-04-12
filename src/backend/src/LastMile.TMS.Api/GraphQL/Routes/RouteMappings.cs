@@ -9,5 +9,6 @@ public static partial class RouteInputMapper
     public static partial LastMile.TMS.Application.Routes.DTOs.CreateRouteDto ToDto(this CreateRouteInput input);
     public static partial LastMile.TMS.Application.Routes.DTOs.UpdateRouteAssignmentDto ToDto(this UpdateRouteAssignmentInput input);
     public static partial LastMile.TMS.Application.Routes.DTOs.CancelRouteDto ToDto(this CancelRouteInput input);
+    public static partial LastMile.TMS.Application.Routes.DTOs.AdjustRouteParcelDto ToDto(this AdjustRouteParcelInput input);
     public static partial LastMile.TMS.Application.Routes.DTOs.CompleteRouteDto ToDto(this CompleteRouteInput input);
 }

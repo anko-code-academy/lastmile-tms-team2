@@ -92,6 +92,12 @@ public sealed class RouteType : EntityObjectType<RouteEntity>
         descriptor.Field(r => r.AssignmentAuditTrail)
             .Type<NonNullType<ListType<NonNullType<RouteAssignmentAuditEntryType>>>>()
             .Resolve(async ctx => await LoadAssignmentAuditTrailAsync(ctx));
+        descriptor.Field("parcelAdjustmentAuditTrail")
+            .Type<NonNullType<ListType<NonNullType<RouteParcelAdjustmentAuditEntryType>>>>()
+            .Resolve(async ctx => await LoadParcelAdjustmentAuditTrailAsync(ctx));
+        descriptor.Field("latestParcelAdjustment")
+            .Type<RouteParcelAdjustmentAuditEntryType>()
+            .Resolve(async ctx => (await LoadParcelAdjustmentAuditTrailAsync(ctx)).FirstOrDefault());
     }
 
     private static async Task<RouteLabels> LoadRouteLabelsAsync(IResolverContext ctx, Guid routeId)
@@ -398,6 +404,36 @@ public sealed class RouteType : EntityObjectType<RouteEntity>
         }
     }
 
+    private static Task<List<RouteParcelAdjustmentAuditEntry>> LoadParcelAdjustmentAuditTrailAsync(
+        IResolverContext ctx)
+    {
+        var routeId = ctx.Parent<RouteEntity>().Id;
+
+        return LoadAsync();
+
+        async Task<List<RouteParcelAdjustmentAuditEntry>> LoadAsync()
+        {
+            var rows = await ctx.BatchDataLoader<Guid, List<RouteParcelAdjustmentAuditEntry>>(
+                    async (ids, ct) =>
+                    {
+                        var dbContext = ctx.Service<IAppDbContext>();
+                        var auditRows = await dbContext.RouteParcelAdjustmentAuditEntries
+                            .AsNoTracking()
+                            .Where(entry => ids.Contains(entry.RouteId))
+                            .OrderByDescending(entry => entry.ChangedAt)
+                            .ToListAsync(ct);
+
+                        return ids.ToDictionary(
+                            id => id,
+                            id => auditRows.Where(entry => entry.RouteId == id).ToList());
+                    },
+                    "RouteParcelAdjustmentAuditTrailByRouteId")
+                .LoadAsync(routeId);
+
+            return rows ?? [];
+        }
+    }
+
     private static string BuildAddressLine(RouteStop stop) => BuildAddressLine(
         stop.Street1,
         stop.Street2,
@@ -502,6 +538,31 @@ public sealed class RouteAssignmentCandidatesType : ObjectType<RouteAssignmentCa
             .Type<NonNullType<ListType<NonNullType<AssignableVehicleType>>>>();
         descriptor.Field(x => x.Drivers)
             .Type<NonNullType<ListType<NonNullType<AssignableDriverType>>>>();
+    }
+}
+
+public sealed class RouteParcelAdjustmentAuditEntryType : ObjectType<RouteParcelAdjustmentAuditEntry>
+{
+    protected override void Configure(IObjectTypeDescriptor<RouteParcelAdjustmentAuditEntry> descriptor)
+    {
+        descriptor.Name("RouteParcelAdjustmentAuditEntry");
+        descriptor.Field(x => x.Id);
+        descriptor.Field(x => x.Action);
+        descriptor.Field(x => x.ParcelId);
+        descriptor.Field(x => x.TrackingNumber);
+        descriptor.Field(x => x.Reason);
+        descriptor.Field(x => x.AffectedStopSequence);
+        descriptor.Field(x => x.ChangedAt);
+        descriptor.Field(x => x.ChangedBy);
+    }
+}
+
+public sealed class RouteParcelAdjustmentCandidateType : ObjectType<RouteParcelAdjustmentCandidateDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<RouteParcelAdjustmentCandidateDto> descriptor)
+    {
+        descriptor.Name("RouteParcelAdjustmentCandidate");
+        descriptor.BindFieldsImplicitly();
     }
 }
 

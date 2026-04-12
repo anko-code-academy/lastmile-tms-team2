@@ -13,6 +13,7 @@ using LastMile.TMS.Api.GraphQL.Vehicles;
 using LastMile.TMS.Api.GraphQL.Zones;
 using LastMile.TMS.Api.Hubs;
 using LastMile.TMS.Application.Parcels.Services;
+using LastMile.TMS.Application.Routes.Services;
 using Microsoft.AspNetCore.Authentication;
 
 namespace LastMile.TMS.Api.Configuration;
@@ -48,6 +49,7 @@ public static class ServiceCollectionExtensions
             });
         services.AddSignalR();
         services.AddScoped<IParcelUpdateNotifier, SignalRParcelUpdateNotifier>();
+        services.AddScoped<IRouteUpdateNotifier, SignalRRouteUpdateNotifier>();
         services.AddGraphQLServer()
             .AddQueryType<Query>()
             .AddMutationType<Mutation>()
@@ -95,7 +97,9 @@ public static class ServiceCollectionExtensions
             .AddType<ZoneSortInputType>()
             .AddType<RouteType>()
             .AddType<RouteAssignmentAuditEntryType>()
+            .AddType<RouteParcelAdjustmentAuditEntryType>()
             .AddType<RouteAssignmentCandidatesType>()
+            .AddType<RouteParcelAdjustmentCandidateType>()
             .AddType<AssignableVehicleType>()
             .AddType<AssignableDriverType>()
             .AddType<DriverWorkloadRouteType>()
