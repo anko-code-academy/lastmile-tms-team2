@@ -86,6 +86,53 @@ export interface ParcelConnectionPage<TNode> {
   nodes: TNode[];
 }
 
+export interface DepotParcelInventoryStatusCount {
+  status: GraphQLParcelStatus;
+  count: number;
+}
+
+export interface DepotParcelInventoryZoneCount {
+  zoneId: string;
+  zoneName: string;
+  count: number;
+}
+
+export interface DepotParcelAgingAlert {
+  thresholdMinutes: number;
+  count: number;
+}
+
+export interface DepotParcelInventoryDashboard {
+  depotId: string;
+  depotName: string;
+  generatedAt: string;
+  statusCounts: DepotParcelInventoryStatusCount[];
+  zoneCounts: DepotParcelInventoryZoneCount[];
+  agingAlert: DepotParcelAgingAlert;
+}
+
+export interface DepotParcelInventoryParcel {
+  id: string;
+  trackingNumber: string;
+  status: GraphQLParcelStatus;
+  zoneId: string;
+  zoneName: string;
+  ageMinutes: number;
+  lastUpdatedAt: string;
+}
+
+export type DepotParcelInventoryParcelConnection =
+  ParcelConnectionPage<DepotParcelInventoryParcel>;
+
+export interface DepotParcelInventoryParcelsRequest {
+  agingThresholdMinutes: number;
+  status?: GraphQLParcelStatus | null;
+  zoneId?: string | null;
+  agingOnly: boolean;
+  first: number;
+  after?: string | null;
+}
+
 export type LabelDownloadFormat = "zpl" | "pdf";
 
 export interface ParcelFormData {

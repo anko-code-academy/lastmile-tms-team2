@@ -73,6 +73,54 @@ type Depot {
   updatedAt: DateTime
 }
 
+type DepotParcelAgingAlert {
+  thresholdMinutes: Int!
+  count: Int!
+}
+
+type DepotParcelInventoryDashboard {
+  depotId: UUID!
+  depotName: String!
+  generatedAt: DateTime!
+  statusCounts: [DepotParcelInventoryStatusCount!]!
+  zoneCounts: [DepotParcelInventoryZoneCount!]!
+  agingAlert: DepotParcelAgingAlert!
+}
+
+type DepotParcelInventoryPageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type DepotParcelInventoryParcel {
+  id: UUID!
+  trackingNumber: String!
+  status: String!
+  zoneId: UUID!
+  zoneName: String!
+  ageMinutes: Int!
+  lastUpdatedAt: DateTime!
+}
+
+type DepotParcelInventoryParcelConnection {
+  totalCount: Int!
+  pageInfo: DepotParcelInventoryPageInfo!
+  nodes: [DepotParcelInventoryParcel!]!
+}
+
+type DepotParcelInventoryStatusCount {
+  status: String!
+  count: Int!
+}
+
+type DepotParcelInventoryZoneCount {
+  zoneId: UUID!
+  zoneName: String!
+  count: Int!
+}
+
 type DepotStorageLayout {
   depotId: UUID!
   depotName: String!
@@ -501,6 +549,8 @@ type Query {
   routeStagingBoard(routeId: UUID!): RouteStagingBoard @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   loadOutRoutes: [LoadOutRoute!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   routeLoadOutBoard(routeId: UUID!): RouteLoadOutBoard @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
+  depotParcelInventory(agingThresholdMinutes: Int!): DepotParcelInventoryDashboard @authorize(roles: [ "Admin", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
+  depotParcelInventoryParcels(agingThresholdMinutes: Int! status: ParcelStatus zoneId: UUID agingOnly: Boolean! first: Int! after: String): DepotParcelInventoryParcelConnection! @authorize(roles: [ "Admin", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   routes(where: RouteFilterInput @cost(weight: "10") order: [RouteSortInput!] @cost(weight: "10")): [Route!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   route(id: UUID!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   myRoutes(order: [RouteSortInput!] @cost(weight: "10")): [Route!]! @authorize(roles: [ "Driver" ]) @cost(weight: "10")

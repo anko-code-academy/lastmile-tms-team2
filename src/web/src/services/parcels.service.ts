@@ -4,6 +4,8 @@ import {
   CANCEL_PARCEL,
   CONFIRM_INBOUND_RECEIVING_SESSION,
   CONFIRM_PARCEL_SORT,
+  GET_DEPOT_PARCEL_INVENTORY,
+  GET_DEPOT_PARCEL_INVENTORY_PARCELS,
   GET_INBOUND_RECEIVING_SESSION,
   GET_OPEN_INBOUND_MANIFESTS,
   GET_PARCEL_IMPORT,
@@ -34,6 +36,8 @@ import type {
   CancelParcelMutation,
   ConfirmInboundReceivingSessionMutation,
   ConfirmParcelSortMutation,
+  GetDepotParcelInventoryParcelsQuery,
+  GetDepotParcelInventoryQuery,
   GetInboundReceivingSessionQuery,
   GetOpenInboundManifestsQuery,
   GetParcelByTrackingNumberQuery,
@@ -66,6 +70,9 @@ import { ParcelWeightUnit } from "@/types/parcels";
 import type {
   CancelParcelRequest,
   LabelDownloadFormat,
+  DepotParcelInventoryDashboard,
+  DepotParcelInventoryParcelConnection,
+  DepotParcelInventoryParcelsRequest,
   ParcelConnectionPage,
   ParcelDetail,
   ParcelFormData,
@@ -80,6 +87,7 @@ import type {
   UploadParcelImportRequest,
   UploadParcelImportResult,
   ConfirmInboundReceivingSessionRequest,
+  GraphQLParcelStatus,
   InboundManifest,
   InboundParcelScanResult,
   InboundReceivingSession,
@@ -285,6 +293,52 @@ function mapCompleteLoadOutResult(
   };
 }
 
+function mapDepotParcelInventoryDashboard(
+  raw: NonNullable<GetDepotParcelInventoryQuery["depotParcelInventory"]>,
+): DepotParcelInventoryDashboard {
+  return {
+    depotId: raw.depotId,
+    depotName: raw.depotName,
+    generatedAt: raw.generatedAt,
+    statusCounts: raw.statusCounts.map((item) => ({
+      status: item.status as GraphQLParcelStatus,
+      count: item.count,
+    })),
+    zoneCounts: raw.zoneCounts.map((item) => ({
+      zoneId: item.zoneId,
+      zoneName: item.zoneName,
+      count: item.count,
+    })),
+    agingAlert: {
+      thresholdMinutes: raw.agingAlert.thresholdMinutes,
+      count: raw.agingAlert.count,
+    },
+  };
+}
+
+function mapDepotParcelInventoryParcels(
+  raw: GetDepotParcelInventoryParcelsQuery["depotParcelInventoryParcels"],
+): DepotParcelInventoryParcelConnection {
+  return {
+    totalCount: raw.totalCount,
+    pageInfo: {
+      hasNextPage: raw.pageInfo.hasNextPage,
+      hasPreviousPage: raw.pageInfo.hasPreviousPage,
+      startCursor: raw.pageInfo.startCursor ?? null,
+      endCursor: raw.pageInfo.endCursor ?? null,
+    },
+    nodes: raw.nodes.map((item) => ({
+      id: item.id,
+      trackingNumber: item.trackingNumber,
+      status: item.status as GraphQLParcelStatus,
+      zoneId: item.zoneId,
+      zoneName: item.zoneName,
+      ageMinutes: item.ageMinutes,
+      lastUpdatedAt: item.lastUpdatedAt,
+    })),
+  };
+}
+
 async function authenticatedRequest(
   path: string,
   init: RequestInit = {},
@@ -332,6 +386,54 @@ async function triggerDownload(
 }
 
 export const parcelsService = {
+  getDepotParcelInventory: async (
+    agingThresholdMinutes: number,
+  ): Promise<DepotParcelInventoryDashboard | null> => {
+    if (USE_MOCK) {
+      return null;
+    }
+
+    const data = await graphqlRequest<GetDepotParcelInventoryQuery>(
+      GET_DEPOT_PARCEL_INVENTORY,
+      { agingThresholdMinutes },
+    );
+
+    return data.depotParcelInventory
+      ? mapDepotParcelInventoryDashboard(data.depotParcelInventory)
+      : null;
+  },
+
+  getDepotParcelInventoryParcels: async (
+    request: DepotParcelInventoryParcelsRequest,
+  ): Promise<DepotParcelInventoryParcelConnection> => {
+    if (USE_MOCK) {
+      return {
+        totalCount: 0,
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+        nodes: [],
+      };
+    }
+
+    const data = await graphqlRequest<GetDepotParcelInventoryParcelsQuery>(
+      GET_DEPOT_PARCEL_INVENTORY_PARCELS,
+      {
+        agingThresholdMinutes: request.agingThresholdMinutes,
+        status: request.status ?? undefined,
+        zoneId: request.zoneId ?? undefined,
+        agingOnly: request.agingOnly,
+        first: request.first,
+        after: request.after ?? undefined,
+      },
+    );
+
+    return mapDepotParcelInventoryParcels(data.depotParcelInventoryParcels);
+  },
+
   getPreLoadParcels: async (
     search?: string,
     where?: ParcelFilterInput,

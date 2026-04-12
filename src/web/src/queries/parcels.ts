@@ -19,6 +19,9 @@ import type { MutationToastMeta } from "@/lib/query/mutation-toast-meta";
 import type {
   CancelParcelRequest,
   GraphQLParcelStatus,
+  DepotParcelInventoryDashboard,
+  DepotParcelInventoryParcelConnection,
+  DepotParcelInventoryParcelsRequest,
   LabelDownloadFormat,
   ParcelDetail,
   ParcelFormData,
@@ -108,6 +111,48 @@ export const parcelKeys = {
       depotId ?? "",
     ] as const,
 };
+
+export const depotParcelInventoryKeys = {
+  all: [...parcelKeys.all, "depotInventory"] as const,
+  summary: (agingThresholdMinutes: number) =>
+    [...depotParcelInventoryKeys.all, "summary", agingThresholdMinutes] as const,
+  parcels: (request: DepotParcelInventoryParcelsRequest) =>
+    [
+      ...depotParcelInventoryKeys.all,
+      "parcels",
+      request.agingThresholdMinutes,
+      request.status ?? "",
+      request.zoneId ?? "",
+      request.agingOnly ? "aging" : "all",
+      request.first,
+      request.after ?? "",
+    ] as const,
+};
+
+export function useDepotParcelInventory(agingThresholdMinutes: number) {
+  const { status } = useSession();
+  return useQuery<DepotParcelInventoryDashboard | null>({
+    queryKey: depotParcelInventoryKeys.summary(agingThresholdMinutes),
+    queryFn: () => parcelsService.getDepotParcelInventory(agingThresholdMinutes),
+    enabled: status === "authenticated",
+    refetchInterval: 60000,
+  });
+}
+
+export function useDepotParcelInventoryParcels(
+  request: DepotParcelInventoryParcelsRequest & { enabled?: boolean },
+) {
+  const { status } = useSession();
+  const { enabled = true, ...filters } = request;
+
+  return useQuery<DepotParcelInventoryParcelConnection>({
+    queryKey: depotParcelInventoryKeys.parcels(filters),
+    queryFn: () => parcelsService.getDepotParcelInventoryParcels(filters),
+    enabled: status === "authenticated" && enabled,
+    placeholderData: keepPreviousData,
+    refetchInterval: 60000,
+  });
+}
 
 export function useParcelsForRouteCreation(
   vehicleId?: string,

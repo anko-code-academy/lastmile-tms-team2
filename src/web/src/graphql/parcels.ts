@@ -1,5 +1,7 @@
 export {
   CancelParcelDocument as CANCEL_PARCEL,
+  GetDepotParcelInventoryDocument as GET_DEPOT_PARCEL_INVENTORY,
+  GetDepotParcelInventoryParcelsDocument as GET_DEPOT_PARCEL_INVENTORY_PARCELS,
   GetParcelImportDocument as GET_PARCEL_IMPORT,
   GetParcelImportsDocument as GET_PARCEL_IMPORTS,
   GetParcelDocument as PARCEL,
@@ -30,6 +32,10 @@ export {
 export type {
   CancelParcelMutation,
   CancelParcelMutationVariables,
+  GetDepotParcelInventoryParcelsQuery,
+  GetDepotParcelInventoryParcelsQueryVariables,
+  GetDepotParcelInventoryQuery,
+  GetDepotParcelInventoryQueryVariables,
   GetRouteStagingBoardQuery,
   GetRouteStagingBoardQueryVariables,
   GetParcelImportQuery,
