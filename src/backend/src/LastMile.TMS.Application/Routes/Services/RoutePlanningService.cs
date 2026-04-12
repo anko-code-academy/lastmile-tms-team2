@@ -145,6 +145,58 @@ public sealed class RoutePlanningService(
         };
     }
 
+    public Task EnsureParcelRecipientGeocodedAsync(
+        Parcel parcel,
+        CancellationToken cancellationToken = default) =>
+        EnsureGeocodedAddressesAsync([parcel], cancellationToken);
+
+    public async Task ApplyMetricsToPersistedRouteAsync(
+        Route route,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(route);
+
+        var depotAddress = route.Zone?.Depot?.Address;
+        if (depotAddress is null)
+        {
+            depotAddress = await dbContext.Zones
+                .Where(zone => zone.Id == route.ZoneId)
+                .Select(zone => zone.Depot.Address)
+                .FirstOrDefaultAsync(cancellationToken)
+                ?? throw new InvalidOperationException("Route depot could not be resolved.");
+        }
+
+        await EnsureDepotGeocodedAsync(depotAddress, cancellationToken);
+
+        var warnings = new List<string>();
+        var plannedStops = route.Stops
+            .OrderBy(stop => stop.Sequence)
+            .Select(stop => new RoutePlannedStop
+            {
+                Id = stop.Id.ToString(),
+                Sequence = stop.Sequence,
+                RecipientLabel = stop.RecipientLabel,
+                AddressLine = BuildAddressLine(
+                    stop.Street1,
+                    stop.Street2,
+                    stop.City,
+                    stop.State,
+                    stop.PostalCode),
+                StopLocation = stop.StopLocation,
+            })
+            .ToList();
+
+        var metrics = await BuildRouteMetricsAsync(
+            depotAddress,
+            plannedStops,
+            warnings,
+            cancellationToken);
+
+        route.PlannedDistanceMeters = metrics.DistanceMeters;
+        route.PlannedDurationSeconds = metrics.DurationSeconds;
+        route.PlannedPath = metrics.LineString;
+    }
+
     private async Task<List<Parcel>> LoadEligibleParcelsAsync(Guid zoneId, CancellationToken cancellationToken)
     {
         var activeStatuses = RouteAssignmentSupport.ActiveAssignmentStatuses;
@@ -518,13 +570,28 @@ public sealed class RoutePlanningService(
 
     private static string BuildAddressLine(Address address)
     {
-        var parts = new[]
-        {
+        return BuildAddressLine(
             ParcelChangeSupport.NormalizeRequired(address.Street1),
             ParcelChangeSupport.NormalizeOptional(address.Street2),
             ParcelChangeSupport.NormalizeRequired(address.City),
             ParcelChangeSupport.NormalizeRequired(address.State),
-            ParcelChangeSupport.NormalizeRequired(address.PostalCode),
+            ParcelChangeSupport.NormalizeRequired(address.PostalCode));
+    }
+
+    private static string BuildAddressLine(
+        string street1,
+        string? street2,
+        string city,
+        string state,
+        string postalCode)
+    {
+        var parts = new[]
+        {
+            street1,
+            street2,
+            city,
+            state,
+            postalCode,
         };
 
         return string.Join(", ", parts.Where(part => !string.IsNullOrWhiteSpace(part)));

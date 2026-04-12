@@ -17,6 +17,7 @@ public static partial class RouteMappings
     [MapperIgnoreTarget(nameof(Route.Parcels))]
     [MapperIgnoreTarget(nameof(Route.Stops))]
     [MapperIgnoreTarget(nameof(Route.AssignmentAuditTrail))]
+    [MapperIgnoreTarget(nameof(Route.ParcelAdjustmentAuditTrail))]
     [MapperIgnoreTarget(nameof(Route.CancellationReason))]
     [MapperIgnoreTarget(nameof(Route.PlannedDistanceMeters))]
     [MapperIgnoreTarget(nameof(Route.PlannedDurationSeconds))]

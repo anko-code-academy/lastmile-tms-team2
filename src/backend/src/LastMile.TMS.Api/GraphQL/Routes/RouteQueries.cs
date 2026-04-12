@@ -66,4 +66,13 @@ public sealed class RouteQueries
         mediator.Send(
             new GetRoutePlanPreviewQuery(input.ToDto()),
             cancellationToken);
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
+    public Task<IReadOnlyList<RouteParcelAdjustmentCandidateDto>> GetDispatchedRouteParcelCandidates(
+        Guid routeId,
+        [Service] ISender mediator,
+        CancellationToken cancellationToken) =>
+        mediator.Send(
+            new GetDispatchedRouteParcelCandidatesQuery(routeId),
+            cancellationToken);
 }

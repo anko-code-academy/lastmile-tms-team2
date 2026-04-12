@@ -41,6 +41,14 @@ public sealed record CancelRouteDto
     public CancelRouteDto() { }
 }
 
+public sealed record AdjustRouteParcelDto
+{
+    public Guid ParcelId { get; init; }
+    public string Reason { get; init; } = string.Empty;
+
+    public AdjustRouteParcelDto() { }
+}
+
 public sealed record CompleteRouteDto
 {
     public int EndMileage { get; init; }

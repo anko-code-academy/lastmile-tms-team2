@@ -297,6 +297,8 @@ type Mutation {
   createRoute(input: CreateRouteInput!): Route! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   updateRouteAssignment(id: UUID! input: UpdateRouteAssignmentInput!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   cancelRoute(id: UUID! input: CancelRouteInput!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  addParcelToDispatchedRoute(id: UUID! input: AdjustRouteParcelInput!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  removeParcelFromDispatchedRoute(id: UUID! input: AdjustRouteParcelInput!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   dispatchRoute(id: UUID!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   startRoute(id: UUID!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   completeRoute(id: UUID! input: CompleteRouteInput!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
@@ -557,6 +559,7 @@ type Query {
   myRoute(id: UUID!): Route @authorize(roles: [ "Driver" ]) @cost(weight: "10")
   routeAssignmentCandidates(serviceDate: DateTime! zoneId: UUID! routeId: UUID): RouteAssignmentCandidates! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   routePlanPreview(input: RoutePlanPreviewInput!): RoutePlanPreviewDto! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  dispatchedRouteParcelCandidates(routeId: UUID!): [RouteParcelAdjustmentCandidate!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   users(search: String isActive: Boolean depotId: UUID zoneId: UUID where: UserManagementUserFilterInput @cost(weight: "10") order: [UserManagementUserSortInput!] @cost(weight: "10")): [UserManagementUser!]! @authorize(roles: [ "Admin" ]) @cost(weight: "10")
   user(id: UUID!): UserManagementUser @authorize(roles: [ "Admin" ]) @cost(weight: "10")
   userManagementLookups: UserManagementLookupsDto! @authorize(roles: [ "Admin" ]) @cost(weight: "10")
@@ -628,6 +631,8 @@ type Route {
   createdAt: DateTime!
   updatedAt: DateTime
   assignmentAuditTrail: [RouteAssignmentAuditEntry!]! @cost(weight: "10")
+  parcelAdjustmentAuditTrail: [RouteParcelAdjustmentAuditEntry!]! @cost(weight: "10")
+  latestParcelAdjustment: RouteParcelAdjustmentAuditEntry @cost(weight: "10")
 }
 
 type RouteAssignmentAuditEntry {
@@ -673,6 +678,29 @@ type RouteLoadOutExpectedParcel {
   barcode: String!
   status: String!
   isLoaded: Boolean!
+}
+
+type RouteParcelAdjustmentAuditEntry {
+  id: UUID!
+  action: RouteParcelAdjustmentAction!
+  parcelId: UUID!
+  trackingNumber: String!
+  reason: String!
+  affectedStopSequence: Int
+  changedAt: DateTime!
+  changedBy: String
+  routeId: UUID!
+  route: Route!
+}
+
+type RouteParcelAdjustmentCandidate {
+  id: UUID!
+  trackingNumber: String!
+  recipientLabel: String!
+  addressLine: String!
+  longitude: Float
+  latitude: Float
+  status: ParcelStatus!
 }
 
 type RoutePathPoint {
@@ -921,6 +949,11 @@ input AddressSortInput {
   companyName: SortEnumType @cost(weight: "10")
   phone: SortEnumType @cost(weight: "10")
   email: SortEnumType @cost(weight: "10")
+}
+
+input AdjustRouteParcelInput {
+  parcelId: UUID!
+  reason: String!
 }
 
 input BooleanOperationFilterInput {
@@ -1668,6 +1701,11 @@ enum RouteLoadOutScanOutcome {
   WRONG_ROUTE
   NOT_EXPECTED
   INVALID_STATUS
+}
+
+enum RouteParcelAdjustmentAction {
+  ADDED
+  REMOVED
 }
 
 enum RouteStagingScanOutcome {

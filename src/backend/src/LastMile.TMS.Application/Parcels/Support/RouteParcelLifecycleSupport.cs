@@ -62,6 +62,92 @@ internal static class RouteParcelLifecycleSupport
         return true;
     }
 
+    public static bool ReturnToStagedFromDispatchedRouteAdjustment(
+        IAppDbContext dbContext,
+        Parcel parcel,
+        DateTimeOffset timestamp,
+        string actor,
+        string? location,
+        string description)
+    {
+        if (parcel.Status == ParcelStatus.Staged)
+        {
+            return false;
+        }
+
+        var previousStatus = parcel.Status;
+        parcel.ReturnToStagedFromDispatchedRouteAdjustment();
+        parcel.LastModifiedAt = timestamp;
+        parcel.LastModifiedBy = actor;
+
+        var historyEntry = new ParcelChangeHistoryEntry
+        {
+            ParcelId = parcel.Id,
+            Action = ParcelChangeAction.Updated,
+            FieldName = "Status",
+            BeforeValue = ParcelChangeSupport.FormatEnum(previousStatus),
+            AfterValue = ParcelChangeSupport.FormatEnum(ParcelStatus.Staged),
+            ChangedAt = timestamp,
+            ChangedBy = actor,
+        };
+
+        parcel.ChangeHistory.Add(historyEntry);
+        dbContext.ParcelChangeHistoryEntries.Add(historyEntry);
+        parcel.TrackingEvents.Add(
+            ParcelTrackingEventFactory.CreateForParcelStatus(
+                parcel.Id,
+                ParcelStatus.Staged,
+                timestamp,
+                location,
+                description,
+                actor));
+
+        return true;
+    }
+
+    public static bool PromoteToOutForDeliveryFromDispatchedRouteAdjustment(
+        IAppDbContext dbContext,
+        Parcel parcel,
+        DateTimeOffset timestamp,
+        string actor,
+        string? location,
+        string description)
+    {
+        if (parcel.Status == ParcelStatus.OutForDelivery)
+        {
+            return false;
+        }
+
+        var previousStatus = parcel.Status;
+        parcel.PromoteToOutForDeliveryFromDispatchedRouteAdjustment();
+        parcel.LastModifiedAt = timestamp;
+        parcel.LastModifiedBy = actor;
+
+        var historyEntry = new ParcelChangeHistoryEntry
+        {
+            ParcelId = parcel.Id,
+            Action = ParcelChangeAction.Updated,
+            FieldName = "Status",
+            BeforeValue = ParcelChangeSupport.FormatEnum(previousStatus),
+            AfterValue = ParcelChangeSupport.FormatEnum(ParcelStatus.OutForDelivery),
+            ChangedAt = timestamp,
+            ChangedBy = actor,
+        };
+
+        parcel.ChangeHistory.Add(historyEntry);
+        dbContext.ParcelChangeHistoryEntries.Add(historyEntry);
+        parcel.TrackingEvents.Add(
+            ParcelTrackingEventFactory.CreateForParcelStatus(
+                parcel.Id,
+                ParcelStatus.OutForDelivery,
+                timestamp,
+                location,
+                description,
+                actor));
+
+        return true;
+    }
+
     public static string GetStagingAreaLocation(StagingArea stagingArea) => $"Staging Area {stagingArea}";
 
     public static string GetVehicleLocation(string? registrationPlate) =>

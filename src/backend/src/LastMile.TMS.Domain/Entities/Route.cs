@@ -34,6 +34,8 @@ public class Route : BaseAuditableEntity
     public ICollection<RouteStop> Stops { get; set; } = new List<RouteStop>();
     public ICollection<RouteAssignmentAuditEntry> AssignmentAuditTrail { get; set; } =
         new List<RouteAssignmentAuditEntry>();
+    public ICollection<RouteParcelAdjustmentAuditEntry> ParcelAdjustmentAuditTrail { get; set; } =
+        new List<RouteParcelAdjustmentAuditEntry>();
 
     /// <summary>
     /// Calculated total mileage for this route

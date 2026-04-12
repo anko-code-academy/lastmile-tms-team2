@@ -1,9 +1,11 @@
 import type { RouteFilterInput } from "@/graphql/generated";
 import {
+  ADD_PARCEL_TO_DISPATCHED_ROUTE,
   CANCEL_ROUTE,
   COMPLETE_ROUTE,
   CREATE_ROUTE,
   DISPATCH_ROUTE,
+  GET_DISPATCHED_ROUTE_PARCEL_CANDIDATES,
   GET_MY_ROUTE,
   GET_MY_ROUTES,
   GET_ROUTE,
@@ -11,14 +13,17 @@ import {
   GET_ROUTE_PLAN_PREVIEW,
   GET_ROUTES_MAP,
   PAGINATED_ROUTES,
+  REMOVE_PARCEL_FROM_DISPATCHED_ROUTE,
   START_ROUTE,
   UPDATE_ROUTE_ASSIGNMENT,
 } from "@/graphql/routes";
 import type {
+  AddParcelToDispatchedRouteMutation,
   CancelRouteMutation,
   CompleteRouteMutation,
   CreateRouteMutation,
   DispatchRouteMutation,
+  GetDispatchedRouteParcelCandidatesQuery,
   GetMyRouteQuery,
   GetMyRoutesQuery,
   GetRouteAssignmentCandidatesQuery,
@@ -26,6 +31,7 @@ import type {
   GetRouteQuery,
   GetRoutesMapQuery,
   GetRoutesQuery,
+  RemoveParcelFromDispatchedRouteMutation,
   StartRouteMutation,
   UpdateRouteAssignmentMutation,
 } from "@/graphql/routes";
@@ -36,12 +42,14 @@ import {
 } from "@/lib/routes/dispatch-map";
 import { graphqlRequest } from "@/lib/network/graphql-client";
 import type {
+  AdjustRouteParcelRequest,
   CancelRouteRequest,
   CompleteRouteRequest,
   CreateRouteRequest,
   DispatchMapRoute,
   Route,
   RouteAssignmentCandidates,
+  RouteParcelAdjustmentCandidate,
   RoutePlanPreview,
   RoutePlanPreviewRequest,
   UpdateRouteAssignmentRequest,
@@ -54,8 +62,10 @@ function mapRouteSummary(
     | NonNullable<CreateRouteMutation["createRoute"]>
     | NonNullable<UpdateRouteAssignmentMutation["updateRouteAssignment"]>
     | NonNullable<CancelRouteMutation["cancelRoute"]>
+    | NonNullable<AddParcelToDispatchedRouteMutation["addParcelToDispatchedRoute"]>
     | NonNullable<DispatchRouteMutation["dispatchRoute"]>
     | NonNullable<GetMyRoutesQuery["myRoutes"]>[number]
+    | NonNullable<RemoveParcelFromDispatchedRouteMutation["removeParcelFromDispatchedRoute"]>
     | NonNullable<StartRouteMutation["startRoute"]>
     | NonNullable<CompleteRouteMutation["completeRoute"]>,
 ): Route {
@@ -89,9 +99,11 @@ function mapRouteSummary(
     updatedAt: raw.updatedAt ?? null,
     cancellationReason:
       "cancellationReason" in raw ? raw.cancellationReason ?? null : null,
+    latestParcelAdjustment: raw.latestParcelAdjustment ?? null,
     path: [],
     stops: [],
     assignmentAuditTrail: [],
+    parcelAdjustmentAuditTrail: [],
   };
 }
 
@@ -108,6 +120,7 @@ function mapRouteDetail(
     path: raw.path ?? [],
     stops: raw.stops ?? [],
     assignmentAuditTrail: raw.assignmentAuditTrail ?? [],
+    parcelAdjustmentAuditTrail: raw.parcelAdjustmentAuditTrail ?? [],
   };
 }
 
@@ -122,6 +135,7 @@ function mapRouteForDispatchMap(raw: NonNullable<GetRoutesMapQuery["routes"]>[nu
     path: raw.path ?? [],
     stops: raw.stops ?? [],
     assignmentAuditTrail: [],
+    parcelAdjustmentAuditTrail: [],
   });
 }
 
@@ -238,6 +252,17 @@ export const routesService = {
     return mapRoutePlanPreview(data.routePlanPreview);
   },
 
+  getDispatchedRouteParcelCandidates: async (
+    routeId: string,
+  ): Promise<RouteParcelAdjustmentCandidate[]> => {
+    const data = await graphqlRequest<GetDispatchedRouteParcelCandidatesQuery>(
+      GET_DISPATCHED_ROUTE_PARCEL_CANDIDATES,
+      { routeId },
+    );
+
+    return data.dispatchedRouteParcelCandidates ?? [];
+  },
+
   updateAssignment: async (
     id: string,
     data: UpdateRouteAssignmentRequest,
@@ -273,6 +298,50 @@ export const routesService = {
     }
 
     return mapRouteSummary(result.cancelRoute);
+  },
+
+  addParcelToDispatchedRoute: async (
+    id: string,
+    data: AdjustRouteParcelRequest,
+  ): Promise<Route> => {
+    const result = await graphqlRequest<AddParcelToDispatchedRouteMutation>(
+      ADD_PARCEL_TO_DISPATCHED_ROUTE,
+      {
+        id,
+        input: {
+          parcelId: data.parcelId,
+          reason: data.reason,
+        },
+      },
+    );
+
+    if (!result.addParcelToDispatchedRoute) {
+      throw new Error("Route not found");
+    }
+
+    return mapRouteSummary(result.addParcelToDispatchedRoute);
+  },
+
+  removeParcelFromDispatchedRoute: async (
+    id: string,
+    data: AdjustRouteParcelRequest,
+  ): Promise<Route> => {
+    const result = await graphqlRequest<RemoveParcelFromDispatchedRouteMutation>(
+      REMOVE_PARCEL_FROM_DISPATCHED_ROUTE,
+      {
+        id,
+        input: {
+          parcelId: data.parcelId,
+          reason: data.reason,
+        },
+      },
+    );
+
+    if (!result.removeParcelFromDispatchedRoute) {
+      throw new Error("Route not found");
+    }
+
+    return mapRouteSummary(result.removeParcelFromDispatchedRoute);
   },
 
   dispatch: async (id: string): Promise<Route> => {

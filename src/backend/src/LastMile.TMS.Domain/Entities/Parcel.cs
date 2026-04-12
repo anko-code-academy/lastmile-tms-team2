@@ -106,6 +106,38 @@ public class Parcel : BaseAuditableEntity
         Status = ParcelStatus.Sorted;
     }
 
+    public void ReturnToStagedFromDispatchedRouteAdjustment()
+    {
+        if (Status == ParcelStatus.Staged)
+        {
+            return;
+        }
+
+        if (Status != ParcelStatus.OutForDelivery)
+        {
+            throw new InvalidOperationException(
+                $"Only out-for-delivery parcels can be returned to staged from a dispatched route adjustment. Current status: {Status}.");
+        }
+
+        Status = ParcelStatus.Staged;
+    }
+
+    public void PromoteToOutForDeliveryFromDispatchedRouteAdjustment()
+    {
+        if (Status == ParcelStatus.OutForDelivery)
+        {
+            return;
+        }
+
+        if (Status != ParcelStatus.Staged)
+        {
+            throw new InvalidOperationException(
+                $"Only staged parcels can be promoted directly to out-for-delivery for a dispatched route adjustment. Current status: {Status}.");
+        }
+
+        Status = ParcelStatus.OutForDelivery;
+    }
+
     public bool CanEditBeforeLoad() =>
         Status == ParcelStatus.Registered
         || Status == ParcelStatus.ReceivedAtDepot

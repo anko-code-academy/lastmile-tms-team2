@@ -9,6 +9,7 @@ const { mockUseMyRoutes } = vi.hoisted(() => ({
 
 vi.mock("@/queries/routes", () => ({
   useMyRoutes: () => mockUseMyRoutes(),
+  useDriverRouteRealtimeUpdates: vi.fn(),
 }));
 
 describe("driver-schedule-page", () => {
@@ -44,9 +45,11 @@ describe("driver-schedule-page", () => {
           createdAt: "2026-04-08T08:00:00Z",
           updatedAt: null,
           cancellationReason: null,
+          latestParcelAdjustment: null,
           path: [],
           stops: [],
           assignmentAuditTrail: [],
+          parcelAdjustmentAuditTrail: [],
         },
         {
           id: "route-dispatched",
@@ -77,9 +80,20 @@ describe("driver-schedule-page", () => {
           createdAt: "2026-04-08T08:00:00Z",
           updatedAt: null,
           cancellationReason: null,
+          latestParcelAdjustment: {
+            id: "adjustment-1",
+            action: "ADDED",
+            parcelId: "parcel-added",
+            trackingNumber: "LMADJUST0001",
+            reason: "Late staged handoff",
+            affectedStopSequence: 3,
+            changedAt: "2026-04-09T07:50:00Z",
+            changedBy: "Dispatch User",
+          },
           path: [],
           stops: [],
           assignmentAuditTrail: [],
+          parcelAdjustmentAuditTrail: [],
         },
         {
           id: "route-progress",
@@ -110,9 +124,11 @@ describe("driver-schedule-page", () => {
           createdAt: "2026-04-08T08:00:00Z",
           updatedAt: null,
           cancellationReason: null,
+          latestParcelAdjustment: null,
           path: [],
           stops: [],
           assignmentAuditTrail: [],
+          parcelAdjustmentAuditTrail: [],
         },
         {
           id: "route-cancelled",
@@ -143,9 +159,11 @@ describe("driver-schedule-page", () => {
           createdAt: "2026-04-08T08:00:00Z",
           updatedAt: null,
           cancellationReason: "Cancelled",
+          latestParcelAdjustment: null,
           path: [],
           stops: [],
           assignmentAuditTrail: [],
+          parcelAdjustmentAuditTrail: [],
         },
       ],
       isLoading: false,
@@ -168,5 +186,7 @@ describe("driver-schedule-page", () => {
     expect(
       screen.getAllByRole("link", { name: /open route/i })[0],
     ).toHaveAttribute("href", "/routes/route-dispatched");
+    expect(screen.getByText(/parcel added to route/i)).toBeInTheDocument();
+    expect(screen.getByText(/late staged handoff/i)).toBeInTheDocument();
   });
 });
