@@ -1058,6 +1058,93 @@ public class ParcelGraphQLTests(CustomWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task TransitionParcelStatus_RegisteredToException_ReturnsException()
+    {
+        var token = await GetAdminAccessTokenAsync();
+
+        using var registerDoc = await PostGraphQLAsync(
+            """
+            mutation RegisterParcel($input: RegisterParcelInput!) {
+              registerParcel(input: $input) {
+                id
+                trackingNumber
+                status
+              }
+            }
+            """,
+            variables: new
+            {
+                input = new
+                {
+                    shipperAddressId = TestParcelShipperAddressId.ToString(),
+                    recipientAddress = new
+                    {
+                        street1 = "22 Exception Sort St",
+                        city = "Cairo",
+                        state = "Cairo",
+                        postalCode = "11511",
+                        countryCode = "EG",
+                        isResidential = true,
+                        contactName = "Exception Sort Test",
+                        phone = "+201000000003",
+                        email = "exceptionsort@example.com"
+                    },
+                    serviceType = "STANDARD",
+                    weight = 1.0,
+                    weightUnit = "KG",
+                    length = 10.0,
+                    width = 10.0,
+                    height = 5.0,
+                    dimensionUnit = "CM",
+                    declaredValue = 100.0,
+                    currency = "USD",
+                    estimatedDeliveryDate = DateTimeOffset.UtcNow.AddDays(3).ToString("o")
+                }
+            },
+            accessToken: token);
+
+        registerDoc.RootElement.TryGetProperty("errors", out var registerErrors)
+            .Should().BeFalse("registerParcel should not return errors");
+
+        var parcelId = registerDoc.RootElement
+            .GetProperty("data")
+            .GetProperty("registerParcel")
+            .GetProperty("id")
+            .GetString();
+
+        using var transitionDoc = await PostGraphQLAsync(
+            """
+            mutation TransitionParcelStatus($input: TransitionParcelStatusInput!) {
+              transitionParcelStatus(input: $input) {
+                id
+                status
+              }
+            }
+            """,
+            variables: new
+            {
+                input = new
+                {
+                    parcelId = parcelId,
+                    newStatus = "EXCEPTION",
+                    location = "Sydney Central Depot",
+                    description = "Unsortable from warehouse sort station (registered, exception area)."
+                }
+            },
+            accessToken: token);
+
+        transitionDoc.RootElement.TryGetProperty("errors", out var transitionErrors)
+            .Should().BeFalse("transitionParcelStatus should not return errors: {0}", transitionErrors.ToString());
+
+        var result = transitionDoc.RootElement
+            .GetProperty("data")
+            .GetProperty("transitionParcelStatus");
+
+        result.GetProperty("id").GetString().Should().Be(parcelId);
+        result.GetProperty("status").GetString().Should().Be("Exception");
+    }
+
+    [Fact]
     public async Task TransitionParcelStatus_InvalidTransition_ReturnsError()
     {
         var token = await GetAdminAccessTokenAsync();

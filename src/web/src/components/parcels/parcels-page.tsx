@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpDown, ArrowUp, ArrowDown, FileText, Package, PackagePlus, Printer, Route, ScanSearch, Search, X } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, FileText, MapPin, Package, PackagePlus, Printer, Route, ScanSearch, Search, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import { QueryErrorAlert } from "@/components/feedback/query-error-alert";
@@ -36,6 +36,7 @@ import {
 import {
   getParcelDetailPath,
   getParcelInboundPath,
+  getParcelSortPath,
   getParcelStagingPath,
 } from "@/lib/parcels/paths";
 import { getErrorMessage } from "@/lib/network/error-message";
@@ -320,6 +321,13 @@ export default function ParcelsPage() {
             >
               <ScanSearch className="h-4 w-4" aria-hidden />
               Inbound Receiving
+            </Link>
+            <Link
+              href={getParcelSortPath()}
+              className={cn(buttonVariants({ variant: "outline" }))}
+            >
+              <MapPin className="h-4 w-4" aria-hidden />
+              Sort &amp; zone
             </Link>
             <Link
               href={getParcelStagingPath()}

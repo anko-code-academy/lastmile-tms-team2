@@ -45,7 +45,8 @@ public class Parcel : BaseAuditableEntity
 
     private static readonly Dictionary<ParcelStatus, ParcelStatus[]> ValidTransitions = new()
     {
-        [ParcelStatus.Registered] = [ParcelStatus.ReceivedAtDepot, ParcelStatus.Cancelled],
+        // Exception: depot operator may route unsortable pre-receive parcels (e.g. hold, data issues) to the exception area.
+        [ParcelStatus.Registered] = [ParcelStatus.ReceivedAtDepot, ParcelStatus.Exception, ParcelStatus.Cancelled],
         [ParcelStatus.ReceivedAtDepot] = [ParcelStatus.Sorted, ParcelStatus.Exception, ParcelStatus.Cancelled],
         [ParcelStatus.Sorted] = [ParcelStatus.Staged, ParcelStatus.Exception, ParcelStatus.Cancelled],
         [ParcelStatus.Staged] = [ParcelStatus.Loaded, ParcelStatus.Exception, ParcelStatus.Cancelled],

@@ -239,6 +239,7 @@ type Mutation {
   updateParcel(input: UpdateParcelInput!): ParcelDetail @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   cancelParcel(input: CancelParcelInput!): ParcelDetail @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   transitionParcelStatus(input: TransitionParcelStatusInput!): ParcelDto! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
+  confirmParcelSort(input: ConfirmParcelSortInput!): ParcelDto! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   startInboundReceivingSession(input: StartInboundReceivingSessionInput!): InboundReceivingSession! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   scanInboundParcel(input: ScanInboundParcelInput!): InboundParcelScanResult! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   confirmInboundReceivingSession(input: ConfirmInboundReceivingSessionInput!): InboundReceivingSession! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
@@ -442,6 +443,22 @@ type ParcelRouteOption {
   zoneName: String @cost(weight: "10")
 }
 
+type ParcelSortInstruction {
+  parcelId: UUID!
+  trackingNumber: String!
+  status: String!
+  deliveryZoneId: UUID!
+  deliveryZoneName: String!
+  depotId: UUID!
+  depotName: String!
+  deliveryZoneIsActive: Boolean!
+  canSort: Boolean!
+  blockReasonCode: String
+  blockReasonMessage: String
+  targetBins: [SortTargetBin!]!
+  recommendedBinLocationId: UUID
+}
+
 "A connection to a list of items."
 type PreLoadParcelsConnectionConnection {
   "Information to aid in pagination."
@@ -476,6 +493,7 @@ type Query {
   preLoadParcelsConnection(search: String "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: ParcelFilterInput @cost(weight: "10") order: [ParcelSortInput!] @cost(weight: "10")): PreLoadParcelsConnectionConnection @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @listSize(assumedSize: 100, slicingArguments: [ "first", "last" ], sizedFields: [ "edges", "nodes" ]) @cost(weight: "10")
   parcelImports: [ParcelImportHistory!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   parcelImport(id: UUID!): ParcelImport @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
+  parcelSortInstruction(trackingNumber: String! depotId: UUID): ParcelSortInstruction @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   parcelTrackingEvents(parcelId: UUID!): [TrackingEventDto!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   openInboundManifests: [InboundManifest!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   inboundReceivingSession(sessionId: UUID!): InboundReceivingSession @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
@@ -680,6 +698,13 @@ type RouteStopParcelDto {
   addressLine: String!
 }
 
+type SortTargetBin {
+  binLocationId: UUID!
+  name: String!
+  storagePath: String!
+  isRecommended: Boolean!
+}
+
 type StageParcelForRouteResult {
   outcome: RouteStagingScanOutcome!
   message: String!
@@ -875,6 +900,11 @@ input CompleteRouteInput {
 
 input ConfirmInboundReceivingSessionInput {
   sessionId: UUID!
+}
+
+input ConfirmParcelSortInput {
+  parcelId: UUID!
+  binLocationId: UUID!
 }
 
 input CreateBinLocationInput {

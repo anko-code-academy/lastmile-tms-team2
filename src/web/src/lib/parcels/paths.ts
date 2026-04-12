@@ -10,6 +10,10 @@ export function getParcelInboundPath(): string {
   return "/parcels/inbound";
 }
 
+export function getParcelSortPath(): string {
+  return "/parcels/sort";
+}
+
 export function getParcelStagingPath(): string {
   return "/parcels/staging";
 }

@@ -35,6 +35,7 @@ public class ParcelTests
 
     [Theory]
     [InlineData(ParcelStatus.Registered, ParcelStatus.ReceivedAtDepot, true)]
+    [InlineData(ParcelStatus.Registered, ParcelStatus.Exception, true)]
     [InlineData(ParcelStatus.Registered, ParcelStatus.Cancelled, true)]
     [InlineData(ParcelStatus.Registered, ParcelStatus.Delivered, false)]
     [InlineData(ParcelStatus.Registered, ParcelStatus.OutForDelivery, false)]
@@ -136,7 +137,7 @@ public class ParcelTests
     {
         var registered = new Parcel { Status = ParcelStatus.Registered };
         registered.GetValidNextStatuses().Should().BeEquivalentTo(
-            [ParcelStatus.ReceivedAtDepot, ParcelStatus.Cancelled],
+            [ParcelStatus.ReceivedAtDepot, ParcelStatus.Exception, ParcelStatus.Cancelled],
             options => options.WithStrictOrdering());
 
         var delivered = new Parcel { Status = ParcelStatus.Delivered };

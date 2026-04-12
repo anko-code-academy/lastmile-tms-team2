@@ -100,6 +100,13 @@ export const parcelKeys = {
   loadOutRoutes: () => [...parcelKeys.all, "loadOutRoutes"] as const,
   routeLoadOutBoard: (routeId?: string | null) =>
     [...parcelKeys.all, "routeLoadOutBoard", routeId ?? ""] as const,
+  sortInstruction: (trackingNumber: string, depotId?: string) =>
+    [
+      ...parcelKeys.all,
+      "sortInstruction",
+      trackingNumber.trim(),
+      depotId ?? "",
+    ] as const,
 };
 
 export function useParcelsForRouteCreation(
@@ -365,6 +372,43 @@ export function useParcelTrackingEvents(parcelId: string) {
     queryKey: parcelKeys.trackingEvents(parcelId),
     queryFn: () => parcelsService.getTrackingEvents(parcelId),
     enabled: status === "authenticated" && Boolean(parcelId),
+  });
+}
+
+export function useParcelSortInstruction(
+  trackingNumber: string,
+  depotId: string | undefined,
+  enabled: boolean,
+) {
+  const { status } = useSession();
+  const trimmed = trackingNumber.trim();
+  return useQuery({
+    queryKey: parcelKeys.sortInstruction(trimmed, depotId),
+    queryFn: () =>
+      parcelsService.getParcelSortInstruction(trimmed, depotId || null),
+    enabled: status === "authenticated" && enabled && trimmed.length > 0,
+  });
+}
+
+export function useConfirmParcelSort() {
+  const qc = useQueryClient();
+  return useMutation<
+    RegisteredParcelResult,
+    Error,
+    { parcelId: string; binLocationId: string }
+  >({
+    mutationFn: ({ parcelId, binLocationId }) =>
+      parcelsService.confirmParcelSort(parcelId, binLocationId),
+    meta: {
+      successToast: {
+        title: "Parcel sorted",
+        describe: () => "The parcel was marked as sorted for the selected bin.",
+      },
+    } satisfies MutationToastMeta,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: parcelKeys.all });
+      qc.invalidateQueries({ queryKey: parcelKeys.details() });
+    },
   });
 }
 
