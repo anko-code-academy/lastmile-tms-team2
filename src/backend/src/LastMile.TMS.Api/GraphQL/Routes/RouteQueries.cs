@@ -1,6 +1,7 @@
 using HotChocolate;
 using HotChocolate.Authorization;
 using HotChocolate.Data;
+using LastMile.TMS.Application.Common.Interfaces;
 using LastMile.TMS.Application.Routes.DTOs;
 using LastMile.TMS.Application.Routes.Queries;
 using LastMile.TMS.Application.Routes.Reads;
@@ -27,6 +28,24 @@ public sealed class RouteQueries
         Guid id,
         [Service] IRouteReadService readService = null!) =>
         readService.GetRoutes().Where(route => route.Id == id);
+
+    [Authorize(Roles = new[] { "Driver" })]
+    [UseProjection]
+    [UseSorting(typeof(RouteSortInputType))]
+    public IQueryable<RouteEntity> GetMyRoutes(
+        [Service] ICurrentUserService currentUser,
+        [Service] IRouteReadService readService = null!) =>
+        readService.GetRoutesForDriverUser(currentUser.UserId);
+
+    [Authorize(Roles = new[] { "Driver" })]
+    [UseFirstOrDefault]
+    [UseProjection]
+    public IQueryable<RouteEntity> GetMyRoute(
+        Guid id,
+        [Service] ICurrentUserService currentUser,
+        [Service] IRouteReadService readService = null!) =>
+        readService.GetRoutesForDriverUser(currentUser.UserId)
+            .Where(route => route.Id == id);
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher" })]
     public Task<RouteAssignmentCandidatesDto> GetRouteAssignmentCandidates(

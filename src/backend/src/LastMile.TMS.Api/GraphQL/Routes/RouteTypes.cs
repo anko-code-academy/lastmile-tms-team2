@@ -54,6 +54,7 @@ public sealed class RouteType : EntityObjectType<RouteEntity>
             .Resolve(async ctx =>
                 (await LoadRouteLabelsAsync(ctx, ctx.Parent<RouteEntity>().Id)).DriverName);
         descriptor.Field(r => r.StartDate);
+        descriptor.Field(r => r.DispatchedAt);
         descriptor.Field(r => r.EndDate);
         descriptor.Field(r => r.StartMileage);
         descriptor.Field(r => r.EndMileage);
@@ -434,6 +435,7 @@ public sealed class RouteFilterInputType : FilterInputType<RouteEntity>
         descriptor.Field(r => r.VehicleId);
         descriptor.Field(r => r.DriverId);
         descriptor.Field(r => r.StartDate);
+        descriptor.Field(r => r.DispatchedAt);
         descriptor.Field(r => r.EndDate);
         descriptor.Field(r => r.StartMileage);
         descriptor.Field(r => r.EndMileage);
@@ -457,6 +459,7 @@ public sealed class RouteSortInputType : SortInputType<RouteEntity>
         descriptor.Field(r => r.VehicleId);
         descriptor.Field(r => r.DriverId);
         descriptor.Field(r => r.StartDate);
+        descriptor.Field(r => r.DispatchedAt);
         descriptor.Field(r => r.EndDate);
         descriptor.Field(r => r.StartMileage);
         descriptor.Field(r => r.EndMileage);
