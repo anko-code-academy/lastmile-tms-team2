@@ -38,7 +38,8 @@ public class CompleteLoadOutTests
         result.TotalCount.Should().Be(2);
 
         var route = await db.Routes.FirstAsync(r => r.Id == fixture.Route.Id);
-        route.Status.Should().Be(RouteStatus.InProgress);
+        route.Status.Should().Be(RouteStatus.Draft);
+        result.Message.Should().Contain("ready for dispatch");
     }
 
     [Fact]
@@ -59,7 +60,7 @@ public class CompleteLoadOutTests
         result.Message.Should().Contain("not been loaded");
 
         var route = await db.Routes.FirstAsync(r => r.Id == fixture.Route.Id);
-        route.Status.Should().Be(RouteStatus.Dispatched);
+        route.Status.Should().Be(RouteStatus.Draft);
     }
 
     [Fact]
@@ -78,8 +79,12 @@ public class CompleteLoadOutTests
         result.Success.Should().BeTrue();
         result.SkippedCount.Should().BeGreaterThan(0);
 
-        var route = await db.Routes.FirstAsync(r => r.Id == fixture.Route.Id);
-        route.Status.Should().Be(RouteStatus.InProgress);
+        var route = await db.Routes
+            .Include(candidate => candidate.Parcels)
+            .FirstAsync(r => r.Id == fixture.Route.Id);
+        route.Status.Should().Be(RouteStatus.Draft);
+        route.Parcels.Should().HaveCount(1);
+        result.Message.Should().Contain("removed from the route");
     }
 
     [Fact]
@@ -108,6 +113,13 @@ public class CompleteLoadOutTests
             updatedParcel.Status.Should().Be(ParcelStatus.Exception);
             updatedParcel.TrackingEvents.Should().ContainSingle(e => e.EventType == Domain.Enums.EventType.Exception);
         }
+
+        var route = await db.Routes
+            .Include(candidate => candidate.Parcels)
+            .FirstAsync(candidate => candidate.Id == fixture.Route.Id);
+        route.Parcels.Select(candidate => candidate.Id)
+            .Should()
+            .NotContain(stagedParcelsBefore.Select(candidate => candidate.Id));
     }
 
     [Fact]
@@ -144,7 +156,7 @@ public class CompleteLoadOutTests
             CancellationToken.None);
 
         result.Success.Should().BeFalse();
-        result.Message.Should().Contain("Dispatched");
+        result.Message.Should().Contain("Draft");
     }
 
     private static ICurrentUserService CreateCurrentUser(ApplicationUser user)
@@ -247,7 +259,7 @@ public class CompleteLoadOutTests
             ContactName = "Recipient",
         };
 
-        var parcel1Status = allLoaded ? ParcelStatus.Loaded : ParcelStatus.Staged;
+        var parcel1Status = ParcelStatus.Loaded;
         var parcel2Status = allLoaded ? ParcelStatus.Loaded : ParcelStatus.Staged;
 
         var parcel1 = CreateParcel("LM-COMP-001", parcel1Status, shipper, recipient, zone);
@@ -262,7 +274,7 @@ public class CompleteLoadOutTests
             Driver = driver,
             StartDate = DateTimeOffset.UtcNow,
             StagingArea = StagingArea.A,
-            Status = RouteStatus.Dispatched,
+            Status = RouteStatus.Draft,
             Parcels = [parcel1, parcel2],
         };
 
