@@ -103,6 +103,21 @@ function buildRoutePopupHtml(route: DispatchMapRoute): string {
   `;
 }
 
+function buildDepotPopupHtml(route: DispatchMapRoute): string {
+  return `
+    <div class="space-y-2">
+      <div class="text-sm font-semibold">${escapeHtml(route.depotName ?? "Depot")}</div>
+      ${route.depotAddressLine ? `<div class="text-xs text-slate-600">${escapeHtml(route.depotAddressLine)}</div>` : ""}
+      <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+        <div class="text-xs font-semibold text-slate-900">${escapeHtml(route.vehiclePlate)}</div>
+        <div class="mt-1 text-xs text-slate-600">${escapeHtml(route.driverName)} В· ${escapeHtml(route.zoneName)}</div>
+      </div>
+      <div class="text-xs text-slate-500">Route start and finish</div>
+      <a href="/routes/${escapeHtml(route.id)}" class="inline-flex text-xs font-medium text-blue-700 underline-offset-4 hover:underline">Open route</a>
+    </div>
+  `;
+}
+
 function buildStopPopupHtml(route: DispatchMapRoute, stop: DispatchMapRoute["stops"][number]): string {
   const parcelItems = stop.parcels
     .map((parcel) => `
@@ -398,12 +413,39 @@ export function DispatchMapCanvas({
     const markers: mapboxgl.Marker[] = [];
 
     for (const route of routes) {
+      if (route.depotLongitude != null && route.depotLatitude != null) {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = cn(
+          "flex size-9 items-center justify-center rounded-full border-2 border-white bg-emerald-600 text-xs font-black text-white shadow-lg",
+          route.id === selectedRouteId ? "ring-2 ring-slate-950/15" : "",
+        );
+        element.textContent = "D";
+        element.setAttribute("aria-label", `${route.depotName ?? "Depot"} for ${route.vehiclePlate}`);
+        element.addEventListener("click", () => onSelectRouteRef.current?.(route.id));
+
+        const depotMarker = new mapbox.Marker({
+          element,
+          anchor: "center",
+        })
+          .setLngLat([route.depotLongitude, route.depotLatitude])
+          .setPopup(
+            new mapbox.Popup({
+              closeButton: false,
+              offset: 18,
+            }).setHTML(buildDepotPopupHtml(route)),
+          )
+          .addTo(map);
+
+        markers.push(depotMarker);
+      }
+
       for (const stop of route.stops) {
         const element = document.createElement("button");
         element.type = "button";
         element.className = cn(
-          "flex size-8 items-center justify-center rounded-full border-2 border-white text-[11px] font-bold text-white shadow-lg transition-transform",
-          route.id === selectedRouteId ? "scale-110 ring-2 ring-slate-950/15" : "",
+          "flex size-8 items-center justify-center rounded-full border-2 border-white text-[11px] font-bold text-white shadow-lg",
+          route.id === selectedRouteId ? "ring-2 ring-slate-950/15" : "",
         );
         element.style.backgroundColor = DISPATCH_MAP_STOP_STATUS_COLORS[stop.uiStatus];
         element.textContent = String(stop.sequence);

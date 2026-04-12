@@ -97,6 +97,10 @@ describe("routesService dispatch map", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].hasGeometry).toBe(true);
+    expect(result[0].hasDepotGeometry).toBe(true);
+    expect(result[0].vehiclePlate).toBe("TRUCK-101");
+    expect(result[0].driverName).toBe("Jamie Parker");
+    expect(result[0]).not.toHaveProperty("popupSummary");
     expect(result[0].stops[0].uiStatus).toBe("FAILED");
   });
 });

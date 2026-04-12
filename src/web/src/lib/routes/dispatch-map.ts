@@ -94,8 +94,18 @@ export function hasDispatchMapStopGeometry(route: Pick<Route, "stops">): boolean
   return route.stops.some((stop) => Number.isFinite(stop.longitude) && Number.isFinite(stop.latitude));
 }
 
-export function hasDispatchMapGeometry(route: Pick<Route, "path" | "stops">): boolean {
-  return hasDispatchMapPathGeometry(route) || hasDispatchMapStopGeometry(route);
+export function hasDispatchMapDepotGeometry(
+  route: Pick<Route, "depotLongitude" | "depotLatitude">,
+): boolean {
+  return route.depotLongitude != null && route.depotLatitude != null;
+}
+
+export function hasDispatchMapGeometry(
+  route: Pick<Route, "path" | "stops" | "depotLongitude" | "depotLatitude">,
+): boolean {
+  return hasDispatchMapPathGeometry(route)
+    || hasDispatchMapStopGeometry(route)
+    || hasDispatchMapDepotGeometry(route);
 }
 
 export function sortDispatchMapRoutes<T extends Pick<Route, "startDate" | "vehiclePlate">>(routes: T[]): T[] {
@@ -117,23 +127,15 @@ export function toDispatchMapRoute(route: Route): DispatchMapRoute {
   }));
   const hasPathGeometry = hasDispatchMapPathGeometry(route);
   const hasStopGeometry = hasDispatchMapStopGeometry({ stops });
+  const hasDepotGeometry = hasDispatchMapDepotGeometry(route);
 
   return {
     ...route,
     stops,
-    hasGeometry: hasPathGeometry || hasStopGeometry,
+    hasGeometry: hasPathGeometry || hasStopGeometry || hasDepotGeometry,
     hasPathGeometry,
     hasStopGeometry,
-    popupSummary: {
-      routeId: route.id,
-      vehiclePlate: route.vehiclePlate,
-      driverName: route.driverName,
-      zoneName: route.zoneName,
-      status: route.status,
-      startDate: route.startDate,
-      stopCount: route.estimatedStopCount,
-      parcelCount: route.parcelCount,
-    },
+    hasDepotGeometry,
   };
 }
 
@@ -162,7 +164,20 @@ export function stopStatusLabel(status: DispatchMapStopStatus): string {
   }
 }
 
-export function routeGeometryHint(route: Pick<DispatchMapRoute, "hasGeometry">): string | null {
+export function routeGeometryHint(
+  route: Pick<
+    DispatchMapRoute,
+    "hasGeometry" | "hasPathGeometry" | "hasStopGeometry" | "hasDepotGeometry"
+  >,
+): string | null {
+  if (route.hasPathGeometry || route.hasStopGeometry) {
+    return null;
+  }
+
+  if (route.hasDepotGeometry) {
+    return "Depot only";
+  }
+
   return route.hasGeometry ? null : "No geometry";
 }
 

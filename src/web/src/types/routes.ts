@@ -7,7 +7,6 @@ import type {
   CancelRouteInput,
   CompleteRouteInput,
   CreateRouteInput,
-  RouteStatus as GraphQLRouteStatus,
   RoutePlanPreviewInput,
   RouteStopDraftInput,
   UpdateRouteAssignmentInput,
@@ -97,23 +96,12 @@ export type DispatchMapStop = RouteStop & {
   uiStatus: DispatchMapStopStatus;
 };
 
-export type DispatchMapRoutePopupSummary = {
-  routeId: string;
-  vehiclePlate: string;
-  driverName: string;
-  zoneName: string;
-  status: GraphQLRouteStatus;
-  startDate: string;
-  stopCount: number;
-  parcelCount: number;
-};
-
 export type DispatchMapRoute = Omit<Route, "stops"> & {
   stops: DispatchMapStop[];
   hasGeometry: boolean;
   hasPathGeometry: boolean;
   hasStopGeometry: boolean;
-  popupSummary: DispatchMapRoutePopupSummary;
+  hasDepotGeometry: boolean;
 };
 
 export type RouteStopDraft = RouteStopDraftInput;

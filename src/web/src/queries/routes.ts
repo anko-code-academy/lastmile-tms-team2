@@ -21,7 +21,6 @@ export const routeKeys = {
   dispatchMap: (dateYmd: string) => [...routeKeys.all, "dispatchMap", dateYmd] as const,
   myLists: () => [...routeKeys.all, "my-list"] as const,
   myList: () => [...routeKeys.myLists()] as const,
-  dispatchMap: (dateYmd: string) => [...routeKeys.all, "dispatchMap", dateYmd] as const,
   details: () => [...routeKeys.all, "detail"] as const,
   detail: (id: string) => [...routeKeys.details(), id] as const,
   myDetails: () => [...routeKeys.all, "my-detail"] as const,
