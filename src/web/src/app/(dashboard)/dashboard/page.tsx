@@ -11,12 +11,16 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const session = await auth();
   const displayName = session?.user?.name ?? session?.user?.email ?? "Operator";
+  const roles = session?.user.roles ?? [];
+  const canViewDepotInventory = roles.some((role) =>
+    role === "Admin" || role === "OperationsManager" || role === "WarehouseOperator");
 
   return (
     <DashboardOverviewClient
       accessToken={session?.accessToken ?? ""}
       displayName={displayName}
-      isAdmin={session?.user.roles.includes("Admin") ?? false}
+      isAdmin={roles.includes("Admin")}
+      canViewDepotInventory={canViewDepotInventory}
     />
   );
 }
