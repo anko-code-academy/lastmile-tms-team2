@@ -18,6 +18,7 @@ export const routeKeys = {
   all: ["routes"] as const,
   lists: () => [...routeKeys.all, "list"] as const,
   list: (where?: RouteFilterInput) => [...routeKeys.lists(), where] as const,
+  dispatchMap: (dateYmd: string) => [...routeKeys.all, "dispatchMap", dateYmd] as const,
   myLists: () => [...routeKeys.all, "my-list"] as const,
   myList: () => [...routeKeys.myLists()] as const,
   details: () => [...routeKeys.all, "detail"] as const,
@@ -103,6 +104,16 @@ export function useMyRoute(id: string, enabled = true) {
     enabled: status === "authenticated" && !!id && enabled,
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
+  });
+}
+
+export function useDispatchMapRoutes(dateYmd: string) {
+  const { status } = useSession();
+
+  return useQuery({
+    queryKey: routeKeys.dispatchMap(dateYmd),
+    queryFn: () => routesService.getDispatchMapRoutes(dateYmd),
+    enabled: status === "authenticated" && !!dateYmd,
   });
 }
 

@@ -319,6 +319,7 @@ public sealed class RouteType : EntityObjectType<RouteEntity>
                                             ? parcel.RecipientAddress.CompanyName ?? parcel.TrackingNumber
                                             : parcel.RecipientAddress.ContactName,
                                         AddressLine = BuildAddressLine(parcel.RecipientAddress),
+                                        Status = parcel.Status,
                                     })
                                     .ToList(),
                             })

@@ -72,6 +72,7 @@ public sealed record RouteStopParcelDto
     public string TrackingNumber { get; init; } = string.Empty;
     public string RecipientLabel { get; init; } = string.Empty;
     public string AddressLine { get; init; } = string.Empty;
+    public ParcelStatus Status { get; init; }
 
     public RouteStopParcelDto() { }
 }

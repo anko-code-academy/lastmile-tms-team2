@@ -16,14 +16,17 @@ describe("dashboard navigation", () => {
     expect(adminItems).toContain("/users");
     expect(adminItems).toContain("/zones");
     expect(adminItems).toContain("/depots");
+    expect(adminItems).toContain("/dispatch-map");
     expect(adminItems).toContain("/bin-locations");
     expect(adminItems).toContain("/routes");
     expect(dispatcherItems).not.toContain("/users");
     expect(dispatcherItems).not.toContain("/bin-locations");
+    expect(dispatcherItems).toContain("/dispatch-map");
     expect(dispatcherItems).toContain("/routes");
     expect(dispatcherItems).toContain("/zones");
     expect(dispatcherItems).toContain("/depots");
     expect(driverItems).not.toContain("/routes");
+    expect(driverItems).not.toContain("/dispatch-map");
     expect(driverItems).toContain("/routes/my");
   });
 
@@ -39,6 +42,8 @@ describe("dashboard navigation", () => {
     expect(isDashboardNavActive("/dashboard", "/dashboard")).toBe(true);
     expect(isDashboardNavActive("/zones", "/zones")).toBe(true);
     expect(isDashboardNavActive("/zones/123", "/zones")).toBe(true);
+    expect(isDashboardNavActive("/dispatch-map", "/dispatch-map")).toBe(true);
+    expect(isDashboardNavActive("/routes/123", "/routes")).toBe(true);
     expect(isDashboardNavActive("/routes/123", "/routes/my")).toBe(true);
     expect(isDashboardNavActive("/depots", "/zones")).toBe(false);
   });

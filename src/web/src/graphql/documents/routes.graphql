@@ -38,12 +38,51 @@ fragment RouteStopFields on RouteStop {
     trackingNumber
     recipientLabel
     addressLine
+    status
+  }
+}
+
+fragment RouteMapStopParcelFields on RouteStopParcelDto {
+  parcelId
+  trackingNumber
+  recipientLabel
+  addressLine
+  status
+}
+
+fragment RouteMapStopFields on RouteStop {
+  id
+  sequence
+  recipientLabel
+  addressLine
+  longitude
+  latitude
+  parcels {
+    ...RouteMapStopParcelFields
   }
 }
 
 query GetRoutes($where: RouteFilterInput, $order: [RouteSortInput!]) {
   routes(where: $where, order: $order) {
     ...RouteSummaryFields
+  }
+}
+
+query GetRoutesMap($where: RouteFilterInput, $order: [RouteSortInput!]) {
+  routes(where: $where, order: $order) {
+    ...RouteSummaryFields
+    depotId
+    depotName
+    depotAddressLine
+    depotLongitude
+    depotLatitude
+    path {
+      longitude
+      latitude
+    }
+    stops {
+      ...RouteMapStopFields
+    }
   }
 }
 

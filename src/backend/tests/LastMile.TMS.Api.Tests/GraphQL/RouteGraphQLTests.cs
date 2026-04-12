@@ -5,12 +5,17 @@ using LastMile.TMS.Domain.Enums;
 using LastMile.TMS.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using NetTopologySuite;
+using NetTopologySuite.Geometries;
 
 namespace LastMile.TMS.Api.Tests.GraphQL;
 
 [Collection(ApiTestCollection.Name)]
 public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
 {
+    private static readonly GeometryFactory GeometryFactory =
+        NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+
     public RouteGraphQLTests(CustomWebApplicationFactory factory) : base(factory)
     {
     }
@@ -549,6 +554,88 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
 
         routes.Should().Contain(r => r.GetProperty("id").GetString() == vehicleARouteId.ToString());
         routes.Should().OnlyContain(r => r.GetProperty("vehicleId").GetString() == vehicleAId.ToString());
+    }
+
+    [Fact]
+    public async Task GetRoutes_WithDispatchMapFieldsAndServiceDateFilter_ReturnsOnlyMatchingRoutes()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var serviceDate = new DateTimeOffset(2026, 4, 12, 0, 0, 0, TimeSpan.Zero);
+        var nextDate = serviceDate.AddDays(1);
+
+        var todaysParcelId = await SeedParcelAsync(
+            DbSeeder.TestZoneId,
+            $"LMMAP{Guid.NewGuid():N}"[..15].ToUpperInvariant(),
+            ParcelStatus.Delivered);
+        var nextDayParcelId = await SeedParcelAsync(
+            DbSeeder.TestZoneId,
+            $"LMMAP{Guid.NewGuid():N}"[..15].ToUpperInvariant(),
+            ParcelStatus.Sorted);
+
+        var todaysRouteId = await SeedRouteWithGeometryAsync(
+            DbSeeder.TestVehicleId,
+            DbSeeder.TestDriverId,
+            RouteStatus.Completed,
+            StagingArea.A,
+            serviceDate.AddHours(9),
+            todaysParcelId);
+        await SeedRouteWithGeometryAsync(
+            DbSeeder.TestVehicleId,
+            DbSeeder.TestDriverId,
+            RouteStatus.Draft,
+            StagingArea.B,
+            nextDate.AddHours(10),
+            nextDayParcelId);
+
+        using var document = await PostGraphQLAsync(
+            """
+            query DispatchMapRoutes($from: DateTime!, $to: DateTime!) {
+              routes(where: { startDate: { gte: $from, lt: $to } }) {
+                id
+                startDate
+                path {
+                  longitude
+                  latitude
+                }
+                stops {
+                  sequence
+                  parcels {
+                    trackingNumber
+                    status
+                  }
+                }
+              }
+            }
+            """,
+            new
+            {
+                from = serviceDate,
+                to = nextDate
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out _)
+            .Should()
+            .BeFalse(document.RootElement.GetRawText());
+
+        var routes = document.RootElement
+            .GetProperty("data")
+            .GetProperty("routes")
+            .EnumerateArray()
+            .ToList();
+
+        routes.Should().ContainSingle();
+
+        var route = routes[0];
+        route.GetProperty("id").GetString().Should().Be(todaysRouteId.ToString());
+        route.GetProperty("path").GetArrayLength().Should().BeGreaterThan(1);
+        route.GetProperty("stops").GetArrayLength().Should().Be(1);
+        route.GetProperty("stops")[0]
+            .GetProperty("parcels")[0]
+            .GetProperty("status")
+            .GetString()
+            .Should()
+            .Be("DELIVERED");
     }
 
     [Fact]
@@ -1303,6 +1390,70 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
             CreatedAt = DateTimeOffset.UtcNow,
             CreatedBy = "tests",
             Parcels = parcels
+        };
+
+        dbContext.Routes.Add(route);
+        await dbContext.SaveChangesAsync();
+        return route.Id;
+    }
+
+    private async Task<Guid> SeedRouteWithGeometryAsync(
+        Guid vehicleId,
+        Guid driverId,
+        RouteStatus status,
+        StagingArea stagingArea,
+        DateTimeOffset startDate,
+        Guid parcelId)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var parcel = await dbContext.Parcels
+            .Include(candidate => candidate.RecipientAddress)
+            .SingleAsync(candidate => candidate.Id == parcelId);
+
+        parcel.RecipientAddress.GeoLocation ??= GeometryFactory.CreatePoint(new Coordinate(151.215, -33.872));
+
+        var route = new Route
+        {
+            ZoneId = parcel.ZoneId,
+            VehicleId = vehicleId,
+            DriverId = driverId,
+            StartDate = startDate,
+            EndDate = status == RouteStatus.Completed ? startDate.AddHours(1) : null,
+            StartMileage = 100,
+            EndMileage = status == RouteStatus.Completed ? 126 : 0,
+            PlannedDistanceMeters = 12500,
+            PlannedDurationSeconds = 2100,
+            PlannedPath = GeometryFactory.CreateLineString(
+                [
+                    new Coordinate(151.2093, -33.8688),
+                    new Coordinate(151.2124, -33.8704),
+                    new Coordinate(151.2150, -33.8720)
+                ]),
+            Status = status,
+            StagingArea = stagingArea,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = "tests",
+            Parcels = [parcel],
+            Stops =
+            [
+                new RouteStop
+                {
+                    Sequence = 1,
+                    RecipientLabel = parcel.RecipientAddress.ContactName ?? parcel.TrackingNumber,
+                    Street1 = parcel.RecipientAddress.Street1,
+                    Street2 = parcel.RecipientAddress.Street2,
+                    City = parcel.RecipientAddress.City,
+                    State = parcel.RecipientAddress.State,
+                    PostalCode = parcel.RecipientAddress.PostalCode,
+                    CountryCode = parcel.RecipientAddress.CountryCode,
+                    StopLocation = parcel.RecipientAddress.GeoLocation.Copy() as Point ?? GeometryFactory.CreatePoint(new Coordinate(151.215, -33.872)),
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    CreatedBy = "tests",
+                    Parcels = [parcel]
+                }
+            ]
         };
 
         dbContext.Routes.Add(route);

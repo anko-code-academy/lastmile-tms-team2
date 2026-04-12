@@ -14,6 +14,7 @@ import type {
 
 export type {
   DriverStatus,
+  ParcelStatus,
   RouteAssignmentAuditAction,
   RouteAssignmentMode,
   RouteStatus,
@@ -87,6 +88,20 @@ export type Route = Omit<
   path: RoutePathPoint[];
   stops: RouteStop[];
   assignmentAuditTrail: RouteAssignmentAuditEntry[];
+};
+
+export type DispatchMapStopStatus = "WAITING" | "DELIVERED" | "FAILED";
+
+export type DispatchMapStop = RouteStop & {
+  uiStatus: DispatchMapStopStatus;
+};
+
+export type DispatchMapRoute = Omit<Route, "stops"> & {
+  stops: DispatchMapStop[];
+  hasGeometry: boolean;
+  hasPathGeometry: boolean;
+  hasStopGeometry: boolean;
+  hasDepotGeometry: boolean;
 };
 
 export type RouteStopDraft = RouteStopDraftInput;

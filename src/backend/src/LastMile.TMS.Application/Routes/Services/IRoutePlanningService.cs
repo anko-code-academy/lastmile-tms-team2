@@ -90,6 +90,7 @@ public sealed record RoutePlannedStopParcel
     public string TrackingNumber { get; init; } = string.Empty;
     public string RecipientLabel { get; init; } = string.Empty;
     public string AddressLine { get; init; } = string.Empty;
+    public ParcelStatus Status { get; init; }
 
     public RouteStopParcelDto ToDto() =>
         new()
@@ -98,5 +99,6 @@ public sealed record RoutePlannedStopParcel
             TrackingNumber = TrackingNumber,
             RecipientLabel = RecipientLabel,
             AddressLine = AddressLine,
+            Status = Status,
         };
 }

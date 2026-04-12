@@ -363,6 +363,7 @@ public sealed class RoutePlanningService(
                     TrackingNumber = parcel.TrackingNumber,
                     RecipientLabel = BuildRecipientLabel(parcel),
                     AddressLine = BuildAddressLine(parcel.RecipientAddress),
+                    Status = parcel.Status,
                 })
                 .ToList(),
         };
