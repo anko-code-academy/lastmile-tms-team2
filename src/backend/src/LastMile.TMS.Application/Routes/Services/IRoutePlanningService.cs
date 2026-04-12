@@ -1,4 +1,5 @@
 using LastMile.TMS.Application.Routes.DTOs;
+using LastMile.TMS.Domain.Entities;
 using LastMile.TMS.Domain.Enums;
 using NetTopologySuite.Geometries;
 
@@ -8,6 +9,14 @@ public interface IRoutePlanningService
 {
     Task<RoutePlanComputationResult> BuildPlanAsync(
         RoutePlanRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task EnsureParcelRecipientGeocodedAsync(
+        Parcel parcel,
+        CancellationToken cancellationToken = default);
+
+    Task ApplyMetricsToPersistedRouteAsync(
+        Route route,
         CancellationToken cancellationToken = default);
 }
 
