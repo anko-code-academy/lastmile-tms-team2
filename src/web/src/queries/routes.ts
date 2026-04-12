@@ -18,8 +18,12 @@ export const routeKeys = {
   all: ["routes"] as const,
   lists: () => [...routeKeys.all, "list"] as const,
   list: (where?: RouteFilterInput) => [...routeKeys.lists(), where] as const,
+  myLists: () => [...routeKeys.all, "my-list"] as const,
+  myList: () => [...routeKeys.myLists()] as const,
   details: () => [...routeKeys.all, "detail"] as const,
   detail: (id: string) => [...routeKeys.details(), id] as const,
+  myDetails: () => [...routeKeys.all, "my-detail"] as const,
+  myDetail: (id: string) => [...routeKeys.myDetails(), id] as const,
   assignmentCandidates: (
     serviceDate?: string | null,
     zoneId?: string | null,
@@ -71,12 +75,34 @@ export function useRoutes(params: {
   });
 }
 
-export function useRoute(id: string) {
+export function useRoute(id: string, enabled = true) {
   const { status } = useSession();
   return useQuery({
     queryKey: routeKeys.detail(id),
     queryFn: () => routesService.getById(id),
-    enabled: status === "authenticated" && !!id,
+    enabled: status === "authenticated" && !!id && enabled,
+  });
+}
+
+export function useMyRoutes() {
+  const { status } = useSession();
+  return useQuery({
+    queryKey: routeKeys.myList(),
+    queryFn: () => routesService.getMine(),
+    enabled: status === "authenticated",
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
+  });
+}
+
+export function useMyRoute(id: string, enabled = true) {
+  const { status } = useSession();
+  return useQuery({
+    queryKey: routeKeys.myDetail(id),
+    queryFn: () => routesService.getMyById(id),
+    enabled: status === "authenticated" && !!id && enabled,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
   });
 }
 

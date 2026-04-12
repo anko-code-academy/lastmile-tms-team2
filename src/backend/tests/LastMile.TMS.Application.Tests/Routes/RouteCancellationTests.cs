@@ -122,7 +122,7 @@ public class CancelRouteCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenRouteHasLoadedParcels_ReturnsThemToSortedAndNotifies()
+    public async Task Handle_WhenRouteHasOutForDeliveryParcels_ReturnsThemToSortedAndNotifies()
     {
         await using var db = RouteAssignmentTestData.CreateDbContext();
         var data = await RouteAssignmentTestData.SeedAsync(db);
@@ -134,7 +134,7 @@ public class CancelRouteCommandHandlerTests
             .Include(candidate => candidate.TrackingEvents)
             .Include(candidate => candidate.ChangeHistory)
             .SingleAsync(candidate => candidate.Id == data.Parcel1.Id);
-        parcel.Status = ParcelStatus.Loaded;
+        parcel.Status = ParcelStatus.OutForDelivery;
 
         var route = RouteAssignmentTestData.CreateRoute(
             vehicle,
@@ -171,7 +171,7 @@ public class CancelRouteCommandHandlerTests
         persistedParcel.ChangeHistory.Should().ContainSingle(entry =>
             entry.Action == ParcelChangeAction.Updated
             && entry.FieldName == "Status"
-            && entry.BeforeValue == "Loaded"
+            && entry.BeforeValue == "Out For Delivery"
             && entry.AfterValue == "Sorted");
         persistedParcel.TrackingEvents.Should().Contain(entry =>
             entry.Description.Contains("Vehicle swap required"));

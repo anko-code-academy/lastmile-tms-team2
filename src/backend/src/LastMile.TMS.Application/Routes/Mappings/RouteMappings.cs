@@ -9,6 +9,7 @@ public static partial class RouteMappings
 {
     [MapperIgnoreTarget(nameof(Route.Vehicle))]
     [MapperIgnoreTarget(nameof(Route.Driver))]
+    [MapperIgnoreTarget(nameof(Route.DispatchedAt))]
     [MapperIgnoreTarget(nameof(Route.EndDate))]
     [MapperIgnoreTarget(nameof(Route.EndMileage))]
     [MapperIgnoreTarget(nameof(Route.Zone))]

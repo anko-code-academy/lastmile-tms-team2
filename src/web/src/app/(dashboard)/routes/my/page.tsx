@@ -1,19 +1,19 @@
 import { redirect } from "next/navigation";
-import RouteCreatePage from "@/components/routes/route-create-page";
+import DriverSchedulePage from "@/components/routes/driver-schedule-page";
 import { auth } from "@/lib/auth";
 import { canManageRoutes, isDriver } from "@/lib/routes/access";
 
-export default async function Page() {
+export default async function DriverScheduleRoute() {
   const session = await auth();
   const roles = session?.user.roles;
 
   if (isDriver(roles) && !canManageRoutes(roles)) {
-    redirect("/routes/my");
+    return <DriverSchedulePage />;
   }
 
-  if (!canManageRoutes(roles)) {
-    redirect("/dashboard");
+  if (canManageRoutes(roles)) {
+    redirect("/routes");
   }
 
-  return <RouteCreatePage />;
+  redirect("/dashboard");
 }

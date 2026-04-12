@@ -276,7 +276,7 @@ public class LoadParcelForRouteTests
             Driver = driver,
             StartDate = DateTimeOffset.UtcNow,
             StagingArea = StagingArea.A,
-            Status = RouteStatus.Dispatched,
+            Status = RouteStatus.Draft,
             Parcels = [stagedParcel, sortedParcel],
         };
 
@@ -289,7 +289,7 @@ public class LoadParcelForRouteTests
             Driver = driver,
             StartDate = DateTimeOffset.UtcNow,
             StagingArea = StagingArea.B,
-            Status = RouteStatus.Dispatched,
+            Status = RouteStatus.Draft,
             Parcels = [otherRouteParcel],
         };
 
@@ -411,7 +411,7 @@ public class LoadParcelForRouteTests
             Driver = driver,
             StartDate = DateTimeOffset.UtcNow,
             StagingArea = StagingArea.A,
-            Status = RouteStatus.Dispatched,
+            Status = RouteStatus.Draft,
             Parcels = [parcel],
         };
 

@@ -95,10 +95,12 @@ public class Parcel : BaseAuditableEntity
             return;
         }
 
-        if (Status != ParcelStatus.Staged && Status != ParcelStatus.Loaded)
+        if (Status != ParcelStatus.Staged
+            && Status != ParcelStatus.Loaded
+            && Status != ParcelStatus.OutForDelivery)
         {
             throw new InvalidOperationException(
-                $"Only staged or loaded parcels can be returned to sorted from a cancelled route. Current status: {Status}.");
+                $"Only staged, loaded, or out-for-delivery parcels can be returned to sorted from a cancelled route. Current status: {Status}.");
         }
 
         Status = ParcelStatus.Sorted;
