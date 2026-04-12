@@ -183,7 +183,7 @@ export function useCompleteLoadOut() {
     meta: {
       successToast: {
         title: "Load-out completed",
-        describe: () => "The route is now in progress.",
+        describe: () => "The route is ready for dispatch.",
       },
     } satisfies MutationToastMeta,
     onSuccess: async () => {

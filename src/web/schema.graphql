@@ -485,6 +485,8 @@ type Query {
   routeLoadOutBoard(routeId: UUID!): RouteLoadOutBoard @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager", "WarehouseOperator" ]) @cost(weight: "10")
   routes(where: RouteFilterInput @cost(weight: "10") order: [RouteSortInput!] @cost(weight: "10")): [Route!]! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   route(id: UUID!): Route @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
+  myRoutes(order: [RouteSortInput!] @cost(weight: "10")): [Route!]! @authorize(roles: [ "Driver" ]) @cost(weight: "10")
+  myRoute(id: UUID!): Route @authorize(roles: [ "Driver" ]) @cost(weight: "10")
   routeAssignmentCandidates(serviceDate: DateTime! zoneId: UUID! routeId: UUID): RouteAssignmentCandidates! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   routePlanPreview(input: RoutePlanPreviewInput!): RoutePlanPreviewDto! @authorize(roles: [ "Admin", "Dispatcher", "OperationsManager" ]) @cost(weight: "10")
   users(search: String isActive: Boolean depotId: UUID zoneId: UUID where: UserManagementUserFilterInput @cost(weight: "10") order: [UserManagementUserSortInput!] @cost(weight: "10")): [UserManagementUser!]! @authorize(roles: [ "Admin" ]) @cost(weight: "10")
@@ -540,6 +542,7 @@ type Route {
   vehiclePlate: String @cost(weight: "10")
   driverName: String @cost(weight: "10")
   startDate: DateTime!
+  dispatchedAt: DateTime
   endDate: DateTime
   startMileage: Int!
   endMileage: Int!
@@ -1197,6 +1200,7 @@ input RouteFilterInput {
   vehicleId: UuidOperationFilterInput
   driverId: UuidOperationFilterInput
   startDate: DateTimeOperationFilterInput
+  dispatchedAt: DateTimeOperationFilterInput
   endDate: DateTimeOperationFilterInput
   startMileage: IntOperationFilterInput
   endMileage: IntOperationFilterInput
@@ -1225,6 +1229,7 @@ input RouteSortInput {
   vehicleId: SortEnumType @cost(weight: "10")
   driverId: SortEnumType @cost(weight: "10")
   startDate: SortEnumType @cost(weight: "10")
+  dispatchedAt: SortEnumType @cost(weight: "10")
   endDate: SortEnumType @cost(weight: "10")
   startMileage: SortEnumType @cost(weight: "10")
   endMileage: SortEnumType @cost(weight: "10")

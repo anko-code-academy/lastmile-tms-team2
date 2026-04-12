@@ -203,7 +203,8 @@ function ShortLoadWarningDialog({
           {total} parcels are confirmed loaded.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Do you want to force complete the load-out with missing parcels?
+          Force complete will remove missing parcels from this route and mark the
+          route ready for dispatch.
         </p>
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="outline" onClick={onCancel} disabled={isPending}>
@@ -286,7 +287,7 @@ export function RouteLoadOutPage() {
         <div className="rounded-2xl border border-dashed border-border p-10 text-center">
           <p className="font-medium">No routes are waiting for load-out</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Planned routes with staged parcels will appear here.
+            Draft routes with staged parcels will appear here.
           </p>
         </div>
       </div>
