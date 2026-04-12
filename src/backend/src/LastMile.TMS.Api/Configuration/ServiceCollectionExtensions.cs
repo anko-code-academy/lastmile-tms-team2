@@ -113,6 +113,8 @@ public static class ServiceCollectionExtensions
             .AddType<ParcelImportDetailType>()
             .AddType<ParcelImportRowFailurePreviewType>()
             .AddType<ParcelRouteOptionType>()
+            .AddType<SortTargetBinType>()
+            .AddType<ParcelSortInstructionType>()
             .AddType<InboundManifestType>()
             .AddType<InboundReceivingSessionType>()
             .AddType<InboundExpectedParcelType>()
