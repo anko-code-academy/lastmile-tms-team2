@@ -454,6 +454,69 @@ public sealed class CompleteLoadOutResultType : ObjectType<CompleteLoadOutResult
     }
 }
 
+public sealed class DepotParcelInventoryDashboardType : ObjectType<DepotParcelInventoryDashboardDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<DepotParcelInventoryDashboardDto> descriptor)
+    {
+        descriptor.Name("DepotParcelInventoryDashboard");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class DepotParcelInventoryStatusCountType : ObjectType<DepotParcelInventoryStatusCountDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<DepotParcelInventoryStatusCountDto> descriptor)
+    {
+        descriptor.Name("DepotParcelInventoryStatusCount");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class DepotParcelInventoryZoneCountType : ObjectType<DepotParcelInventoryZoneCountDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<DepotParcelInventoryZoneCountDto> descriptor)
+    {
+        descriptor.Name("DepotParcelInventoryZoneCount");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class DepotParcelAgingAlertType : ObjectType<DepotParcelAgingAlertDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<DepotParcelAgingAlertDto> descriptor)
+    {
+        descriptor.Name("DepotParcelAgingAlert");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class DepotParcelInventoryPageInfoType : ObjectType<DepotParcelInventoryPageInfoDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<DepotParcelInventoryPageInfoDto> descriptor)
+    {
+        descriptor.Name("DepotParcelInventoryPageInfo");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class DepotParcelInventoryParcelType : ObjectType<DepotParcelInventoryParcelDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<DepotParcelInventoryParcelDto> descriptor)
+    {
+        descriptor.Name("DepotParcelInventoryParcel");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class DepotParcelInventoryParcelConnectionType : ObjectType<DepotParcelInventoryParcelConnectionDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<DepotParcelInventoryParcelConnectionDto> descriptor)
+    {
+        descriptor.Name("DepotParcelInventoryParcelConnection");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
 public sealed class ParcelFilterInputType : FilterInputType<Parcel>
 {
     protected override void Configure(IFilterInputTypeDescriptor<Parcel> descriptor)

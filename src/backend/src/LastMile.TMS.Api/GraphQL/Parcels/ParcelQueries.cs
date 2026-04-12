@@ -5,6 +5,7 @@ using LastMile.TMS.Application.Parcels.DTOs;
 using LastMile.TMS.Application.Parcels.Queries;
 using LastMile.TMS.Application.Parcels.Reads;
 using LastMile.TMS.Domain.Entities;
+using LastMile.TMS.Domain.Enums;
 using MediatR;
 
 namespace LastMile.TMS.Api.GraphQL.Parcels;
@@ -128,6 +129,33 @@ public sealed class ParcelQueries
         [Service] ISender mediator,
         CancellationToken cancellationToken) =>
         mediator.Send(new GetRouteLoadOutBoardQuery(routeId), cancellationToken);
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "WarehouseOperator" })]
+    public Task<DepotParcelInventoryDashboardDto?> GetDepotParcelInventory(
+        int agingThresholdMinutes,
+        [Service] ISender mediator,
+        CancellationToken cancellationToken) =>
+        mediator.Send(new GetDepotParcelInventoryQuery(agingThresholdMinutes), cancellationToken);
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "WarehouseOperator" })]
+    public Task<DepotParcelInventoryParcelConnectionDto> GetDepotParcelInventoryParcels(
+        int agingThresholdMinutes,
+        ParcelStatus? status,
+        Guid? zoneId,
+        bool agingOnly,
+        int first,
+        string? after,
+        [Service] ISender mediator,
+        CancellationToken cancellationToken) =>
+        mediator.Send(
+            new GetDepotParcelInventoryParcelsQuery(
+                agingThresholdMinutes,
+                status,
+                zoneId,
+                agingOnly,
+                first,
+                after),
+            cancellationToken);
 
     private static IQueryable<Parcel> ApplyParcelSearch(IQueryable<Parcel> query, string? search)
     {
