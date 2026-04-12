@@ -68,5 +68,10 @@ public class RouteConfiguration : IEntityTypeConfiguration<Route>
             .WithOne(x => x.Route)
             .HasForeignKey(x => x.RouteId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.ParcelAdjustmentAuditTrail)
+            .WithOne(x => x.Route)
+            .HasForeignKey(x => x.RouteId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

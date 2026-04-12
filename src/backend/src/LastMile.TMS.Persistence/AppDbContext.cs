@@ -24,6 +24,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Route> Routes => Set<Route>();
     public DbSet<RouteStop> RouteStops => Set<RouteStop>();
     public DbSet<RouteAssignmentAuditEntry> RouteAssignmentAuditEntries => Set<RouteAssignmentAuditEntry>();
+    public DbSet<RouteParcelAdjustmentAuditEntry> RouteParcelAdjustmentAuditEntries => Set<RouteParcelAdjustmentAuditEntry>();
     public DbSet<Parcel> Parcels => Set<Parcel>();
     public DbSet<DeliveryConfirmation> DeliveryConfirmations => Set<DeliveryConfirmation>();
     public DbSet<ParcelChangeHistoryEntry> ParcelChangeHistoryEntries => Set<ParcelChangeHistoryEntry>();

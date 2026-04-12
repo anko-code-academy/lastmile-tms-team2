@@ -24,6 +24,7 @@ public interface IAppDbContext
     DbSet<DriverAvailability> DriverAvailabilities { get; }
     DbSet<Parcel> Parcels { get; }
     DbSet<RouteAssignmentAuditEntry> RouteAssignmentAuditEntries { get; }
+    DbSet<RouteParcelAdjustmentAuditEntry> RouteParcelAdjustmentAuditEntries { get; }
     DbSet<DeliveryConfirmation> DeliveryConfirmations { get; }
     DbSet<ParcelChangeHistoryEntry> ParcelChangeHistoryEntries { get; }
     DbSet<ParcelImport> ParcelImports { get; }
