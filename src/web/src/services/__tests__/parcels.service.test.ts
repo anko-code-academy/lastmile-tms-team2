@@ -111,4 +111,79 @@ describe("parcelsService", () => {
       ]);
     });
   });
+
+  describe("getDepotParcelInventory", () => {
+    it("requests the dashboard summary with the aging threshold", async () => {
+      mockGraphql.mockResolvedValueOnce({
+        depotParcelInventory: {
+          depotName: "Test Depot",
+          generatedAt: "2026-04-12T10:00:00Z",
+          statusCounts: [],
+          zoneCounts: [],
+          agingAlert: {
+            thresholdMinutes: 240,
+            count: 2,
+          },
+        },
+      });
+
+      const result = await parcelsService.getDepotParcelInventory(240);
+
+      expect(mockGraphql).toHaveBeenCalledWith(
+        expect.any(Object),
+        { agingThresholdMinutes: 240 },
+      );
+      expect(result?.agingAlert.count).toBe(2);
+    });
+  });
+
+  describe("getDepotParcelInventoryParcels", () => {
+    it("requests drill-down filters and returns the cursor connection payload", async () => {
+      mockGraphql.mockResolvedValueOnce({
+        depotParcelInventoryParcels: {
+          totalCount: 2,
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: false,
+            startCursor: "0",
+            endCursor: "2",
+          },
+          nodes: [
+            {
+              id: "parcel-1",
+              trackingNumber: "LM-DASH-0001",
+              status: "RECEIVED_AT_DEPOT",
+              zoneId: "zone-1",
+              zoneName: "North Zone",
+              ageMinutes: 480,
+              lastUpdatedAt: "2026-04-12T02:00:00Z",
+            },
+          ],
+        },
+      });
+
+      const result = await parcelsService.getDepotParcelInventoryParcels({
+        agingThresholdMinutes: 240,
+        status: "RECEIVED_AT_DEPOT",
+        zoneId: "zone-1",
+        agingOnly: false,
+        first: 20,
+        after: "0",
+      });
+
+      expect(mockGraphql).toHaveBeenCalledWith(
+        expect.any(Object),
+        {
+          agingThresholdMinutes: 240,
+          status: "RECEIVED_AT_DEPOT",
+          zoneId: "zone-1",
+          agingOnly: false,
+          first: 20,
+          after: "0",
+        },
+      );
+      expect(result.totalCount).toBe(2);
+      expect(result.nodes[0].zoneName).toBe("North Zone");
+    });
+  });
 });

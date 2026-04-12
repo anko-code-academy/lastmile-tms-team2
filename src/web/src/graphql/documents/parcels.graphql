@@ -307,6 +307,62 @@ query GetParcelByTrackingNumber($trackingNumber: String!) {
   }
 }
 
+query GetDepotParcelInventory($agingThresholdMinutes: Int!) {
+  depotParcelInventory(agingThresholdMinutes: $agingThresholdMinutes) {
+    depotId
+    depotName
+    generatedAt
+    statusCounts {
+      status
+      count
+    }
+    zoneCounts {
+      zoneId
+      zoneName
+      count
+    }
+    agingAlert {
+      thresholdMinutes
+      count
+    }
+  }
+}
+
+query GetDepotParcelInventoryParcels(
+  $agingThresholdMinutes: Int!
+  $status: ParcelStatus
+  $zoneId: UUID
+  $agingOnly: Boolean!
+  $first: Int!
+  $after: String
+) {
+  depotParcelInventoryParcels(
+    agingThresholdMinutes: $agingThresholdMinutes
+    status: $status
+    zoneId: $zoneId
+    agingOnly: $agingOnly
+    first: $first
+    after: $after
+  ) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    nodes {
+      id
+      trackingNumber
+      status
+      zoneId
+      zoneName
+      ageMinutes
+      lastUpdatedAt
+    }
+  }
+}
+
 mutation RegisterParcel($input: RegisterParcelInput!) {
   registerParcel(input: $input) {
     id
