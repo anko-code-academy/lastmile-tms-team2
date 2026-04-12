@@ -101,3 +101,10 @@ public sealed class CompleteLoadOutInput
     public Guid RouteId { get; set; }
     public bool Force { get; set; }
 }
+
+public sealed class ConfirmParcelSortInput
+{
+    public Guid ParcelId { get; set; }
+
+    public Guid BinLocationId { get; set; }
+}

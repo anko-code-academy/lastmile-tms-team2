@@ -2,12 +2,15 @@ fragment RouteSummaryFields on Route {
   id
   zoneId
   zoneName
+  depotName
+  depotAddressLine
   vehicleId
   vehiclePlate
   driverId
   driverName
   stagingArea
   startDate
+  dispatchedAt
   endDate
   startMileage
   endMileage
@@ -85,6 +88,44 @@ query GetRoutesMap($where: RouteFilterInput, $order: [RouteSortInput!]) {
 
 query GetRoute($id: UUID!) {
   route(id: $id) {
+    ...RouteSummaryFields
+    depotId
+    depotName
+    depotAddressLine
+    depotLongitude
+    depotLatitude
+    path {
+      longitude
+      latitude
+    }
+    stops {
+      ...RouteStopFields
+    }
+    assignmentAuditTrail {
+      id
+      action
+      previousDriverId
+      previousDriverName
+      newDriverId
+      newDriverName
+      previousVehicleId
+      previousVehiclePlate
+      newVehicleId
+      newVehiclePlate
+      changedAt
+      changedBy
+    }
+  }
+}
+
+query GetMyRoutes {
+  myRoutes(order: [{ startDate: ASC }]) {
+    ...RouteSummaryFields
+  }
+}
+
+query GetMyRoute($id: UUID!) {
+  myRoute(id: $id) {
     ...RouteSummaryFields
     depotId
     depotName

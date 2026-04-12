@@ -55,7 +55,7 @@ public sealed class CancelRouteCommandHandler(
         route.LastModifiedBy = actor;
 
         var revertedParcels = route.Parcels
-            .Where(parcel => parcel.Status is ParcelStatus.Staged or ParcelStatus.Loaded)
+            .Where(parcel => parcel.Status is ParcelStatus.Staged or ParcelStatus.Loaded or ParcelStatus.OutForDelivery)
             .ToList();
 
         foreach (var parcel in revertedParcels)

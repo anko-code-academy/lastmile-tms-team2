@@ -215,6 +215,21 @@ Does not contain:
 - GraphQL types
 - Mapperly mappers
 
+#### Parcel Status Graph
+
+```text
+Registered ──► ReceivedAtDepot ──► Sorted ──► Staged ──► Loaded ──► OutForDelivery ──► Delivered
+    │                │                 │          │          │            │
+    │                │                 │          │          │            └──► FailedDelivery ──► OutForDelivery
+    │                │                 │          │          │
+    │                └─────────────────┴──────────┴──────────┴──► Exception
+    │                                                     (on hold / unsortable)
+    └──► Exception
+    └──► Cancelled
+```
+
+The `Exception` state is reachable from `Registered` and from every post-receive status through `Loaded`. It covers unsortable parcels (bad address, hold, configuration gaps) and is available from the warehouse sort station for both pre-receive and post-receive parcels.
+
 ### `LastMile.TMS.Infrastructure`
 Adapters for external or runtime concerns.
 

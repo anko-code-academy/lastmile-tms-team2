@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using NetTopologySuite.Geometries;
 
@@ -109,6 +109,19 @@ namespace LastMile.TMS.Persistence.Migrations
                 table: "RouteStops",
                 columns: new[] { "RouteId", "Sequence" },
                 unique: true);
+
+            // Default ZoneId was Guid.Empty; existing routes must point at a real zone before FK is added.
+            migrationBuilder.Sql(
+                """
+                UPDATE "Routes" r
+                SET "ZoneId" = d."ZoneId"
+                FROM "Drivers" d
+                WHERE r."DriverId" = d."Id";
+
+                UPDATE "Routes"
+                SET "ZoneId" = (SELECT z."Id" FROM "Zones" AS z ORDER BY z."Id" LIMIT 1)
+                WHERE "ZoneId" = '00000000-0000-0000-0000-000000000000';
+                """);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Routes_Zones_ZoneId",

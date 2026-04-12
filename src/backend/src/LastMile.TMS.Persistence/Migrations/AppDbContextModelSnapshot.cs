@@ -1175,6 +1175,9 @@ namespace LastMile.TMS.Persistence.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
+                    b.Property<DateTimeOffset?>("DispatchedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("DriverId")
                         .HasColumnType("uuid");
 

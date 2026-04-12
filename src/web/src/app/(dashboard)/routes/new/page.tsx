@@ -1,5 +1,19 @@
+import { redirect } from "next/navigation";
 import RouteCreatePage from "@/components/routes/route-create-page";
+import { auth } from "@/lib/auth";
+import { canManageRoutes, isDriver } from "@/lib/routes/access";
 
-export default function Page() {
+export default async function Page() {
+  const session = await auth();
+  const roles = session?.user.roles;
+
+  if (isDriver(roles) && !canManageRoutes(roles)) {
+    redirect("/routes/my");
+  }
+
+  if (!canManageRoutes(roles)) {
+    redirect("/dashboard");
+  }
+
   return <RouteCreatePage />;
 }

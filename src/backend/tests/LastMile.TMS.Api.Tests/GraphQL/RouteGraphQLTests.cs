@@ -110,14 +110,112 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
     }
 
     [Fact]
-    public async Task StartRoute_OnDispatchedRoute_TransitionsAssignedParcelsToOutForDeliveryAndKeepsZone()
+    public async Task DispatchRoute_OnReadyDraftRoute_TransitionsAssignedParcelsToOutForDeliveryAndRecordsDispatchedAt()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var zoneId = await SeedZoneAsync($"Dispatch Zone {Guid.NewGuid():N}"[..22]);
+        var parcelId = await SeedParcelAsync(
+            zoneId,
+            $"LMDISP{Guid.NewGuid():N}"[..15].ToUpperInvariant(),
+            ParcelStatus.Loaded);
+        var routeId = await SeedRouteAsync(
+            DbSeeder.TestVehicleId,
+            DbSeeder.TestDriverId,
+            RouteStatus.Draft,
+            StagingArea.A,
+            startMileage: 100,
+            startDate: DateTimeOffset.UtcNow.AddHours(2),
+            parcelIds: [parcelId]);
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation DispatchRoute($id: UUID!) {
+              dispatchRoute(id: $id) {
+                id
+                status
+                updatedAt
+                dispatchedAt
+              }
+            }
+            """,
+            new
+            {
+                id = routeId,
+            },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out _)
+            .Should()
+            .BeFalse(document.RootElement.GetRawText());
+
+        var route = document.RootElement
+            .GetProperty("data")
+            .GetProperty("dispatchRoute");
+
+        route.GetProperty("id").GetString().Should().Be(routeId.ToString());
+        route.GetProperty("status").GetString().Should().Be("DISPATCHED");
+        route.GetProperty("updatedAt").GetString().Should().NotBeNullOrWhiteSpace();
+        route.GetProperty("dispatchedAt").GetString().Should().NotBeNullOrWhiteSpace();
+
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var parcel = await dbContext.Parcels
+            .Include(candidate => candidate.ChangeHistory)
+            .SingleAsync(candidate => candidate.Id == parcelId);
+        var persistedRoute = await dbContext.Routes.SingleAsync(candidate => candidate.Id == routeId);
+
+        persistedRoute.Status.Should().Be(RouteStatus.Dispatched);
+        persistedRoute.DispatchedAt.Should().NotBeNull();
+        parcel.Status.Should().Be(ParcelStatus.OutForDelivery);
+        parcel.ZoneId.Should().Be(zoneId);
+        parcel.ChangeHistory.Should().Contain(entry =>
+            entry.FieldName == "Status"
+            && entry.BeforeValue == "Loaded"
+            && entry.AfterValue == "Out For Delivery");
+    }
+
+    [Fact]
+    public async Task DispatchRoute_WithUnloadedParcel_ReturnsError()
+    {
+        var token = await GetAdminAccessTokenAsync();
+        var parcelId = await SeedParcelAsync(
+            DbSeeder.TestZoneId,
+            $"LMBLOCK{Guid.NewGuid():N}"[..15].ToUpperInvariant(),
+            ParcelStatus.Staged);
+        var routeId = await SeedRouteAsync(
+            DbSeeder.TestVehicleId,
+            DbSeeder.TestDriverId,
+            RouteStatus.Draft,
+            StagingArea.A,
+            startMileage: 100,
+            startDate: DateTimeOffset.UtcNow.AddHours(2),
+            parcelIds: [parcelId]);
+
+        using var document = await PostGraphQLAsync(
+            """
+            mutation DispatchRoute($id: UUID!) {
+              dispatchRoute(id: $id) {
+                id
+              }
+            }
+            """,
+            new { id = routeId },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out var errors).Should().BeTrue();
+        errors[0].GetProperty("message").GetString().Should().Contain("must be loaded");
+    }
+
+    [Fact]
+    public async Task StartRoute_OnDispatchedRoute_TransitionsOnlyRouteStatusAndKeepsParcelsUntouched()
     {
         var token = await GetAdminAccessTokenAsync();
         var zoneId = await SeedZoneAsync($"Lifecycle Zone {Guid.NewGuid():N}"[..24]);
         var parcelId = await SeedParcelAsync(
             zoneId,
             $"LMSTART{Guid.NewGuid():N}"[..15].ToUpperInvariant(),
-            ParcelStatus.Sorted);
+            ParcelStatus.OutForDelivery);
         var routeId = await SeedRouteAsync(
             DbSeeder.TestVehicleId,
             DbSeeder.TestDriverId,
@@ -165,18 +263,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
 
         parcel.Status.Should().Be(ParcelStatus.OutForDelivery);
         parcel.ZoneId.Should().Be(zoneId);
-        parcel.ChangeHistory.Should().Contain(entry =>
-            entry.FieldName == "Status"
-            && entry.BeforeValue == "Sorted"
-            && entry.AfterValue == "Staged");
-        parcel.ChangeHistory.Should().Contain(entry =>
-            entry.FieldName == "Status"
-            && entry.BeforeValue == "Staged"
-            && entry.AfterValue == "Loaded");
-        parcel.ChangeHistory.Should().Contain(entry =>
-            entry.FieldName == "Status"
-            && entry.BeforeValue == "Loaded"
-            && entry.AfterValue == "Out For Delivery");
+        parcel.ChangeHistory.Should().BeEmpty();
     }
 
     [Fact]
@@ -971,7 +1058,7 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         var stagedParcelId = await SeedParcelAsync(
             DbSeeder.TestZoneId,
             $"LMCAN{Guid.NewGuid():N}"[..14].ToUpperInvariant(),
-            ParcelStatus.Loaded);
+            ParcelStatus.OutForDelivery);
         var routeId = await SeedRouteAsync(
             DbSeeder.TestVehicleId,
             DbSeeder.TestDriverId,
@@ -1033,10 +1120,108 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
         parcel.Status.Should().Be(ParcelStatus.Sorted);
         parcel.ChangeHistory.Should().Contain(entry =>
             entry.FieldName == "Status"
-            && entry.BeforeValue == "Loaded"
+            && entry.BeforeValue == "Out For Delivery"
             && entry.AfterValue == "Sorted");
         parcel.TrackingEvents.Should().Contain(entry =>
             entry.Description.Contains("Depot closed because of weather"));
+    }
+
+    [Fact]
+    public async Task Routes_WithDriverToken_ReturnsAuthorizationError()
+    {
+        var token = await GetAccessTokenAsync("driver.test@lastmile.local", "Driver@12345");
+
+        using var document = await PostGraphQLAsync(
+            """
+            query {
+              routes {
+                id
+              }
+            }
+            """,
+            accessToken: token);
+
+        document.RootElement.TryGetProperty("errors", out var errors).Should().BeTrue();
+        errors[0].GetProperty("message").GetString().Should().Contain("authorized");
+    }
+
+    [Fact]
+    public async Task MyRoutes_WithDriverToken_ReturnsOnlyAssignedRoutes()
+    {
+        var token = await GetAccessTokenAsync("driver.test@lastmile.local", "Driver@12345");
+        var assignedRouteId = await SeedRouteAsync(
+            DbSeeder.TestVehicleId,
+            DbSeeder.TestDriverId,
+            RouteStatus.Dispatched,
+            StagingArea.A,
+            startMileage: 100,
+            startDate: DateTimeOffset.UtcNow.AddHours(1));
+        await SeedRouteAsync(
+            DbSeeder.TestVehicleId,
+            DbSeeder.TestDriver2Id,
+            RouteStatus.Dispatched,
+            StagingArea.B,
+            startMileage: 120,
+            startDate: DateTimeOffset.UtcNow.AddHours(2));
+
+        using var document = await PostGraphQLAsync(
+            """
+            query {
+              myRoutes(order: [{ startDate: ASC }]) {
+                id
+                driverId
+                status
+                dispatchedAt
+              }
+            }
+            """,
+            accessToken: token);
+
+        document.RootElement.TryGetProperty("errors", out _).Should().BeFalse(document.RootElement.GetRawText());
+
+        var routes = document.RootElement
+            .GetProperty("data")
+            .GetProperty("myRoutes")
+            .EnumerateArray()
+            .ToList();
+
+        routes.Should().Contain(route => route.GetProperty("id").GetString() == assignedRouteId.ToString());
+        routes.Should().OnlyContain(route => route.GetProperty("driverId").GetString() == DbSeeder.TestDriverId.ToString());
+        routes.Should().Contain(route =>
+            route.GetProperty("id").GetString() == assignedRouteId.ToString()
+            && route.GetProperty("dispatchedAt").ValueKind == JsonValueKind.String);
+    }
+
+    [Fact]
+    public async Task MyRoute_WithDriverToken_DoesNotReturnOtherDriversRoute()
+    {
+        var token = await GetAccessTokenAsync("driver.test@lastmile.local", "Driver@12345");
+        var otherRouteId = await SeedRouteAsync(
+            DbSeeder.TestVehicleId,
+            DbSeeder.TestDriver2Id,
+            RouteStatus.Draft,
+            StagingArea.A,
+            startMileage: 100,
+            startDate: DateTimeOffset.UtcNow.AddHours(3));
+
+        using var document = await PostGraphQLAsync(
+            """
+            query MyRoute($id: UUID!) {
+              myRoute(id: $id) {
+                id
+              }
+            }
+            """,
+            new { id = otherRouteId },
+            token);
+
+        document.RootElement.TryGetProperty("errors", out _).Should().BeFalse(document.RootElement.GetRawText());
+        document.RootElement
+            .GetProperty("data")
+            .GetProperty("myRoute")
+            .ValueKind
+            .Should()
+            .Be(JsonValueKind.Null);
     }
 
     [Fact]
@@ -1192,6 +1377,9 @@ public class RouteGraphQLTests : GraphQLTestBase, IAsyncLifetime
             VehicleId = vehicleId,
             DriverId = driverId,
             StartDate = startDate ?? DateTimeOffset.UtcNow.AddHours(-2),
+            DispatchedAt = status is RouteStatus.Dispatched or RouteStatus.InProgress or RouteStatus.Completed
+                ? (startDate ?? DateTimeOffset.UtcNow.AddHours(-2)).AddMinutes(-20)
+                : null,
             EndDate = status == RouteStatus.Completed
                 ? (startDate ?? DateTimeOffset.UtcNow.AddHours(-2)).AddHours(1)
                 : null,

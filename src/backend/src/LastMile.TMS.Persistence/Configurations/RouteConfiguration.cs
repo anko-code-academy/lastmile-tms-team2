@@ -15,6 +15,8 @@ public class RouteConfiguration : IEntityTypeConfiguration<Route>
         builder.Property(x => x.StartDate)
             .IsRequired();
 
+        builder.Property(x => x.DispatchedAt);
+
         builder.Property(x => x.Status)
             .IsRequired();
 

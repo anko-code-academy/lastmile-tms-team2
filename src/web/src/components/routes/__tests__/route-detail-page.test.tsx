@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import RouteDetailPage from "@/components/routes/route-detail-page";
 
@@ -10,11 +10,15 @@ const {
   mockDispatchRoute,
   mockStartRoute,
   mockCompleteRoute,
+  mockUseRoute,
+  mockUseMyRoute,
 } = vi.hoisted(() => ({
   mockCancelRoute: vi.fn(),
   mockDispatchRoute: vi.fn(),
   mockStartRoute: vi.fn(),
   mockCompleteRoute: vi.fn(),
+  mockUseRoute: vi.fn(),
+  mockUseMyRoute: vi.fn(),
 }));
 
 vi.mock("next-auth/react", () => ({
@@ -29,90 +33,8 @@ vi.mock("@/components/routes/route-map", () => ({
 }));
 
 vi.mock("@/queries/routes", () => ({
-  useRoute: () => ({
-    data: {
-      id: "route-1",
-      zoneId: "zone-1",
-      zoneName: "Zone A",
-      vehicleId: "vehicle-1",
-      vehiclePlate: "TRUCK-101",
-      driverId: "driver-1",
-      driverName: "Jamie Parker",
-      stagingArea: "A",
-      startDate: "2026-04-09T08:00:00Z",
-      endDate: null,
-      startMileage: 120,
-      endMileage: 0,
-      totalMileage: 0,
-      status: "DRAFT",
-      parcelCount: 3,
-      parcelsDelivered: 0,
-      estimatedStopCount: 2,
-      plannedDistanceMeters: 14000,
-      plannedDurationSeconds: 2400,
-      depotName: "Test Depot",
-      depotAddressLine: "1 Depot Street",
-      depotLongitude: 151.2093,
-      depotLatitude: -33.8688,
-      path: [
-        { longitude: 151.2093, latitude: -33.8688 },
-        { longitude: 151.215, latitude: -33.872 },
-      ],
-      stops: [
-        {
-          id: "stop-1",
-          sequence: 1,
-          recipientLabel: "Recipient One",
-          addressLine: "20 Recipient Road",
-          longitude: 151.215,
-          latitude: -33.872,
-          parcels: [
-            {
-              parcelId: "parcel-1",
-              trackingNumber: "LMSTAGEWEB0001",
-              recipientLabel: "Recipient One",
-              addressLine: "20 Recipient Road",
-            },
-          ],
-        },
-      ],
-      createdAt: "2026-04-08T08:00:00Z",
-      updatedAt: "2026-04-09T07:30:00Z",
-      cancellationReason: null,
-      assignmentAuditTrail: [
-        {
-          id: "audit-1",
-          action: "ASSIGNED",
-          previousDriverId: null,
-          previousDriverName: null,
-          newDriverId: "driver-1",
-          newDriverName: "Jamie Parker",
-          previousVehicleId: null,
-          previousVehiclePlate: null,
-          newVehicleId: "vehicle-1",
-          newVehiclePlate: "TRUCK-101",
-          changedAt: "2026-04-08T08:00:00Z",
-          changedBy: "Dispatch User",
-        },
-        {
-          id: "audit-2",
-          action: "REASSIGNED",
-          previousDriverId: "driver-1",
-          previousDriverName: "Jamie Parker",
-          newDriverId: "driver-2",
-          newDriverName: "Alex Nguyen",
-          previousVehicleId: "vehicle-1",
-          previousVehiclePlate: "TRUCK-101",
-          newVehicleId: "vehicle-2",
-          newVehiclePlate: "TRUCK-202",
-          changedAt: "2026-04-09T07:30:00Z",
-          changedBy: "Dispatch User",
-        },
-      ],
-    },
-    isLoading: false,
-    error: null,
-  }),
+  useRoute: (...args: unknown[]) => mockUseRoute(...args),
+  useMyRoute: (...args: unknown[]) => mockUseMyRoute(...args),
   useCancelRoute: () => ({
     mutateAsync: mockCancelRoute,
     isPending: false,
@@ -131,7 +53,107 @@ vi.mock("@/queries/routes", () => ({
   }),
 }));
 
+const baseRoute = {
+  id: "route-1",
+  zoneId: "zone-1",
+  zoneName: "Zone A",
+  vehicleId: "vehicle-1",
+  vehiclePlate: "TRUCK-101",
+  driverId: "driver-1",
+  driverName: "Jamie Parker",
+  stagingArea: "A",
+  startDate: "2026-04-09T08:00:00Z",
+  dispatchedAt: null,
+  endDate: null,
+  startMileage: 120,
+  endMileage: 0,
+  totalMileage: 0,
+  status: "DRAFT",
+  parcelCount: 3,
+  parcelsDelivered: 0,
+  estimatedStopCount: 2,
+  plannedDistanceMeters: 14000,
+  plannedDurationSeconds: 2400,
+  depotName: "Test Depot",
+  depotAddressLine: "1 Depot Street",
+  depotLongitude: 151.2093,
+  depotLatitude: -33.8688,
+  path: [
+    { longitude: 151.2093, latitude: -33.8688 },
+    { longitude: 151.215, latitude: -33.872 },
+  ],
+  stops: [
+    {
+      id: "stop-1",
+      sequence: 1,
+      recipientLabel: "Recipient One",
+      addressLine: "20 Recipient Road",
+      longitude: 151.215,
+      latitude: -33.872,
+      parcels: [
+        {
+          parcelId: "parcel-1",
+          trackingNumber: "LMSTAGEWEB0001",
+          recipientLabel: "Recipient One",
+          addressLine: "20 Recipient Road",
+        },
+      ],
+    },
+  ],
+  createdAt: "2026-04-08T08:00:00Z",
+  updatedAt: "2026-04-09T07:30:00Z",
+  cancellationReason: null,
+  assignmentAuditTrail: [
+    {
+      id: "audit-1",
+      action: "ASSIGNED",
+      previousDriverId: null,
+      previousDriverName: null,
+      newDriverId: "driver-1",
+      newDriverName: "Jamie Parker",
+      previousVehicleId: null,
+      previousVehiclePlate: null,
+      newVehicleId: "vehicle-1",
+      newVehiclePlate: "TRUCK-101",
+      changedAt: "2026-04-08T08:00:00Z",
+      changedBy: "Dispatch User",
+    },
+    {
+      id: "audit-2",
+      action: "REASSIGNED",
+      previousDriverId: "driver-1",
+      previousDriverName: "Jamie Parker",
+      newDriverId: "driver-2",
+      newDriverName: "Alex Nguyen",
+      previousVehicleId: "vehicle-1",
+      previousVehiclePlate: "TRUCK-101",
+      newVehicleId: "vehicle-2",
+      newVehiclePlate: "TRUCK-202",
+      changedAt: "2026-04-09T07:30:00Z",
+      changedBy: "Dispatch User",
+    },
+  ],
+};
+
 describe("route-detail-page", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseRoute.mockReturnValue({
+      data: baseRoute,
+      isLoading: false,
+      error: null,
+    });
+    mockUseMyRoute.mockReturnValue({
+      data: {
+        ...baseRoute,
+        status: "DISPATCHED",
+        dispatchedAt: "2026-04-09T07:45:00Z",
+      },
+      isLoading: false,
+      error: null,
+    });
+  });
+
   it("renders the assignment audit panel and draft edit action", async () => {
     mockCancelRoute.mockResolvedValue(undefined);
 
@@ -187,5 +209,35 @@ describe("route-detail-page", () => {
       id: "route-1",
       data: { reason: "Weather closure" },
     });
+  });
+
+  it("renders a read-only driver view with schedule messaging", async () => {
+    await act(async () => {
+      render(
+        <Suspense fallback={null}>
+          <RouteDetailPage
+            params={Promise.resolve({ id: "route-1" })}
+            mode="driver"
+          />
+        </Suspense>,
+      );
+    });
+
+    expect(screen.getByText(/driver message/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /^ready to leave$/i }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /my schedule/i })[0]).toHaveAttribute(
+      "href",
+      "/routes/my",
+    );
+    expect(screen.queryByRole("link", { name: /edit assignment/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /dispatch/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /start route/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /cancel route/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /open vehicle/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /assignment audit/i }),
+    ).not.toBeInTheDocument();
   });
 });

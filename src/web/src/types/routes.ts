@@ -67,6 +67,7 @@ export type Route = Omit<
   | "vehiclePlate"
   | "driverName"
   | "endDate"
+  | "dispatchedAt"
   | "updatedAt"
   | "cancellationReason"
   | "path"
@@ -81,6 +82,7 @@ export type Route = Omit<
   depotLatitude: number | null;
   vehiclePlate: string;
   driverName: string;
+  dispatchedAt: string | null;
   endDate: string | null;
   updatedAt: string | null;
   cancellationReason: string | null;

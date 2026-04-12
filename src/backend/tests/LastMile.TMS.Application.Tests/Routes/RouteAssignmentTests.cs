@@ -412,6 +412,9 @@ internal static class RouteAssignmentTestData
             VehicleId = vehicle.Id,
             DriverId = driver.Id,
             StartDate = startDate,
+            DispatchedAt = status is RouteStatus.Dispatched or RouteStatus.InProgress or RouteStatus.Completed
+                ? startDate.AddMinutes(-20)
+                : null,
             StartMileage = 100,
             EndMileage = status == RouteStatus.Completed ? 160 : 0,
             Status = status,

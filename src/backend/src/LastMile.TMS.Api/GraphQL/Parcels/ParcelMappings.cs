@@ -42,5 +42,8 @@ public static partial class ParcelInputMapper
         this CompleteLoadOutInput input)
         => new(input.RouteId, input.Force);
 
+    public static ConfirmParcelSortCommand ToDto(this ConfirmParcelSortInput input) =>
+        new(input.ParcelId, input.BinLocationId);
+
     private static DateTime DateTimeOffsetToUtc(DateTimeOffset value) => value.UtcDateTime;
 }

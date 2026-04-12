@@ -16,6 +16,8 @@ public sealed class DispatchRouteCommandHandler(
     public async Task<Route?> Handle(DispatchRouteCommand request, CancellationToken cancellationToken)
     {
         var route = await dbContext.Routes
+            .Include(candidate => candidate.Vehicle)
+            .Include(candidate => candidate.Driver)
             .Include(candidate => candidate.Parcels)
             .ThenInclude(parcel => parcel.TrackingEvents)
             .Include(candidate => candidate.Parcels)
@@ -32,26 +34,64 @@ public sealed class DispatchRouteCommandHandler(
             throw new InvalidOperationException("Only draft routes can be dispatched.");
         }
 
+        var hasAssignedDriver = route.DriverId != Guid.Empty
+            && await dbContext.Drivers
+                .AsNoTracking()
+                .AnyAsync(candidate => candidate.Id == route.DriverId, cancellationToken);
+
+        if (!hasAssignedDriver)
+        {
+            throw new InvalidOperationException("A driver must be assigned before dispatch.");
+        }
+
+        var hasAssignedVehicle = route.VehicleId != Guid.Empty
+            && await dbContext.Vehicles
+                .AsNoTracking()
+                .AnyAsync(candidate => candidate.Id == route.VehicleId, cancellationToken);
+
+        if (!hasAssignedVehicle)
+        {
+            throw new InvalidOperationException("A vehicle must be assigned before dispatch.");
+        }
+
+        if (route.Parcels.Count == 0)
+        {
+            throw new InvalidOperationException("At least one parcel must be assigned before dispatch.");
+        }
+
+        var parcelsNotReady = route.Parcels
+            .Where(candidate => candidate.Status != ParcelStatus.Loaded)
+            .Select(candidate => candidate.TrackingNumber)
+            .ToList();
+
+        if (parcelsNotReady.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"All assigned parcels must be loaded before dispatch. Not ready: {string.Join(", ", parcelsNotReady)}");
+        }
+
         var now = DateTimeOffset.UtcNow;
         var actor = currentUser.UserName ?? currentUser.UserId ?? "System";
         var updatedParcels = new List<Parcel>();
+        var vehicleLocation = RouteParcelLifecycleSupport.GetVehicleLocation(route.Vehicle?.RegistrationPlate);
 
-        foreach (var parcel in route.Parcels.Where(candidate => candidate.Status == ParcelStatus.Sorted))
+        foreach (var parcel in route.Parcels.Where(candidate => candidate.Status == ParcelStatus.Loaded))
         {
             if (RouteParcelLifecycleSupport.TransitionStatus(
                 dbContext,
                 parcel,
-                ParcelStatus.Staged,
+                ParcelStatus.OutForDelivery,
                 now,
                 actor,
-                RouteParcelLifecycleSupport.GetStagingAreaLocation(route.StagingArea),
-                $"Prepared for route {route.Id} in staging area {route.StagingArea} when the route was dispatched."))
+                vehicleLocation,
+                $"Out for delivery on route {route.Id} after dispatch."))
             {
                 updatedParcels.Add(parcel);
             }
         }
 
         route.Status = RouteStatus.Dispatched;
+        route.DispatchedAt = now;
         route.LastModifiedAt = now;
         route.LastModifiedBy = actor;
 

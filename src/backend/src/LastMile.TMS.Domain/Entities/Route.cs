@@ -16,6 +16,7 @@ public class Route : BaseAuditableEntity
     public Driver Driver { get; set; } = null!;
 
     public DateTimeOffset StartDate { get; set; }
+    public DateTimeOffset? DispatchedAt { get; set; }
     public DateTimeOffset? EndDate { get; set; }
 
     public int StartMileage { get; set; }

@@ -11,6 +11,10 @@ import {
   UserCircle,
   Users,
 } from "lucide-react";
+import {
+  DRIVER_ROLE,
+  ROUTE_MANAGER_ROLES,
+} from "@/lib/routes/access";
 
 export type DashboardNavItem = {
   href: string;
@@ -25,8 +29,24 @@ export const dashboardNavItems: readonly DashboardNavItem[] = [
   { href: "/users", label: "Users", icon: Users, requiredRoles: ["Admin"] },
   { href: "/vehicles", label: "Vehicles", icon: Truck },
   { href: "/drivers", label: "Drivers", icon: UserCircle },
-  { href: "/routes", label: "Routes", icon: Route },
-  { href: "/dispatch-map", label: "Dispatch Map", icon: MapPinned },
+  {
+    href: "/routes",
+    label: "Routes",
+    icon: Route,
+    requiredRoles: [...ROUTE_MANAGER_ROLES],
+  },
+  {
+    href: "/routes/my",
+    label: "My Schedule",
+    icon: Route,
+    requiredRoles: [DRIVER_ROLE],
+  },
+  {
+    href: "/dispatch-map",
+    label: "Dispatch Map",
+    icon: MapPinned,
+    requiredRoles: [...ROUTE_MANAGER_ROLES],
+  },
   { href: "/zones", label: "Zones", icon: Map },
   { href: "/depots", label: "Depots", icon: Building2 },
   {
@@ -51,5 +71,10 @@ export function isDashboardNavActive(pathname: string, href: string): boolean {
   if (href === "/dashboard") {
     return pathname === "/dashboard";
   }
+
+  if (href === "/routes/my") {
+    return pathname === href || /^\/routes\/[^/]+$/.test(pathname);
+  }
+
   return pathname === href || pathname.startsWith(`${href}/`);
 }

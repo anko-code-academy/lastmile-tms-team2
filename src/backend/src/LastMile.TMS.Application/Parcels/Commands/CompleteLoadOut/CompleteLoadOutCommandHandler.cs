@@ -39,12 +39,12 @@ public sealed class CompleteLoadOutCommandHandler(
             };
         }
 
-        if (route.Status != RouteStatus.Dispatched)
+        if (route.Status != RouteStatus.Draft)
         {
             return new CompleteLoadOutResultDto
             {
                 Success = false,
-                Message = $"Route must be in Dispatched status to complete load-out. Current status: {route.Status}.",
+                Message = $"Route must be in Draft status to complete load-out. Current status: {route.Status}.",
                 Board = await RouteLoadOutSupport.LoadBoardAsync(db, route.Id, depotId, cancellationToken)
                         ?? new RouteLoadOutBoardDto(),
             };
@@ -59,7 +59,7 @@ public sealed class CompleteLoadOutCommandHandler(
             return new CompleteLoadOutResultDto
             {
                 Success = false,
-                Message = $"{skippedCount} of {totalCount} parcels have not been loaded. Force complete to proceed anyway.",
+                Message = $"{skippedCount} of {totalCount} parcels have not been loaded. Force complete to remove unloaded parcels from this route.",
                 LoadedCount = loadedCount,
                 SkippedCount = skippedCount,
                 TotalCount = totalCount,
@@ -71,12 +71,12 @@ public sealed class CompleteLoadOutCommandHandler(
         var now = DateTimeOffset.UtcNow;
         var actor = InboundReceivingSupport.GetActor(currentUser);
         var stagingLocation = RouteParcelLifecycleSupport.GetStagingAreaLocation(route.StagingArea);
-        var vehicleLocation = RouteParcelLifecycleSupport.GetVehicleLocation(route.Vehicle?.RegistrationPlate);
         var updatedParcels = new List<Parcel>();
+        var skippedParcels = route.Parcels.Where(candidate => candidate.Status == ParcelStatus.Staged).ToList();
 
         if (request.Force)
         {
-            foreach (var parcel in route.Parcels.Where(candidate => candidate.Status == ParcelStatus.Staged))
+            foreach (var parcel in skippedParcels)
             {
                 if (RouteParcelLifecycleSupport.TransitionStatus(
                     db,
@@ -89,24 +89,11 @@ public sealed class CompleteLoadOutCommandHandler(
                 {
                     updatedParcels.Add(parcel);
                 }
+
+                route.Parcels.Remove(parcel);
             }
         }
 
-        foreach (var parcel in route.Parcels.Where(candidate => candidate.Status == ParcelStatus.Loaded))
-        {
-            if (RouteParcelLifecycleSupport.TransitionStatus(
-                db,
-                parcel,
-                ParcelStatus.OutForDelivery,
-                now,
-                actor,
-                vehicleLocation,
-                $"Out for delivery on route {route.Id}."))
-            {
-                updatedParcels.Add(parcel);
-            }
-        }
-        route.Status = RouteStatus.InProgress;
         route.LastModifiedAt = now;
         route.LastModifiedBy = actor;
 
@@ -125,7 +112,9 @@ public sealed class CompleteLoadOutCommandHandler(
         return new CompleteLoadOutResultDto
         {
             Success = true,
-            Message = "Load-out completed. Route is now in progress.",
+            Message = request.Force
+                ? "Load-out completed. Unloaded parcels were removed from the route, and the route is ready for dispatch."
+                : "Load-out completed. Route is ready for dispatch.",
             LoadedCount = loadedCount,
             SkippedCount = skippedCount,
             TotalCount = totalCount,

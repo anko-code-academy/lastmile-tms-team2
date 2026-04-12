@@ -68,7 +68,7 @@ public class RouteLoadOutQueryHandlerTests
     }
 
     [Fact]
-    public async Task GetLoadOutRoutes_OwnDepotWithDispatchedRouteAndParcels_ReturnsRoute()
+    public async Task GetLoadOutRoutes_OwnDepotWithDraftRouteAndParcels_ReturnsRoute()
     {
         await using var db = MakeDbContext();
         var fixture = await SeedFixtureAsync(db, depotId: null);
@@ -82,7 +82,7 @@ public class RouteLoadOutQueryHandlerTests
         result[0].Id.Should().Be(fixture.Route.Id);
         result[0].VehiclePlate.Should().Be(fixture.Vehicle.RegistrationPlate);
         result[0].DriverName.Should().Be($"{fixture.Driver.FirstName} {fixture.Driver.LastName}".Trim());
-        result[0].Status.Should().Be(RouteStatus.Dispatched);
+        result[0].Status.Should().Be(RouteStatus.Draft);
         result[0].ExpectedParcelCount.Should().Be(2);
         result[0].LoadedParcelCount.Should().Be(2);
         result[0].RemainingParcelCount.Should().Be(0);
@@ -162,7 +162,7 @@ public class RouteLoadOutQueryHandlerTests
         result!.Id.Should().Be(fixture.Route.Id);
         result.VehiclePlate.Should().Be(fixture.Vehicle.RegistrationPlate);
         result.DriverName.Should().Be($"{fixture.Driver.FirstName} {fixture.Driver.LastName}".Trim());
-        result.Status.Should().Be(RouteStatus.Dispatched);
+        result.Status.Should().Be(RouteStatus.Draft);
         result.ExpectedParcelCount.Should().Be(2);
         result.LoadedParcelCount.Should().Be(2);
         result.RemainingParcelCount.Should().Be(0);
@@ -317,7 +317,7 @@ public class RouteLoadOutQueryHandlerTests
             Driver = driver,
             StartDate = DateTimeOffset.UtcNow,
             StagingArea = StagingArea.A,
-            Status = RouteStatus.Dispatched,
+            Status = RouteStatus.Draft,
             Parcels = [parcel1, parcel2],
         };
 
@@ -485,7 +485,7 @@ public class RouteLoadOutQueryHandlerTests
             Driver = driver2,
             StartDate = DateTimeOffset.UtcNow,
             StagingArea = StagingArea.B,
-            Status = RouteStatus.Dispatched,
+            Status = RouteStatus.Draft,
             Parcels = [parcel1, parcel2],
         };
 

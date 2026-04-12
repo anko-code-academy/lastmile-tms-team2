@@ -45,7 +45,8 @@ public class Parcel : BaseAuditableEntity
 
     private static readonly Dictionary<ParcelStatus, ParcelStatus[]> ValidTransitions = new()
     {
-        [ParcelStatus.Registered] = [ParcelStatus.ReceivedAtDepot, ParcelStatus.Cancelled],
+        // Exception: depot operator may route unsortable pre-receive parcels (e.g. hold, data issues) to the exception area.
+        [ParcelStatus.Registered] = [ParcelStatus.ReceivedAtDepot, ParcelStatus.Exception, ParcelStatus.Cancelled],
         [ParcelStatus.ReceivedAtDepot] = [ParcelStatus.Sorted, ParcelStatus.Exception, ParcelStatus.Cancelled],
         [ParcelStatus.Sorted] = [ParcelStatus.Staged, ParcelStatus.Exception, ParcelStatus.Cancelled],
         [ParcelStatus.Staged] = [ParcelStatus.Loaded, ParcelStatus.Exception, ParcelStatus.Cancelled],
@@ -94,10 +95,12 @@ public class Parcel : BaseAuditableEntity
             return;
         }
 
-        if (Status != ParcelStatus.Staged && Status != ParcelStatus.Loaded)
+        if (Status != ParcelStatus.Staged
+            && Status != ParcelStatus.Loaded
+            && Status != ParcelStatus.OutForDelivery)
         {
             throw new InvalidOperationException(
-                $"Only staged or loaded parcels can be returned to sorted from a cancelled route. Current status: {Status}.");
+                $"Only staged, loaded, or out-for-delivery parcels can be returned to sorted from a cancelled route. Current status: {Status}.");
         }
 
         Status = ParcelStatus.Sorted;

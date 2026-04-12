@@ -4,6 +4,8 @@ import {
   COMPLETE_ROUTE,
   CREATE_ROUTE,
   DISPATCH_ROUTE,
+  GET_MY_ROUTE,
+  GET_MY_ROUTES,
   GET_ROUTE,
   GET_ROUTE_ASSIGNMENT_CANDIDATES,
   GET_ROUTE_PLAN_PREVIEW,
@@ -17,6 +19,8 @@ import type {
   CompleteRouteMutation,
   CreateRouteMutation,
   DispatchRouteMutation,
+  GetMyRouteQuery,
+  GetMyRoutesQuery,
   GetRouteAssignmentCandidatesQuery,
   GetRoutePlanPreviewQuery,
   GetRouteQuery,
@@ -51,6 +55,7 @@ function mapRouteSummary(
     | NonNullable<UpdateRouteAssignmentMutation["updateRouteAssignment"]>
     | NonNullable<CancelRouteMutation["cancelRoute"]>
     | NonNullable<DispatchRouteMutation["dispatchRoute"]>
+    | NonNullable<GetMyRoutesQuery["myRoutes"]>[number]
     | NonNullable<StartRouteMutation["startRoute"]>
     | NonNullable<CompleteRouteMutation["completeRoute"]>,
 ): Route {
@@ -59,8 +64,8 @@ function mapRouteSummary(
     zoneId: raw.zoneId,
     zoneName: raw.zoneName?.trim() || "Unknown zone",
     depotId: null,
-    depotName: null,
-    depotAddressLine: null,
+    depotName: raw.depotName?.trim() || null,
+    depotAddressLine: raw.depotAddressLine?.trim() || null,
     depotLongitude: null,
     depotLatitude: null,
     vehicleId: raw.vehicleId,
@@ -69,6 +74,7 @@ function mapRouteSummary(
     driverName: raw.driverName?.trim() || "Unknown driver",
     stagingArea: raw.stagingArea,
     startDate: raw.startDate,
+    dispatchedAt: raw.dispatchedAt ?? null,
     endDate: raw.endDate ?? null,
     startMileage: raw.startMileage,
     endMileage: raw.endMileage,
@@ -89,7 +95,9 @@ function mapRouteSummary(
   };
 }
 
-function mapRouteDetail(raw: NonNullable<GetRouteQuery["route"]>): Route {
+function mapRouteDetail(
+  raw: NonNullable<GetRouteQuery["route"]> | NonNullable<GetMyRouteQuery["myRoute"]>,
+): Route {
   return {
     ...mapRouteSummary(raw),
     depotId: raw.depotId ?? null,
@@ -159,6 +167,19 @@ export const routesService = {
     });
 
     return sortDispatchMapRoutes(data.routes.map(mapRouteForDispatchMap));
+  },
+
+  getMine: async (): Promise<Route[]> => {
+    const data = await graphqlRequest<GetMyRoutesQuery>(GET_MY_ROUTES);
+    return data.myRoutes.map(mapRouteSummary);
+  },
+
+  getMyById: async (id: string): Promise<Route> => {
+    const data = await graphqlRequest<GetMyRouteQuery>(GET_MY_ROUTE, { id });
+    if (!data.myRoute) {
+      throw new Error("Route not found");
+    }
+    return mapRouteDetail(data.myRoute);
   },
 
   create: async (data: CreateRouteRequest): Promise<Route> => {

@@ -286,6 +286,24 @@ public sealed class ParcelRouteOptionType : EntityObjectType<Parcel>
     }
 }
 
+public sealed class SortTargetBinType : ObjectType<SortTargetBinDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<SortTargetBinDto> descriptor)
+    {
+        descriptor.Name("SortTargetBin");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
+public sealed class ParcelSortInstructionType : ObjectType<ParcelSortInstructionDto>
+{
+    protected override void Configure(IObjectTypeDescriptor<ParcelSortInstructionDto> descriptor)
+    {
+        descriptor.Name("ParcelSortInstruction");
+        descriptor.BindFieldsImplicitly();
+    }
+}
+
 public sealed class TrackingEventType : ObjectType<TrackingEventDto>
 {
     protected override void Configure(IObjectTypeDescriptor<TrackingEventDto> descriptor)

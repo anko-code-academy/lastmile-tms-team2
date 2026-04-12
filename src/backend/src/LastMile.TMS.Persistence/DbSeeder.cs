@@ -1352,6 +1352,9 @@ public sealed class DbSeeder(
             route.VehicleId = seed.VehicleId;
             route.DriverId = seed.DriverId;
             route.StartDate = seed.StartDate;
+            route.DispatchedAt = seed.Status is RouteStatus.Dispatched or RouteStatus.InProgress or RouteStatus.Completed
+                ? seed.StartDate.AddMinutes(-20)
+                : null;
             route.EndDate = seed.Status == RouteStatus.Completed ? seed.StartDate.AddHours(5) : null;
             route.StartMileage = seed.StartMileage;
             route.EndMileage = seed.Status == RouteStatus.Completed ? seed.EndMileage : 0;

@@ -3,10 +3,12 @@ import { getSession } from "next-auth/react";
 import {
   CANCEL_PARCEL,
   CONFIRM_INBOUND_RECEIVING_SESSION,
+  CONFIRM_PARCEL_SORT,
   GET_INBOUND_RECEIVING_SESSION,
   GET_OPEN_INBOUND_MANIFESTS,
   GET_PARCEL_IMPORT,
   GET_PARCEL_IMPORTS,
+  GET_PARCEL_SORT_INSTRUCTION,
   GET_PARCEL_TRACKING_EVENTS,
   PARCEL,
   PARCEL_BY_TRACKING_NUMBER,
@@ -30,27 +32,29 @@ import {
 import type { ParcelFilterInput, ParcelSortInput } from "@/graphql/generated";
 import type {
   CancelParcelMutation,
-  GetRouteStagingBoardQuery,
+  ConfirmInboundReceivingSessionMutation,
+  ConfirmParcelSortMutation,
+  GetInboundReceivingSessionQuery,
+  GetOpenInboundManifestsQuery,
   GetParcelByTrackingNumberQuery,
   GetParcelImportQuery,
   GetParcelImportsQuery,
-  GetInboundReceivingSessionQuery,
-  GetOpenInboundManifestsQuery,
   GetParcelQuery,
+  GetParcelSortInstructionQuery,
   GetParcelsForRouteCreationQuery,
   GetParcelTrackingEventsQuery,
   GetPreLoadParcelsConnectionQuery,
   GetPreLoadParcelsQuery,
   GetRegisteredParcelsQuery,
+  GetRouteStagingBoardQuery,
   GetStagingRoutesQuery,
-  ConfirmInboundReceivingSessionMutation,
   ScanInboundParcelMutation,
-  StartInboundReceivingSessionMutation,
   StageParcelForRouteMutation,
   GetLoadOutRoutesQuery,
   GetRouteLoadOutBoardQuery,
   LoadParcelForRouteMutation,
   CompleteLoadOutMutation,
+  StartInboundReceivingSessionMutation,
   TransitionParcelStatusMutation,
   UpdateParcelMutation,
 } from "@/graphql/parcels";
@@ -965,6 +969,42 @@ export const parcelsService = {
     }>(GET_PARCEL_TRACKING_EVENTS, { parcelId });
 
     return data.parcelTrackingEvents as TrackingEvent[];
+  },
+
+  getParcelSortInstruction: async (
+    trackingNumber: string,
+    depotId?: string | null,
+  ): Promise<GetParcelSortInstructionQuery["parcelSortInstruction"]> => {
+    if (USE_MOCK) {
+      return null;
+    }
+
+    const data = await graphqlRequest<GetParcelSortInstructionQuery>(
+      GET_PARCEL_SORT_INSTRUCTION,
+      {
+        trackingNumber: trackingNumber.trim(),
+        depotId: depotId ?? null,
+      },
+    );
+
+    return data.parcelSortInstruction ?? null;
+  },
+
+  confirmParcelSort: async (
+    parcelId: string,
+    binLocationId: string,
+  ): Promise<RegisteredParcelResult> => {
+    if (USE_MOCK) {
+      throw new Error("Parcel sort is not available in mock mode.");
+    }
+
+    const data = await graphqlRequest<{
+      confirmParcelSort: ConfirmParcelSortMutation["confirmParcelSort"];
+    }>(CONFIRM_PARCEL_SORT, {
+      input: { parcelId, binLocationId },
+    });
+
+    return data.confirmParcelSort as RegisteredParcelResult;
   },
 
   transitionStatus: async (

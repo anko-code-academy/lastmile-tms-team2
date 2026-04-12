@@ -76,6 +76,14 @@ public sealed class ParcelQueries
         mediator.Send(new GetParcelImportQuery(id), cancellationToken);
 
     [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
+    public Task<ParcelSortInstructionDto?> GetParcelSortInstruction(
+        string trackingNumber,
+        Guid? depotId,
+        [Service] ISender mediator,
+        CancellationToken cancellationToken) =>
+        mediator.Send(new GetParcelSortInstructionQuery(trackingNumber, depotId), cancellationToken);
+
+    [Authorize(Roles = new[] { "OperationsManager", "Admin", "Dispatcher", "WarehouseOperator" })]
     public Task<IReadOnlyList<TrackingEventDto>> GetParcelTrackingEvents(
         Guid parcelId,
         [Service] IParcelReadService readService,
