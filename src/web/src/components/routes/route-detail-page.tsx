@@ -48,10 +48,12 @@ import {
   useCancelRoute,
   useCompleteRoute,
   useDispatchRoute,
+  useDriverRouteRealtimeUpdates,
   useMyRoute,
   useRoute,
   useStartRoute,
 } from "@/queries/routes";
+import { RouteAdjustmentBanner } from "./route-adjustment-banner";
 import { CancelRouteDialog } from "./cancel-route-dialog";
 import { CompleteRouteDialog } from "./complete-route-dialog";
 import { RouteMap } from "./route-map";
@@ -68,6 +70,10 @@ function formatCreatedAt(iso: string): string {
 
 function formatAuditActionLabel(action: "ASSIGNED" | "REASSIGNED") {
   return action === "ASSIGNED" ? "Initial assignment" : "Reassignment";
+}
+
+function formatParcelAdjustmentActionLabel(action: "ADDED" | "REMOVED") {
+  return action === "REMOVED" ? "Parcel removed" : "Parcel added";
 }
 
 function formatDistance(meters: number): string {
@@ -135,6 +141,7 @@ export default function RouteDetailPage({
   const routeQuery = useRoute(id, !isDriverMode);
   const myRouteQuery = useMyRoute(id, isDriverMode);
   const { data: route, isLoading, error } = isDriverMode ? myRouteQuery : routeQuery;
+  useDriverRouteRealtimeUpdates(isDriverMode);
 
   if (sessionStatus === "loading" || isLoading) {
     return <DetailPageSkeleton variant="route" />;
@@ -182,8 +189,13 @@ export default function RouteDetailPage({
     (left, right) =>
       new Date(right.changedAt).getTime() - new Date(left.changedAt).getTime(),
   );
+  const parcelAdjustmentAuditTrail = [...route.parcelAdjustmentAuditTrail].sort(
+    (left, right) =>
+      new Date(right.changedAt).getTime() - new Date(left.changedAt).getTime(),
+  );
 
   const canEditAssignment = !isDriverMode && route.status === "DRAFT";
+  const canAdjustStops = !isDriverMode && route.status === "DISPATCHED";
   const canDispatch = !isDriverMode && route.status === "DRAFT";
   const canCancel =
     !isDriverMode && (route.status === "DRAFT" || route.status === "DISPATCHED");
@@ -261,6 +273,15 @@ export default function RouteDetailPage({
                     Edit assignment
                   </Link>
                 ) : null}
+                {canAdjustStops ? (
+                  <Link
+                    href={`/routes/${id}/adjust`}
+                    className={cn(buttonVariants({ variant: "default", size: "sm" }))}
+                  >
+                    <PencilLine className="mr-2 size-4" aria-hidden />
+                    Adjust stops
+                  </Link>
+                ) : null}
                 {canDispatch ? (
                   <Button
                     size="sm"
@@ -320,6 +341,13 @@ export default function RouteDetailPage({
               </>
             }
           />
+
+          {route.latestParcelAdjustment ? (
+            <RouteAdjustmentBanner
+              adjustment={route.latestParcelAdjustment}
+              label={isDriverMode ? "Route update" : "Latest route change"}
+            />
+          ) : null}
 
           {routeNotice ? (
             <div
@@ -516,6 +544,61 @@ export default function RouteDetailPage({
               </div>
             </div>
           </DetailPanel>
+
+          {!isDriverMode && (route.status === "DISPATCHED" || parcelAdjustmentAuditTrail.length > 0) ? (
+            <DetailPanel
+              className="detail-panel-animate"
+              section="route"
+              title="Route change log"
+              description="Adds and removals applied after dispatch, including reason and timestamp."
+            >
+              {parcelAdjustmentAuditTrail.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No parcels have been added to or removed from this dispatched route.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {parcelAdjustmentAuditTrail.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="rounded-2xl border border-border/60 bg-background/60 p-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold">
+                            {formatParcelAdjustmentActionLabel(entry.action)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(entry.changedAt).toLocaleString()}
+                            {entry.changedBy ? ` | ${entry.changedBy}` : ""}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-900">
+                          {entry.trackingNumber}
+                        </span>
+                      </div>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Reason
+                          </p>
+                          <p className="mt-2 text-sm">{entry.reason}</p>
+                        </div>
+                        <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Stop sequence after change
+                          </p>
+                          <p className="mt-2 text-sm">
+                            {entry.affectedStopSequence ?? "Removed stop"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </DetailPanel>
+          ) : null}
 
           {!isDriverMode ? (
             <DetailPanel

@@ -24,8 +24,9 @@ import {
 } from "@/lib/labels/routes";
 import { getErrorMessage } from "@/lib/network/error-message";
 import { cn } from "@/lib/utils";
-import { useMyRoutes } from "@/queries/routes";
+import { useDriverRouteRealtimeUpdates, useMyRoutes } from "@/queries/routes";
 import type { Route } from "@/types/routes";
+import { RouteAdjustmentBanner } from "./route-adjustment-banner";
 
 function noticeToneClass(tone: DriverRouteNoticeTone): string {
   switch (tone) {
@@ -45,6 +46,7 @@ function sortByDeparture(left: Route, right: Route): number {
 }
 
 export default function DriverSchedulePage() {
+  useDriverRouteRealtimeUpdates();
   const { data = [], isLoading, error } = useMyRoutes();
 
   const routes = useMemo(
@@ -163,6 +165,13 @@ export default function DriverSchedulePage() {
                 </div>
 
                 <div className="space-y-5 px-6 py-5">
+                  {route.latestParcelAdjustment ? (
+                    <RouteAdjustmentBanner
+                      adjustment={route.latestParcelAdjustment}
+                      compact
+                    />
+                  ) : null}
+
                   <div
                     className={cn(
                       "rounded-2xl border px-4 py-3 shadow-sm",

@@ -35,6 +35,7 @@ vi.mock("@/components/routes/route-map", () => ({
 vi.mock("@/queries/routes", () => ({
   useRoute: (...args: unknown[]) => mockUseRoute(...args),
   useMyRoute: (...args: unknown[]) => mockUseMyRoute(...args),
+  useDriverRouteRealtimeUpdates: vi.fn(),
   useCancelRoute: () => ({
     mutateAsync: mockCancelRoute,
     isPending: false,
@@ -103,6 +104,7 @@ const baseRoute = {
   createdAt: "2026-04-08T08:00:00Z",
   updatedAt: "2026-04-09T07:30:00Z",
   cancellationReason: null,
+  latestParcelAdjustment: null,
   assignmentAuditTrail: [
     {
       id: "audit-1",
@@ -133,6 +135,7 @@ const baseRoute = {
       changedBy: "Dispatch User",
     },
   ],
+  parcelAdjustmentAuditTrail: [],
 };
 
 describe("route-detail-page", () => {
@@ -148,6 +151,28 @@ describe("route-detail-page", () => {
         ...baseRoute,
         status: "DISPATCHED",
         dispatchedAt: "2026-04-09T07:45:00Z",
+        latestParcelAdjustment: {
+          id: "adjustment-1",
+          action: "ADDED",
+          parcelId: "parcel-added",
+          trackingNumber: "LMADJUST0001",
+          reason: "Late staged handoff",
+          affectedStopSequence: 2,
+          changedAt: "2026-04-09T07:50:00Z",
+          changedBy: "Dispatch User",
+        },
+        parcelAdjustmentAuditTrail: [
+          {
+            id: "adjustment-1",
+            action: "ADDED",
+            parcelId: "parcel-added",
+            trackingNumber: "LMADJUST0001",
+            reason: "Late staged handoff",
+            affectedStopSequence: 2,
+            changedAt: "2026-04-09T07:50:00Z",
+            changedBy: "Dispatch User",
+          },
+        ],
       },
       isLoading: false,
       error: null,
@@ -224,6 +249,8 @@ describe("route-detail-page", () => {
     });
 
     expect(screen.getByText(/driver message/i)).toBeInTheDocument();
+    expect(screen.getByText(/route update/i)).toBeInTheDocument();
+    expect(screen.getByText(/late staged handoff/i)).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: /^ready to leave$/i }),
     ).toBeInTheDocument();
@@ -239,5 +266,29 @@ describe("route-detail-page", () => {
     expect(
       screen.queryByRole("heading", { name: /assignment audit/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the adjust stops action for dispatched dispatch views", async () => {
+    mockUseRoute.mockReturnValue({
+      data: {
+        ...baseRoute,
+        status: "DISPATCHED",
+        dispatchedAt: "2026-04-09T07:45:00Z",
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    await act(async () => {
+      render(
+        <Suspense fallback={null}>
+          <RouteDetailPage params={Promise.resolve({ id: "route-1" })} />
+        </Suspense>,
+      );
+    });
+
+    expect(
+      screen.getByRole("link", { name: /adjust stops/i }),
+    ).toHaveAttribute("href", "/routes/route-1/adjust");
   });
 });
